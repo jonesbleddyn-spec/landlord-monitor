@@ -19,30 +19,28 @@ import {
 
 export default function Home() {
   const navigate = useNavigate();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const { data: user } = useQuery({
     queryKey: ['user'],
-    queryFn: () => base44.auth.me(),
+    queryFn: async () => {
+      try {
+        return await base44.auth.me();
+      } catch {
+        return null;
+      }
+    },
   });
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const authed = await base44.auth.isAuthenticated();
-      setIsAuthenticated(authed);
-      
-      if (authed && user) {
-        // Redirect landlords to dashboard if they've completed onboarding
-        if (user.user_type === 'landlord' && user.onboarding_completed) {
-          navigate(createPageUrl("LandlordDashboard"));
-        }
-        // Redirect tenants to properties page
-        else if (user.user_type === 'tenant') {
-          navigate(createPageUrl("Properties"));
-        }
+    if (user && user.onboarding_completed) {
+      if (user.user_type === 'landlord') {
+        navigate(createPageUrl("LandlordDashboard"));
+      } else if (user.user_type === 'tenant') {
+        navigate(createPageUrl("Properties"));
       }
-    };
-    checkAuth();
+    } else if (user && !user.onboarding_completed) {
+      navigate(createPageUrl("Onboarding"));
+    }
   }, [user, navigate]);
 
   const features = [
@@ -114,33 +112,22 @@ export default function Home() {
                 Manage all your properties, tenants, and maintenance in one powerful platform.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                {!isAuthenticated ? (
-                  <>
-                    <Button 
-                      size="lg" 
-                      onClick={() => base44.auth.redirectToLogin(createPageUrl("Onboarding"))}
-                      className="bg-white text-purple-600 hover:bg-gray-100 text-lg px-8 py-6"
-                    >
-                      Start Free Trial
-                      <ArrowRight className="ml-2 w-5 h-5" />
-                    </Button>
-                    <Button 
-                      size="lg" 
-                      variant="outline" 
-                      onClick={() => base44.auth.redirectToLogin()}
-                      className="border-white text-white hover:bg-white/10 text-lg px-8 py-6"
-                    >
-                      Sign In
-                    </Button>
-                  </>
-                ) : (
-                  <Link to={createPageUrl(user?.user_type === 'landlord' ? "LandlordDashboard" : "Properties")}>
-                    <Button size="lg" className="bg-white text-purple-600 hover:bg-gray-100 text-lg px-8 py-6">
-                      Go to Dashboard
-                      <ArrowRight className="ml-2 w-5 h-5" />
-                    </Button>
-                  </Link>
-                )}
+                <Button 
+                  size="lg" 
+                  onClick={() => base44.auth.redirectToLogin(createPageUrl("Onboarding"))}
+                  className="bg-white text-purple-600 hover:bg-gray-100 text-lg px-8 py-6"
+                >
+                  Start Free Trial
+                  <ArrowRight className="ml-2 w-5 h-5" />
+                </Button>
+                <Button 
+                  size="lg" 
+                  variant="outline" 
+                  onClick={() => base44.auth.redirectToLogin()}
+                  className="border-white text-white hover:bg-white/10 text-lg px-8 py-6"
+                >
+                  Sign In
+                </Button>
               </div>
             </div>
 
@@ -245,38 +232,27 @@ export default function Home() {
             Join letting businesses and landlords who trust our platform. No credit card required.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            {!isAuthenticated ? (
-              <>
-                <Button 
-                  size="lg" 
-                  onClick={() => base44.auth.redirectToLogin(createPageUrl("Onboarding"))}
-                  className="bg-white text-purple-600 hover:bg-gray-100 text-lg px-8 py-6"
-                >
-                  Get Started Free
-                  <ArrowRight className="ml-2 w-5 h-5" />
-                </Button>
-                <Button 
-                  size="lg" 
-                  variant="outline" 
-                  className="border-white text-white hover:bg-white/10 text-lg px-8 py-6"
-                  onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                >
-                  Learn More
-                </Button>
-              </>
-            ) : (
-              <Link to={createPageUrl(user?.user_type === 'landlord' ? "LandlordDashboard" : "Properties")}>
-                <Button size="lg" className="bg-white text-purple-600 hover:bg-gray-100 text-lg px-8 py-6">
-                  Go to Dashboard
-                  <ArrowRight className="ml-2 w-5 h-5" />
-                </Button>
-              </Link>
-            )}
+            <Button 
+              size="lg" 
+              onClick={() => base44.auth.redirectToLogin(createPageUrl("Onboarding"))}
+              className="bg-white text-purple-600 hover:bg-gray-100 text-lg px-8 py-6"
+            >
+              Get Started Free
+              <ArrowRight className="ml-2 w-5 h-5" />
+            </Button>
+            <Button 
+              size="lg" 
+              variant="outline" 
+              className="border-white text-white hover:bg-white/10 text-lg px-8 py-6"
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            >
+              Learn More
+            </Button>
           </div>
         </div>
       </section>
 
-      <style jsx>{`
+      <style>{`
         @keyframes blob {
           0%, 100% { transform: translate(0, 0) scale(1); }
           33% { transform: translate(30px, -50px) scale(1.1); }
