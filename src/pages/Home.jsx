@@ -1,6 +1,8 @@
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { 
@@ -16,6 +18,33 @@ import {
 } from "lucide-react";
 
 export default function Home() {
+  const navigate = useNavigate();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const authed = await base44.auth.isAuthenticated();
+      setIsAuthenticated(authed);
+      
+      if (authed && user) {
+        // Redirect landlords to dashboard if they've completed onboarding
+        if (user.user_type === 'landlord' && user.onboarding_completed) {
+          navigate(createPageUrl("LandlordDashboard"));
+        }
+        // Redirect tenants to properties page
+        else if (user.user_type === 'tenant') {
+          navigate(createPageUrl("Properties"));
+        }
+      }
+    };
+    checkAuth();
+  }, [user, navigate]);
+
   const features = [
     {
       icon: Zap,
@@ -49,18 +78,18 @@ export default function Home() {
     },
     {
       icon: Shield,
-      title: "White Label Ready",
-      description: "Customize with your logo and brand colors. Seamlessly integrate with your systems.",
+      title: "Multi-Tenant SaaS",
+      description: "Complete data isolation. Each landlord manages their own properties independently.",
       color: "from-red-500 to-pink-500"
     }
   ];
 
   const benefits = [
     "Reduce maintenance response time by 50%",
-    "Track all faults with complete transparency",
+    "Complete data isolation for each landlord",
     "AI-powered image recognition for faster reporting",
-    "Centralized communication platform",
-    "Mobile-friendly for tenants and managers",
+    "Scalable SaaS platform for letting businesses",
+    "Mobile-friendly for landlords and tenants",
     "Comprehensive analytics and insights"
   ];
 
@@ -79,23 +108,39 @@ export default function Home() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="text-white">
               <h1 className="text-5xl md:text-6xl font-bold leading-tight mb-6">
-                Building Fault Management Software
+                Property Management SaaS for Landlords
               </h1>
               <p className="text-xl md:text-2xl mb-8 text-blue-100">
-                Connecting housing management teams with tenants and contractors.
+                Manage all your properties, tenants, and maintenance in one powerful platform.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Link to={createPageUrl("ReportFault")}>
-                  <Button size="lg" className="bg-white text-purple-600 hover:bg-gray-100 text-lg px-8 py-6">
-                    Report a Fault
-                    <ArrowRight className="ml-2 w-5 h-5" />
-                  </Button>
-                </Link>
-                <Link to={createPageUrl("Properties")}>
-                  <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10 text-lg px-8 py-6">
-                    View Properties
-                  </Button>
-                </Link>
+                {!isAuthenticated ? (
+                  <>
+                    <Button 
+                      size="lg" 
+                      onClick={() => base44.auth.redirectToLogin(createPageUrl("Onboarding"))}
+                      className="bg-white text-purple-600 hover:bg-gray-100 text-lg px-8 py-6"
+                    >
+                      Start Free Trial
+                      <ArrowRight className="ml-2 w-5 h-5" />
+                    </Button>
+                    <Button 
+                      size="lg" 
+                      variant="outline" 
+                      onClick={() => base44.auth.redirectToLogin()}
+                      className="border-white text-white hover:bg-white/10 text-lg px-8 py-6"
+                    >
+                      Sign In
+                    </Button>
+                  </>
+                ) : (
+                  <Link to={createPageUrl(user?.user_type === 'landlord' ? "LandlordDashboard" : "Properties")}>
+                    <Button size="lg" className="bg-white text-purple-600 hover:bg-gray-100 text-lg px-8 py-6">
+                      Go to Dashboard
+                      <ArrowRight className="ml-2 w-5 h-5" />
+                    </Button>
+                  </Link>
+                )}
               </div>
             </div>
 
@@ -112,8 +157,8 @@ export default function Home() {
                       <CheckCircle className="w-6 h-6 text-white" />
                     </div>
                     <div>
-                      <p className="font-bold text-gray-900">Fast Response</p>
-                      <p className="text-sm text-gray-600">50% faster fixes</p>
+                      <p className="font-bold text-gray-900">30-Day Free Trial</p>
+                      <p className="text-sm text-gray-600">No credit card required</p>
                     </div>
                   </div>
                 </div>
@@ -128,10 +173,10 @@ export default function Home() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Fault Reporting Made Easy
+              Everything You Need to Manage Properties
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              We exist to help councils, housing associations and businesses manage their properties and elevate living standards.
+              A complete SaaS platform designed for letting businesses and landlords to streamline operations.
             </p>
           </div>
 
@@ -161,10 +206,10 @@ export default function Home() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="text-4xl font-bold text-gray-900 mb-6">
-                Why Choose TenantsHub?
+                Built for Letting Businesses
               </h2>
               <p className="text-lg text-gray-600 mb-8">
-                Transform your property management with our comprehensive platform designed for modern housing teams.
+                Our SaaS platform provides complete data isolation, ensuring each landlord's information remains private and secure.
               </p>
               <div className="space-y-4">
                 {benefits.map((benefit, index) => (
@@ -194,23 +239,39 @@ export default function Home() {
         <div className="max-w-4xl mx-auto text-center">
           <Building2 className="w-16 h-16 text-white mx-auto mb-6" />
           <h2 className="text-4xl font-bold text-white mb-6">
-            Get Started Now
+            Start Your Free 30-Day Trial
           </h2>
           <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-            Start reporting and managing property faults efficiently. Join housing associations and property managers who trust TenantsHub.
+            Join letting businesses and landlords who trust our platform. No credit card required.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to={createPageUrl("ReportFault")}>
-              <Button size="lg" className="bg-white text-purple-600 hover:bg-gray-100 text-lg px-8 py-6">
-                Report Your First Fault
-                <ArrowRight className="ml-2 w-5 h-5" />
-              </Button>
-            </Link>
-            <Link to={createPageUrl("Properties")}>
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10 text-lg px-8 py-6">
-                Browse Properties
-              </Button>
-            </Link>
+            {!isAuthenticated ? (
+              <>
+                <Button 
+                  size="lg" 
+                  onClick={() => base44.auth.redirectToLogin(createPageUrl("Onboarding"))}
+                  className="bg-white text-purple-600 hover:bg-gray-100 text-lg px-8 py-6"
+                >
+                  Get Started Free
+                  <ArrowRight className="ml-2 w-5 h-5" />
+                </Button>
+                <Button 
+                  size="lg" 
+                  variant="outline" 
+                  className="border-white text-white hover:bg-white/10 text-lg px-8 py-6"
+                  onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                >
+                  Learn More
+                </Button>
+              </>
+            ) : (
+              <Link to={createPageUrl(user?.user_type === 'landlord' ? "LandlordDashboard" : "Properties")}>
+                <Button size="lg" className="bg-white text-purple-600 hover:bg-gray-100 text-lg px-8 py-6">
+                  Go to Dashboard
+                  <ArrowRight className="ml-2 w-5 h-5" />
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
       </section>

@@ -1,16 +1,16 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Building2, MapPin, AlertCircle, CheckCircle, Clock, Users } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Building2, MapPin, AlertCircle, CheckCircle, Plus, ArrowLeft } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import PropertyFaults from "../components/properties/PropertyFaults";
 
-export default function Properties() {
+export default function ManageProperties() {
+  const navigate = useNavigate();
   const [selectedProperty, setSelectedProperty] = useState(null);
 
   const { data: user } = useQuery({
@@ -19,31 +19,19 @@ export default function Properties() {
   });
 
   const { data: properties = [], isLoading: loadingProperties } = useQuery({
-    queryKey: ['user-properties'],
+    queryKey: ['landlord-properties'],
     queryFn: async () => {
       const allProperties = await base44.entities.Property.list();
-      // Filter by landlord_id for tenants, or show own properties for landlords
-      if (user?.user_type === 'tenant' && user?.landlord_id) {
-        return allProperties.filter(p => p.landlord_id === user.landlord_id);
-      } else if (user?.user_type === 'landlord') {
-        return allProperties.filter(p => p.landlord_id === user.id);
-      }
-      return [];
+      return allProperties.filter(p => p.landlord_id === user.id);
     },
     enabled: !!user,
   });
 
   const { data: allFaults = [] } = useQuery({
-    queryKey: ['user-faults'],
+    queryKey: ['landlord-faults'],
     queryFn: async () => {
       const faults = await base44.entities.Fault.list('-created_date');
-      // Filter by landlord_id
-      if (user?.user_type === 'tenant' && user?.landlord_id) {
-        return faults.filter(f => f.landlord_id === user.landlord_id);
-      } else if (user?.user_type === 'landlord') {
-        return faults.filter(f => f.landlord_id === user.id);
-      }
-      return [];
+      return faults.filter(f => f.landlord_id === user.id);
     },
     enabled: !!user,
   });
@@ -65,19 +53,30 @@ export default function Properties() {
   };
 
   return (
-    <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">Properties</h1>
-            <p className="text-lg text-gray-600">Manage your properties and track maintenance</p>
+        <div className="mb-8">
+          <Button
+            variant="outline"
+            onClick={() => navigate(createPageUrl("LandlordDashboard"))}
+            className="mb-4"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Dashboard
+          </Button>
+          
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-4xl font-bold text-gray-900">My Properties</h1>
+              <p className="text-lg text-gray-600 mt-2">Manage your property portfolio</p>
+            </div>
+            <Link to={createPageUrl("AddProperty")}>
+              <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Property
+              </Button>
+            </Link>
           </div>
-          <Link to={createPageUrl("ReportFault")}>
-            <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-              <AlertCircle className="w-4 h-4 mr-2" />
-              Report Fault
-            </Button>
-          </Link>
         </div>
 
         {loadingProperties ? (
@@ -92,6 +91,20 @@ export default function Properties() {
               </Card>
             ))}
           </div>
+        ) : properties.length === 0 ? (
+          <Card className="text-center py-16">
+            <CardContent>
+              <Building2 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-2xl font-semibold text-gray-900 mb-2">No Properties Yet</h3>
+              <p className="text-gray-600 mb-6">Start by adding your first property to the platform.</p>
+              <Link to={createPageUrl("AddProperty")}>
+                <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Your First Property
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {properties.map((property) => {
@@ -122,19 +135,19 @@ export default function Properties() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm text-gray-600">{property.units || 0} units</span>
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <p className="text-xs text-gray-500">Units</p>
+                        <p className="text-lg font-semibold">{property.units || 0}</p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm text-gray-600">{stats.open} open faults</span>
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <p className="text-xs text-gray-500">Open Faults</p>
+                        <p className="text-lg font-semibold">{stats.open}</p>
                       </div>
                     </div>
 
                     <div className="flex gap-2 text-sm">
                       <Badge variant="outline" className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
+                        <AlertCircle className="w-3 h-3" />
                         {stats.total} Total
                       </Badge>
                       <Badge variant="outline" className="flex items-center gap-1 bg-green-50">
@@ -147,23 +160,13 @@ export default function Properties() {
                       onClick={() => setSelectedProperty(property)}
                       className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
                     >
-                      View Faults
+                      View Details
                     </Button>
                   </CardContent>
                 </Card>
               );
             })}
           </div>
-        )}
-
-        {properties.length === 0 && !loadingProperties && (
-          <Card className="text-center py-12">
-            <CardContent>
-              <Building2 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">No Properties Yet</h3>
-              <p className="text-gray-600">Properties will appear here once added to the system.</p>
-            </CardContent>
-          </Card>
         )}
 
         {selectedProperty && (

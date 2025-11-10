@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -29,15 +30,37 @@ export default function ReportFault() {
   const [analyzingWithAI, setAnalyzingWithAI] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: () => base44.auth.me(),
+  });
+
   const { data: properties = [] } = useQuery({
-    queryKey: ['properties'],
-    queryFn: () => base44.entities.Property.list(),
+    queryKey: ['user-properties'],
+    queryFn: async () => {
+      const allProperties = await base44.entities.Property.list();
+      // If tenant, filter by their landlord_id; if landlord, show their properties
+      if (user?.user_type === 'tenant' && user?.landlord_id) {
+        return allProperties.filter(p => p.landlord_id === user.landlord_id);
+      } else if (user?.user_type === 'landlord') {
+        return allProperties.filter(p => p.landlord_id === user.id);
+      }
+      return allProperties;
+    },
+    enabled: !!user,
   });
 
   const createFaultMutation = useMutation({
-    mutationFn: (faultData) => base44.entities.Fault.create(faultData),
+    mutationFn: (faultData) => {
+      const propertyData = properties.find(p => p.id === faultData.property_id);
+      return base44.entities.Fault.create({
+        ...faultData,
+        landlord_id: propertyData?.landlord_id || user?.landlord_id || user?.id
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['faults'] });
+      queryClient.invalidateQueries({ queryKey: ['landlord-faults'] });
       setSuccessMessage("Fault reported successfully!");
       setTimeout(() => {
         navigate(createPageUrl("Properties"));

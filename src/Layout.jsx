@@ -1,14 +1,28 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Home, AlertCircle, Building2, MessageSquare, FileText, Menu, X } from "lucide-react";
+import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
+import { Home, AlertCircle, Building2, MessageSquare, FileText, Menu, X, LayoutDashboard, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
-  const navigationItems = [
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  const landlordNav = [
+    { title: "Dashboard", url: createPageUrl("LandlordDashboard"), icon: LayoutDashboard },
+    { title: "Properties", url: createPageUrl("ManageProperties"), icon: Building2 },
+    { title: "Community", url: createPageUrl("Community"), icon: MessageSquare },
+    { title: "Documents", url: createPageUrl("Documents"), icon: FileText },
+  ];
+
+  const tenantNav = [
     { title: "Home", url: createPageUrl("Home"), icon: Home },
     { title: "Report Fault", url: createPageUrl("ReportFault"), icon: AlertCircle },
     { title: "Properties", url: createPageUrl("Properties"), icon: Building2 },
@@ -16,7 +30,13 @@ export default function Layout({ children, currentPageName }) {
     { title: "Documents", url: createPageUrl("Documents"), icon: FileText },
   ];
 
+  const navigationItems = user?.user_type === 'landlord' ? landlordNav : tenantNav;
+
   const isActive = (url) => location.pathname === url;
+
+  const handleLogout = () => {
+    base44.auth.logout();
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
@@ -25,7 +45,7 @@ export default function Layout({ children, currentPageName }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
-            <Link to={createPageUrl("Home")} className="flex items-center gap-2">
+            <Link to={createPageUrl(user?.user_type === 'landlord' ? "LandlordDashboard" : "Home")} className="flex items-center gap-2">
               <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
                 <Building2 className="w-6 h-6 text-white" />
               </div>
@@ -50,6 +70,18 @@ export default function Layout({ children, currentPageName }) {
                   <span className="font-medium">{item.title}</span>
                 </Link>
               ))}
+              
+              {user && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleLogout}
+                  className="ml-2 text-gray-600 hover:text-red-600"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Logout
+                </Button>
+              )}
             </nav>
 
             {/* Mobile Menu Button */}
@@ -83,6 +115,17 @@ export default function Layout({ children, currentPageName }) {
                   <span className="font-medium">{item.title}</span>
                 </Link>
               ))}
+              
+              {user && (
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start text-gray-600 hover:text-red-600"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="w-5 h-5 mr-3" />
+                  Logout
+                </Button>
+              )}
             </nav>
           </div>
         )}
@@ -105,16 +148,17 @@ export default function Layout({ children, currentPageName }) {
                 <span className="text-xl font-bold">TenantsHub</span>
               </div>
               <p className="text-gray-400 max-w-md">
-                Connecting housing management teams with tenants and contractors. 
-                Making property management simple and efficient.
+                SaaS property management platform for landlords and letting businesses. 
+                Streamline operations and improve tenant satisfaction.
               </p>
             </div>
             <div>
               <h3 className="font-semibold mb-4">Quick Links</h3>
               <ul className="space-y-2 text-gray-400">
                 <li><Link to={createPageUrl("Home")} className="hover:text-white transition-colors">Home</Link></li>
-                <li><Link to={createPageUrl("ReportFault")} className="hover:text-white transition-colors">Report Fault</Link></li>
-                <li><Link to={createPageUrl("Properties")} className="hover:text-white transition-colors">Properties</Link></li>
+                {user?.user_type === 'landlord' && (
+                  <li><Link to={createPageUrl("LandlordDashboard")} className="hover:text-white transition-colors">Dashboard</Link></li>
+                )}
               </ul>
             </div>
             <div>

@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -22,28 +23,50 @@ export default function Community() {
     priority: "normal"
   });
 
-  const { data: properties = [] } = useQuery({
-    queryKey: ['properties'],
-    queryFn: () => base44.entities.Property.list(),
-  });
-
-  const { data: messages = [] } = useQuery({
-    queryKey: ['messages', selectedProperty],
-    queryFn: () => base44.entities.Message.list('-created_date'),
-  });
-
   const { data: user } = useQuery({
     queryKey: ['user'],
     queryFn: () => base44.auth.me(),
   });
 
+  const { data: properties = [] } = useQuery({
+    queryKey: ['user-properties'],
+    queryFn: async () => {
+      const allProperties = await base44.entities.Property.list();
+      if (user?.user_type === 'tenant' && user?.landlord_id) {
+        return allProperties.filter(p => p.landlord_id === user.landlord_id);
+      } else if (user?.user_type === 'landlord') {
+        return allProperties.filter(p => p.landlord_id === user.id);
+      }
+      return [];
+    },
+    enabled: !!user,
+  });
+
+  const { data: messages = [] } = useQuery({
+    queryKey: ['user-messages', selectedProperty],
+    queryFn: async () => {
+      const allMessages = await base44.entities.Message.list('-created_date');
+      if (user?.user_type === 'tenant' && user?.landlord_id) {
+        return allMessages.filter(m => m.landlord_id === user.landlord_id);
+      } else if (user?.user_type === 'landlord') {
+        return allMessages.filter(m => m.landlord_id === user.id);
+      }
+      return [];
+    },
+    enabled: !!user,
+  });
+
   const createMessageMutation = useMutation({
-    mutationFn: (messageData) => base44.entities.Message.create({
-      ...messageData,
-      author_name: user?.full_name || user?.email || "Anonymous"
-    }),
+    mutationFn: (messageData) => {
+      const propertyData = properties.find(p => p.id === messageData.property_id);
+      return base44.entities.Message.create({
+        ...messageData,
+        landlord_id: propertyData?.landlord_id || user?.landlord_id || user?.id,
+        author_name: user?.full_name || user?.email || "Anonymous"
+      });
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['messages'] });
+      queryClient.invalidateQueries({ queryKey: ['user-messages'] });
       setNewMessage({
         property_id: selectedProperty,
         message_type: "community",

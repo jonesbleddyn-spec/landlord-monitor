@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -22,20 +23,49 @@ export default function Documents() {
     notes: ""
   });
 
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: () => base44.auth.me(),
+  });
+
   const { data: properties = [] } = useQuery({
-    queryKey: ['properties'],
-    queryFn: () => base44.entities.Property.list(),
+    queryKey: ['user-properties'],
+    queryFn: async () => {
+      const allProperties = await base44.entities.Property.list();
+      if (user?.user_type === 'tenant' && user?.landlord_id) {
+        return allProperties.filter(p => p.landlord_id === user.landlord_id);
+      } else if (user?.user_type === 'landlord') {
+        return allProperties.filter(p => p.landlord_id === user.id);
+      }
+      return [];
+    },
+    enabled: !!user,
   });
 
   const { data: documents = [] } = useQuery({
-    queryKey: ['documents'],
-    queryFn: () => base44.entities.Document.list('-created_date'),
+    queryKey: ['user-documents'],
+    queryFn: async () => {
+      const allDocuments = await base44.entities.Document.list('-created_date');
+      if (user?.user_type === 'tenant' && user?.landlord_id) {
+        return allDocuments.filter(d => d.landlord_id === user.landlord_id);
+      } else if (user?.user_type === 'landlord') {
+        return allDocuments.filter(d => d.landlord_id === user.id);
+      }
+      return [];
+    },
+    enabled: !!user,
   });
 
   const createDocumentMutation = useMutation({
-    mutationFn: (docData) => base44.entities.Document.create(docData),
+    mutationFn: (docData) => {
+      const propertyData = properties.find(p => p.id === docData.property_id);
+      return base44.entities.Document.create({
+        ...docData,
+        landlord_id: propertyData?.landlord_id || user?.landlord_id || user?.id
+      });
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['documents'] });
+      queryClient.invalidateQueries({ queryKey: ['user-documents'] });
       setNewDocument({
         property_id: "",
         title: "",
