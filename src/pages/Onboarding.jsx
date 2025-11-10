@@ -7,12 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Building2, CheckCircle, Loader2 } from "lucide-react";
 
 export default function Onboarding() {
   const navigate = useNavigate();
-  const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     user_type: "landlord",
     company_name: "",
@@ -21,7 +19,14 @@ export default function Onboarding() {
 
   const { data: user, isLoading } = useQuery({
     queryKey: ['user'],
-    queryFn: () => base44.auth.me(),
+    queryFn: async () => {
+      try {
+        return await base44.auth.me();
+      } catch {
+        base44.auth.redirectToLogin(createPageUrl("Onboarding"));
+        return null;
+      }
+    },
   });
 
   const updateUserMutation = useMutation({
@@ -59,6 +64,10 @@ export default function Onboarding() {
     );
   }
 
+  if (!user) {
+    return null;
+  }
+
   if (user?.onboarding_completed) {
     navigate(createPageUrl(user.user_type === 'landlord' ? "LandlordDashboard" : "Properties"));
     return null;
@@ -71,7 +80,7 @@ export default function Onboarding() {
           <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center mx-auto mb-4">
             <Building2 className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Welcome to TenantsHub</h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">Welcome to Landlord Monitor</h1>
           <p className="text-lg text-gray-600">Let's set up your account</p>
         </div>
 

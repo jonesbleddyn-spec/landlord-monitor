@@ -12,7 +12,13 @@ export default function Layout({ children, currentPageName }) {
 
   const { data: user } = useQuery({
     queryKey: ['user'],
-    queryFn: () => base44.auth.me(),
+    queryFn: async () => {
+      try {
+        return await base44.auth.me();
+      } catch {
+        return null;
+      }
+    },
   });
 
   const landlordNav = [
@@ -35,7 +41,7 @@ export default function Layout({ children, currentPageName }) {
   const isActive = (url) => location.pathname === url;
 
   const handleLogout = () => {
-    base44.auth.logout();
+    base44.auth.logout(createPageUrl("Home"));
   };
 
   return (
@@ -50,7 +56,7 @@ export default function Layout({ children, currentPageName }) {
                 <Building2 className="w-6 h-6 text-white" />
               </div>
               <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                TenantsHub
+                Landlord Monitor
               </span>
             </Link>
 
@@ -145,7 +151,7 @@ export default function Layout({ children, currentPageName }) {
                 <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
                   <Building2 className="w-6 h-6 text-white" />
                 </div>
-                <span className="text-xl font-bold">TenantsHub</span>
+                <span className="text-xl font-bold">Landlord Monitor</span>
               </div>
               <p className="text-gray-400 max-w-md">
                 SaaS property management platform for landlords and letting businesses. 
@@ -164,13 +170,13 @@ export default function Layout({ children, currentPageName }) {
             <div>
               <h3 className="font-semibold mb-4">Contact</h3>
               <ul className="space-y-2 text-gray-400">
-                <li>support@tenantshub.com</li>
+                <li>support@landlordmonitor.com</li>
                 <li>+44 20 1234 5678</li>
               </ul>
             </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2025 TenantsHub. All rights reserved.</p>
+            <p>&copy; 2025 Landlord Monitor. All rights reserved.</p>
           </div>
         </div>
       </footer>

@@ -91,6 +91,14 @@ export default function Home() {
     "Comprehensive analytics and insights"
   ];
 
+  const handleGetStarted = () => {
+    base44.auth.redirectToLogin(createPageUrl("Onboarding"));
+  };
+
+  const handleSignIn = () => {
+    base44.auth.redirectToLogin();
+  };
+
   return (
     <div className="relative overflow-hidden">
       {/* Hero Section */}
@@ -106,15 +114,15 @@ export default function Home() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="text-white">
               <h1 className="text-5xl md:text-6xl font-bold leading-tight mb-6">
-                Property Management SaaS for Landlords
+                Property Management for Modern Landlords
               </h1>
               <p className="text-xl md:text-2xl mb-8 text-blue-100">
-                Manage all your properties, tenants, and maintenance in one powerful platform.
+                Monitor properties, track maintenance, and manage tenants effortlessly with AI-powered tools.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button 
                   size="lg" 
-                  onClick={() => base44.auth.redirectToLogin(createPageUrl("Onboarding"))}
+                  onClick={handleGetStarted}
                   className="bg-white text-purple-600 hover:bg-gray-100 text-lg px-8 py-6"
                 >
                   Start Free Trial
@@ -123,7 +131,7 @@ export default function Home() {
                 <Button 
                   size="lg" 
                   variant="outline" 
-                  onClick={() => base44.auth.redirectToLogin()}
+                  onClick={handleSignIn}
                   className="border-white text-white hover:bg-white/10 text-lg px-8 py-6"
                 >
                   Sign In
@@ -160,7 +168,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Everything You Need to Manage Properties
+              Everything You Need to Monitor Properties
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               A complete SaaS platform designed for letting businesses and landlords to streamline operations.
@@ -229,12 +237,12 @@ export default function Home() {
             Start Your Free 30-Day Trial
           </h2>
           <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-            Join letting businesses and landlords who trust our platform. No credit card required.
+            Join letting businesses and landlords who trust Landlord Monitor. No credit card required.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
               size="lg" 
-              onClick={() => base44.auth.redirectToLogin(createPageUrl("Onboarding"))}
+              onClick={handleGetStarted}
               className="bg-white text-purple-600 hover:bg-gray-100 text-lg px-8 py-6"
             >
               Get Started Free
