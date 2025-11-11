@@ -114,7 +114,7 @@ export default function Home() {
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="text-white">
+            <div className="text-white relative z-10">
               <h1 className="text-5xl md:text-6xl font-bold leading-tight mb-6">
                 Property Management for Modern Landlords
               </h1>
@@ -151,7 +151,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="hidden lg:block">
+            <div className="hidden lg:block relative z-0">
               <div className="relative">
                 <img 
                   src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&q=80" 
