@@ -14,7 +14,8 @@ import {
   TrendingUp,
   CheckCircle,
   ArrowRight,
-  Building2
+  Building2,
+  AlertCircle
 } from "lucide-react";
 
 export default function Home() {
@@ -138,6 +139,16 @@ export default function Home() {
                     Sign In
                   </Button>
                 )}
+                <Link to={createPageUrl("PublicReportFault")}>
+                  <Button 
+                    size="lg" 
+                    variant="outline" 
+                    className="border-white text-white hover:bg-white/10 text-lg px-8 py-6 w-full sm:w-auto"
+                  >
+                    <AlertCircle className="mr-2 w-5 h-5" />
+                    Report Fault
+                  </Button>
+                </Link>
               </div>
             </div>
 
