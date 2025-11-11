@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -8,10 +9,12 @@ import { Building2, MapPin, AlertCircle, CheckCircle, Plus, ArrowLeft } from "lu
 import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import PropertyFaults from "../components/properties/PropertyFaults";
+import PropertyCodeCard from "../components/properties/PropertyCodeCard";
 
 export default function ManageProperties() {
   const navigate = useNavigate();
   const [selectedProperty, setSelectedProperty] = useState(null);
+  const [showCodeCard, setShowCodeCard] = useState(null);
 
   const { data: user } = useQuery({
     queryKey: ['user'],
@@ -117,9 +120,12 @@ export default function ManageProperties() {
                       alt={property.name}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                     />
-                    <div className="absolute top-4 right-4">
+                    <div className="absolute top-4 right-4 flex gap-2">
                       <Badge className={getPriorityColor(stats.urgent)}>
                         {stats.urgent} Urgent
+                      </Badge>
+                      <Badge className="bg-purple-600 text-white font-mono">
+                        {property.property_code}
                       </Badge>
                     </div>
                   </div>
@@ -156,12 +162,21 @@ export default function ManageProperties() {
                       </Badge>
                     </div>
 
-                    <Button
-                      onClick={() => setSelectedProperty(property)}
-                      className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                    >
-                      View Details
-                    </Button>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        onClick={() => setSelectedProperty(property)}
+                        variant="outline"
+                        className="w-full"
+                      >
+                        View Faults
+                      </Button>
+                      <Button
+                        onClick={() => setShowCodeCard(property)}
+                        className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                      >
+                        Get Code
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               );
@@ -175,6 +190,20 @@ export default function ManageProperties() {
             faults={allFaults.filter(f => f.property_id === selectedProperty.id)}
             onClose={() => setSelectedProperty(null)}
           />
+        )}
+
+        {showCodeCard && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => setShowCodeCard(null)}>
+            <div className="max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+              <PropertyCodeCard property={showCodeCard} />
+              <Button
+                onClick={() => setShowCodeCard(null)}
+                className="w-full mt-4 bg-white hover:bg-gray-100 text-gray-900"
+              >
+                Close
+              </Button>
+            </div>
+          </div>
         )}
       </div>
     </div>

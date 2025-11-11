@@ -11,22 +11,22 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Building2, Upload, Loader2, ArrowLeft } from "lucide-react";
-import UpgradePrompt from "../components/subscription/UpgradePrompt"; // Assuming this path is correct based on the outline
+import UpgradePrompt from "../components/subscription/UpgradePrompt";
 
 export default function AddProperty() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [uploading, setUploading] = useState(false);
   const [canAddProperty, setCanAddProperty] = useState(true);
   const [limitMessage, setLimitMessage] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     address: "",
-    type: "apartment",
-    units: 1,
+    type: "", // Changed initial value from "apartment" to ""
+    units: "", // Changed initial value from 1 to ""
     manager_email: "",
     image_url: ""
   });
+  const [uploadingImage, setUploadingImage] = useState(false); // Renamed state variable
 
   const { data: user } = useQuery({
     queryKey: ['user'],
@@ -57,14 +57,25 @@ export default function AddProperty() {
     }
   }, [user]);
 
+  // Generate unique property code
+  const generatePropertyCode = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = '';
+    for (let i = 0; i < 5; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+  };
+
   const createPropertyMutation = useMutation({
     mutationFn: (propertyData) => base44.entities.Property.create({
       ...propertyData,
+      property_code: generatePropertyCode(), // Added property_code generation
       landlord_id: user.id
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['landlord-properties'] });
-      navigate(createPageUrl("LandlordDashboard"));
+      navigate(createPageUrl("ManageProperties")); // Changed navigation target
     },
     onError: (error) => {
         console.error("Error creating property:", error);
@@ -76,7 +87,7 @@ export default function AddProperty() {
     const file = e.target.files[0];
     if (!file) return;
 
-    setUploading(true);
+    setUploadingImage(true); // Using renamed state variable
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       setFormData(prev => ({ ...prev, image_url: file_url }));
@@ -84,7 +95,7 @@ export default function AddProperty() {
       console.error("Error uploading image:", error);
       // Optionally display an error message to the user
     }
-    setUploading(false);
+    setUploadingImage(false); // Using renamed state variable
   };
 
   const handleSubmit = async (e) => {
@@ -159,7 +170,7 @@ export default function AddProperty() {
                     onValueChange={(value) => setFormData(prev => ({ ...prev, type: value }))}
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Select type" /> {/* Added placeholder for empty state */}
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="apartment">Apartment Building</SelectItem>
@@ -177,7 +188,7 @@ export default function AddProperty() {
                     type="number"
                     min="1"
                     value={formData.units}
-                    onChange={(e) => setFormData(prev => ({ ...prev, units: parseInt(e.target.value) }))}
+                    onChange={(e) => setFormData(prev => ({ ...prev, units: parseInt(e.target.value) || "" }))} // Handle empty string correctly
                   />
                 </div>
               </div>
@@ -221,14 +232,14 @@ export default function AddProperty() {
                         type="file"
                         accept="image/*"
                         onChange={handleImageUpload}
-                        disabled={uploading}
+                        disabled={uploadingImage} // Using renamed state variable
                         className="hidden"
                         id="image-upload"
                       />
                       <label htmlFor="image-upload" className="cursor-pointer">
                         <Upload className="w-12 h-12 mx-auto text-gray-400 mb-2" />
                         <p className="text-sm text-gray-600">
-                          {uploading ? "Uploading..." : "Click to upload property image"}
+                          {uploadingImage ? "Uploading..." : "Click to upload property image"}
                         </p>
                       </label>
                     </div>
@@ -239,7 +250,7 @@ export default function AddProperty() {
               {/* Submit Button */}
               <Button
                 type="submit"
-                disabled={createPropertyMutation.isPending || uploading || !formData.name || !formData.address || !canAddProperty}
+                disabled={createPropertyMutation.isPending || uploadingImage || !formData.name || !formData.address || !canAddProperty} // Using renamed state variable
                 className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg py-6"
               >
                 {createPropertyMutation.isPending ? (
