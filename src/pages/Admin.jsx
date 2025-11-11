@@ -5,10 +5,11 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, BarChart3, Key, Settings, Loader2, AlertTriangle } from "lucide-react";
+import { Shield, BarChart3, Key, Settings, Loader2, AlertTriangle, FileText } from "lucide-react";
 import AdminStats from "../components/admin/AdminStats";
 import ApiKeyManager from "../components/admin/ApiKeyManager";
 import SiteSettings from "../components/admin/SiteSettings";
+import AdminReports from "../components/admin/AdminReports";
 
 export default function Admin() {
   const navigate = useNavigate();
@@ -83,6 +84,10 @@ export default function Admin() {
               <BarChart3 className="w-4 h-4 mr-2" />
               Overview
             </TabsTrigger>
+            <TabsTrigger value="reports" className="data-[state=active]:bg-orange-600">
+              <FileText className="w-4 h-4 mr-2" />
+              Reports
+            </TabsTrigger>
             <TabsTrigger value="api-keys" className="data-[state=active]:bg-purple-600">
               <Key className="w-4 h-4 mr-2" />
               API Keys
@@ -95,6 +100,10 @@ export default function Admin() {
 
           <TabsContent value="overview">
             <AdminStats />
+          </TabsContent>
+
+          <TabsContent value="reports">
+            <AdminReports />
           </TabsContent>
 
           <TabsContent value="api-keys">
