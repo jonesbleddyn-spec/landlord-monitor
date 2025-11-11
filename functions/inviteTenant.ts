@@ -15,20 +15,28 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'tenant_email and property_id are required' }, { status: 400 });
         }
 
+        // Verify property belongs to landlord
+        const properties = await base44.entities.Property.filter({ id: property_id });
+        const property = properties[0];
+
+        if (!property || property.landlord_id !== user.id) {
+            return Response.json({ error: 'Property not found or access denied' }, { status: 404 });
+        }
+
         // Generate a unique invitation code
         const invitationCode = crypto.randomUUID().slice(0, 8).toUpperCase();
         
-        // Store invitation (you could create an Invitation entity for this)
-        const invitation = {
+        // Create invitation record in database
+        const invitation = await base44.asServiceRole.entities.Invitation.create({
             code: invitationCode,
             landlord_id: user.id,
             landlord_name: user.company_name || user.full_name,
             tenant_email,
             tenant_name: tenant_name || tenant_email,
             property_id,
-            expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
+            expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
             status: 'pending'
-        };
+        });
 
         // Send invitation email
         await base44.integrations.Core.SendEmail({
@@ -40,12 +48,15 @@ Hello ${tenant_name || tenant_email},
 
 You've been invited by ${user.company_name || user.full_name} to join their property on Landlord Monitor.
 
+Property: ${property.name}
+Address: ${property.address}
+
 Your invitation code: ${invitationCode}
 
 To accept this invitation:
 1. Sign up or log in to Landlord Monitor
 2. Complete your onboarding as a Tenant
-3. Use this invitation code to link to your landlord's property
+3. Enter this invitation code: ${invitationCode}
 
 This invitation will expire in 7 days.
 
@@ -57,6 +68,7 @@ Landlord Monitor Team
         return Response.json({ 
             success: true, 
             invitation_code: invitationCode,
+            invitation_id: invitation.id,
             message: 'Invitation sent successfully'
         });
 

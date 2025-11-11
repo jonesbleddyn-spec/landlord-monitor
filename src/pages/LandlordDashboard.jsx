@@ -1,3 +1,4 @@
+
 import React from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -15,10 +16,14 @@ import {
   TrendingUp,
   Users,
   FileText,
-  MessageSquare
+  MessageSquare,
+  UserPlus
 } from "lucide-react";
+import InviteTenantModal from "../components/landlord/InviteTenantModal";
 
 export default function LandlordDashboard() {
+  const [showInviteModal, setShowInviteModal] = React.useState(false);
+
   const { data: user } = useQuery({
     queryKey: ['user'],
     queryFn: () => base44.auth.me(),
@@ -72,12 +77,22 @@ export default function LandlordDashboard() {
               <h1 className="text-4xl font-bold text-gray-900">Welcome back{user?.full_name ? `, ${user.full_name}` : ''}!</h1>
               <p className="text-lg text-gray-600 mt-1">{user?.company_name || 'Your Property Management Dashboard'}</p>
             </div>
-            <Link to={createPageUrl("AddProperty")}>
-              <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Property
+            <div className="flex gap-2">
+              <Button
+                onClick={() => setShowInviteModal(true)}
+                variant="outline"
+                className="border-purple-600 text-purple-600 hover:bg-purple-50"
+              >
+                <UserPlus className="w-4 h-4 mr-2" />
+                Invite Tenant
               </Button>
-            </Link>
+              <Link to={createPageUrl("AddProperty")}>
+                <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Property
+                </Button>
+              </Link>
+            </div>
           </div>
           
           {user?.subscription_status === 'trial' && user?.trial_end_date && (
@@ -244,6 +259,10 @@ export default function LandlordDashboard() {
             )}
           </CardContent>
         </Card>
+        <InviteTenantModal 
+          open={showInviteModal} 
+          onClose={() => setShowInviteModal(false)} 
+        />
       </div>
     </div>
   );

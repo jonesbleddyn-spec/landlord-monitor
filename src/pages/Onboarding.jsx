@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Building2, CheckCircle, Loader2 } from "lucide-react";
+import { Building2, CheckCircle, Loader2, KeyRound } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function Onboarding() {
   const navigate = useNavigate();
@@ -16,6 +17,9 @@ export default function Onboarding() {
     company_name: "",
     phone: ""
   });
+  const [invitationCode, setInvitationCode] = useState("");
+  const [invitationError, setInvitationError] = useState("");
+  const [invitationSuccess, setInvitationSuccess] = useState("");
 
   const { data: user, isLoading } = useQuery({
     queryKey: ['user'],
@@ -40,20 +44,50 @@ export default function Onboarding() {
     },
   });
 
+  const redeemInvitationMutation = useMutation({
+    mutationFn: (code) => base44.functions.invoke('redeemInvitation', { invitation_code: code }),
+    onSuccess: (response) => {
+      setInvitationSuccess(`Connected to ${response.data.landlord_name}'s property!`);
+      setInvitationError("");
+      
+      // Complete onboarding for tenant
+      setTimeout(async () => {
+        await updateUserMutation.mutateAsync({
+          user_type: 'tenant',
+          onboarding_completed: true
+        });
+      }, 1500);
+    },
+    onError: (error) => {
+      setInvitationError(error.response?.data?.error || 'Invalid invitation code');
+      setInvitationSuccess("");
+    }
+  });
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    const trialEndDate = new Date();
-    trialEndDate.setDate(trialEndDate.getDate() + 30);
+    if (formData.user_type === 'landlord') {
+      const trialEndDate = new Date();
+      trialEndDate.setDate(trialEndDate.getDate() + 30);
 
-    await updateUserMutation.mutateAsync({
-      ...formData,
-      landlord_id: formData.user_type === 'landlord' ? user.id : null,
-      subscription_plan: "free",
-      subscription_status: "trial",
-      trial_end_date: trialEndDate.toISOString().split('T')[0],
-      onboarding_completed: true
-    });
+      await updateUserMutation.mutateAsync({
+        ...formData,
+        landlord_id: user.id,
+        subscription_plan: "free",
+        subscription_status: "trial",
+        trial_end_date: trialEndDate.toISOString().split('T')[0],
+        onboarding_completed: true
+      });
+    } else {
+      // Tenant needs to use invitation code first
+      if (!invitationCode) {
+        setInvitationError("Please enter your invitation code");
+        return;
+      }
+      
+      await redeemInvitationMutation.mutateAsync(invitationCode);
+    }
   };
 
   if (isLoading) {
@@ -167,28 +201,70 @@ export default function Onboarding() {
                 </>
               )}
 
-              {/* Tenant-specific info */}
+              {/* Tenant-specific fields */}
               {formData.user_type === "tenant" && (
-                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                  <div className="flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <h4 className="font-semibold text-purple-900 mb-1">Almost There!</h4>
-                      <p className="text-sm text-purple-800">
-                        You'll need an invitation code from your landlord to access your property. 
-                        Contact your property manager to get started.
-                      </p>
+                <>
+                  <div>
+                    <Label htmlFor="invitation_code" className="flex items-center gap-2">
+                      <KeyRound className="w-4 h-4" />
+                      Invitation Code *
+                    </Label>
+                    <Input
+                      id="invitation_code"
+                      value={invitationCode}
+                      onChange={(e) => setInvitationCode(e.target.value.toUpperCase())}
+                      placeholder="Enter 8-character code"
+                      maxLength={8}
+                      className="font-mono text-lg tracking-wider"
+                      required
+                    />
+                    <p className="text-sm text-gray-600 mt-1">
+                      Enter the code from your landlord's invitation email
+                    </p>
+                  </div>
+
+                  {invitationError && (
+                    <Alert className="bg-red-50 border-red-200">
+                      <AlertDescription className="text-red-800">
+                        {invitationError}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  {invitationSuccess && (
+                    <Alert className="bg-green-50 border-green-200">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <AlertDescription className="text-green-800">
+                        {invitationSuccess}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <CheckCircle className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <h4 className="font-semibold text-purple-900 mb-1">Need an Invitation?</h4>
+                        <p className="text-sm text-purple-800">
+                          Ask your landlord or property manager to send you an invitation code via email.
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
+                </>
               )}
 
               <Button
                 type="submit"
-                disabled={updateUserMutation.isPending || (formData.user_type === 'landlord' && !formData.company_name)}
+                disabled={
+                  updateUserMutation.isPending || 
+                  redeemInvitationMutation.isPending ||
+                  (formData.user_type === 'landlord' && !formData.company_name) ||
+                  (formData.user_type === 'tenant' && !invitationCode)
+                }
                 className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg py-6"
               >
-                {updateUserMutation.isPending ? (
+                {(updateUserMutation.isPending || redeemInvitationMutation.isPending) ? (
                   <>
                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                     Setting up...
