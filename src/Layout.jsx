@@ -1,10 +1,9 @@
-
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { Home, AlertCircle, Building2, MessageSquare, FileText, Menu, X, LayoutDashboard, LogOut, CreditCard } from "lucide-react";
+import { Home, AlertCircle, Building2, MessageSquare, FileText, Menu, X, LayoutDashboard, LogOut, LogIn, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function Layout({ children, currentPageName }) {
@@ -46,6 +45,10 @@ export default function Layout({ children, currentPageName }) {
     base44.auth.logout(createPageUrl("Home"));
   };
 
+  const handleLogin = () => {
+    base44.auth.redirectToLogin(createPageUrl("Home"));
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
       {/* Navigation Header */}
@@ -64,7 +67,7 @@ export default function Layout({ children, currentPageName }) {
 
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center gap-1">
-              {navigationItems.map((item) => (
+              {user && navigationItems.map((item) => (
                 <Link
                   key={item.title}
                   to={item.url}
@@ -79,7 +82,7 @@ export default function Layout({ children, currentPageName }) {
                 </Link>
               ))}
               
-              {user && (
+              {user ? (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -88,6 +91,16 @@ export default function Layout({ children, currentPageName }) {
                 >
                   <LogOut className="w-4 h-4 mr-2" />
                   Logout
+                </Button>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleLogin}
+                  className="ml-2 text-gray-600 hover:text-blue-600"
+                >
+                  <LogIn className="w-4 h-4 mr-2" />
+                  Login
                 </Button>
               )}
             </nav>
@@ -108,7 +121,7 @@ export default function Layout({ children, currentPageName }) {
         {mobileMenuOpen && (
           <div className="md:hidden bg-white border-t border-gray-200">
             <nav className="px-4 py-4 space-y-2">
-              {navigationItems.map((item) => (
+              {user && navigationItems.map((item) => (
                 <Link
                   key={item.title}
                   to={item.url}
@@ -124,7 +137,7 @@ export default function Layout({ children, currentPageName }) {
                 </Link>
               ))}
               
-              {user && (
+              {user ? (
                 <Button
                   variant="ghost"
                   className="w-full justify-start text-gray-600 hover:text-red-600"
@@ -132,6 +145,15 @@ export default function Layout({ children, currentPageName }) {
                 >
                   <LogOut className="w-5 h-5 mr-3" />
                   Logout
+                </Button>
+              ) : (
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start text-gray-600 hover:text-blue-600"
+                  onClick={handleLogin}
+                >
+                  <LogIn className="w-5 h-5 mr-3" />
+                  Login
                 </Button>
               )}
             </nav>
