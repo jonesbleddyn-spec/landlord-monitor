@@ -31,18 +31,6 @@ export default function Home() {
     },
   });
 
-  useEffect(() => {
-    if (user && user.onboarding_completed) {
-      if (user.user_type === 'landlord') {
-        navigate(createPageUrl("LandlordDashboard"));
-      } else if (user.user_type === 'tenant') {
-        navigate(createPageUrl("Properties"));
-      }
-    } else if (user && !user.onboarding_completed) {
-      navigate(createPageUrl("Onboarding"));
-    }
-  }, [user, navigate]);
-
   const features = [
     {
       icon: Zap,
@@ -92,11 +80,23 @@ export default function Home() {
   ];
 
   const handleGetStarted = () => {
-    base44.auth.redirectToLogin(createPageUrl("Onboarding"));
+    if (user) {
+      if (user.onboarding_completed) {
+        navigate(createPageUrl(user.user_type === 'landlord' ? "LandlordDashboard" : "Properties"));
+      } else {
+        navigate(createPageUrl("Onboarding"));
+      }
+    } else {
+      base44.auth.redirectToLogin(createPageUrl("Onboarding"));
+    }
   };
 
   const handleSignIn = () => {
-    base44.auth.redirectToLogin();
+    if (user && user.onboarding_completed) {
+      navigate(createPageUrl(user.user_type === 'landlord' ? "LandlordDashboard" : "Properties"));
+    } else {
+      base44.auth.redirectToLogin();
+    }
   };
 
   return (
@@ -125,17 +125,19 @@ export default function Home() {
                   onClick={handleGetStarted}
                   className="bg-white text-purple-600 hover:bg-gray-100 text-lg px-8 py-6"
                 >
-                  Start Free Trial
+                  {user ? "Go to Dashboard" : "Start Free Trial"}
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
-                <Button 
-                  size="lg" 
-                  variant="outline" 
-                  onClick={handleSignIn}
-                  className="border-white text-white hover:bg-white/10 text-lg px-8 py-6"
-                >
-                  Sign In
-                </Button>
+                {!user && (
+                  <Button 
+                    size="lg" 
+                    variant="outline" 
+                    onClick={handleSignIn}
+                    className="border-white text-white hover:bg-white/10 text-lg px-8 py-6"
+                  >
+                    Sign In
+                  </Button>
+                )}
               </div>
             </div>
 
@@ -245,7 +247,7 @@ export default function Home() {
               onClick={handleGetStarted}
               className="bg-white text-purple-600 hover:bg-gray-100 text-lg px-8 py-6"
             >
-              Get Started Free
+              {user ? "Go to Dashboard" : "Get Started Free"}
               <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
             <Button 
