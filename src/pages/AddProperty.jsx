@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,11 +11,14 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Building2, Upload, Loader2, ArrowLeft } from "lucide-react";
+import UpgradePrompt from "../components/subscription/UpgradePrompt"; // Assuming this path is correct based on the outline
 
 export default function AddProperty() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
+  const [canAddProperty, setCanAddProperty] = useState(true);
+  const [limitMessage, setLimitMessage] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     address: "",
@@ -29,6 +33,30 @@ export default function AddProperty() {
     queryFn: () => base44.auth.me(),
   });
 
+  // Check subscription limits
+  useEffect(() => {
+    const checkLimits = async () => {
+      try {
+        const { data } = await base44.functions.invoke('checkSubscriptionLimits', {
+          check_type: 'properties'
+        });
+        setCanAddProperty(data.can_proceed);
+        if (!data.can_proceed) {
+          setLimitMessage(data.message);
+        }
+      } catch (error) {
+        console.error('Error checking limits:', error);
+        // Optionally handle error by assuming restrictions or displaying a message
+        setCanAddProperty(false); // Assume restricted on error to be safe
+        setLimitMessage("Failed to check subscription limits. Please try again later.");
+      }
+    };
+
+    if (user) {
+      checkLimits();
+    }
+  }, [user]);
+
   const createPropertyMutation = useMutation({
     mutationFn: (propertyData) => base44.entities.Property.create({
       ...propertyData,
@@ -38,6 +66,10 @@ export default function AddProperty() {
       queryClient.invalidateQueries({ queryKey: ['landlord-properties'] });
       navigate(createPageUrl("LandlordDashboard"));
     },
+    onError: (error) => {
+        console.error("Error creating property:", error);
+        // Optionally display an error message to the user
+    }
   });
 
   const handleImageUpload = async (e) => {
@@ -50,12 +82,17 @@ export default function AddProperty() {
       setFormData(prev => ({ ...prev, image_url: file_url }));
     } catch (error) {
       console.error("Error uploading image:", error);
+      // Optionally display an error message to the user
     }
     setUploading(false);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!canAddProperty) {
+      // Prevent submission if not allowed
+      return;
+    }
     await createPropertyMutation.mutateAsync(formData);
   };
 
@@ -63,19 +100,23 @@ export default function AddProperty() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
         <div className="mb-8">
-          <Button
-            variant="outline"
-            onClick={() => navigate(createPageUrl("LandlordDashboard"))}
-            className="mb-4"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Dashboard
-          </Button>
-          <h1 className="text-4xl font-bold text-gray-900">Add New Property</h1>
-          <p className="text-lg text-gray-600 mt-2">Add a property to your portfolio</p>
+          <Link to={createPageUrl("LandlordDashboard")}>
+            <Button variant="outline" size="sm" className="mb-4">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Dashboard
+            </Button>
+          </Link>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">Add New Property</h1>
+          <p className="text-lg text-gray-600">Add a property to your portfolio</p>
         </div>
 
-        <Card className="shadow-xl border-none">
+        {!canAddProperty && (
+          <div className="mb-6">
+            <UpgradePrompt message={limitMessage} feature="Adding more properties" />
+          </div>
+        )}
+
+        <Card className="shadow-2xl border-none">
           <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
             <CardTitle className="text-2xl flex items-center gap-2">
               <Building2 className="w-6 h-6" />
@@ -196,33 +237,23 @@ export default function AddProperty() {
               </div>
 
               {/* Submit Button */}
-              <div className="flex gap-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => navigate(createPageUrl("LandlordDashboard"))}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={createPropertyMutation.isPending || !formData.name || !formData.address}
-                  className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                >
-                  {createPropertyMutation.isPending ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Adding...
-                    </>
-                  ) : (
-                    <>
-                      <Building2 className="w-4 h-4 mr-2" />
-                      Add Property
-                    </>
-                  )}
-                </Button>
-              </div>
+              <Button
+                type="submit"
+                disabled={createPropertyMutation.isPending || uploading || !formData.name || !formData.address || !canAddProperty}
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg py-6"
+              >
+                {createPropertyMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Adding...
+                  </>
+                ) : (
+                  <>
+                    <Building2 className="w-4 h-4 mr-2" />
+                    Add Property
+                  </>
+                )}
+              </Button>
             </form>
           </CardContent>
         </Card>

@@ -1,9 +1,10 @@
+
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { Home, AlertCircle, Building2, MessageSquare, FileText, Menu, X, LayoutDashboard, LogOut } from "lucide-react";
+import { Home, AlertCircle, Building2, MessageSquare, FileText, Menu, X, LayoutDashboard, LogOut, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function Layout({ children, currentPageName }) {
@@ -26,6 +27,7 @@ export default function Layout({ children, currentPageName }) {
     { title: "Properties", url: createPageUrl("ManageProperties"), icon: Building2 },
     { title: "Community", url: createPageUrl("Community"), icon: MessageSquare },
     { title: "Documents", url: createPageUrl("Documents"), icon: FileText },
+    { title: "Subscription", url: createPageUrl("Subscription"), icon: CreditCard },
   ];
 
   const tenantNav = [
