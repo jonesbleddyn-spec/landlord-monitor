@@ -133,9 +133,8 @@ export default function Home() {
                 {!user && (
                   <Button 
                     size="lg" 
-                    variant="outline" 
                     onClick={handleSignIn}
-                    className="border-white text-white hover:bg-white/10 text-lg px-8 py-6"
+                    className="bg-white text-purple-600 hover:bg-gray-100 text-lg px-8 py-6"
                   >
                     Sign In
                   </Button>
@@ -143,8 +142,7 @@ export default function Home() {
                 <Link to={createPageUrl("PublicReportFault")}>
                   <Button 
                     size="lg" 
-                    variant="outline"
-                    className="border-white text-white hover:bg-white/10 text-lg px-8 py-6 w-full sm:w-auto"
+                    className="bg-white text-purple-600 hover:bg-gray-100 text-lg px-8 py-6 w-full sm:w-auto"
                   >
                     <AlertCircle className="mr-2 w-5 h-5" />
                     Report Fault
