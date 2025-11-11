@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -142,8 +143,7 @@ export default function Home() {
                 <Link to={createPageUrl("PublicReportFault")}>
                   <Button 
                     size="lg" 
-                    variant="outline" 
-                    className="border-white text-white hover:bg-white/10 text-lg px-8 py-6 w-full sm:w-auto"
+                    className="bg-white text-purple-600 hover:bg-gray-100 text-lg px-8 py-6 w-full sm:w-auto"
                   >
                     <AlertCircle className="mr-2 w-5 h-5" />
                     Report Fault
@@ -159,7 +159,7 @@ export default function Home() {
                   alt="Modern property"
                   className="rounded-2xl shadow-2xl"
                 />
-                <div className="absolute -bottom-6 -left-6 bg-white p-6 rounded-xl shadow-xl">
+                <div className="absolute -bottom-6 -right-6 bg-white p-6 rounded-xl shadow-xl">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
                       <CheckCircle className="w-6 h-6 text-white" />
