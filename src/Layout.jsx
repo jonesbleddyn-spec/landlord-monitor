@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { Home, AlertCircle, Building2, MessageSquare, FileText, Menu, X, LayoutDashboard, LogOut, LogIn, CreditCard, Shield } from "lucide-react";
+import { Building2, MessageSquare, FileText, Menu, X, LayoutDashboard, LogOut, LogIn, CreditCard, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function Layout({ children, currentPageName }) {
@@ -21,37 +21,28 @@ export default function Layout({ children, currentPageName }) {
     },
   });
 
-  const landlordNav = [
-    { title: "Dashboard", url: createPageUrl("LandlordDashboard"), icon: LayoutDashboard },
-    { title: "Properties", url: createPageUrl("ManageProperties"), icon: Building2 },
+  const isAdmin = user?.role === 'admin';
+  const isLandlord = user?.user_type === 'landlord';
+
+  // Universal navigation for all logged-in users
+  const commonNav = [
+    { title: "Dashboard", url: createPageUrl("Dashboard"), icon: LayoutDashboard },
+    { title: "Properties", url: createPageUrl("Properties"), icon: Building2 },
     { title: "Community", url: createPageUrl("Community"), icon: MessageSquare },
     { title: "Documents", url: createPageUrl("Documents"), icon: FileText },
+  ];
+
+  // Add subscription for landlords
+  const landlordNav = isLandlord ? [
+    ...commonNav,
     { title: "Subscription", url: createPageUrl("Subscription"), icon: CreditCard },
-  ];
+  ] : commonNav;
 
-  const tenantNav = [
-    { title: "Home", url: createPageUrl("Home"), icon: Home },
-    { title: "Report Fault", url: createPageUrl("ReportFault"), icon: AlertCircle },
-    { title: "Properties", url: createPageUrl("Properties"), icon: Building2 },
-    { title: "Community", url: createPageUrl("Community"), icon: MessageSquare },
-    { title: "Documents", url: createPageUrl("Documents"), icon: FileText },
-  ];
-
-  const adminNav = [
+  // Add Admin Dashboard for admins
+  const navigationItems = isAdmin ? [
+    ...landlordNav,
     { title: "Admin Dashboard", url: createPageUrl("Admin"), icon: Shield },
-    { title: "Home", url: createPageUrl("Home"), icon: Home },
-    { title: "Properties", url: createPageUrl("Properties"), icon: Building2 },
-    { title: "Community", url: createPageUrl("Community"), icon: MessageSquare },
-    { title: "Documents", url: createPageUrl("Documents"), icon: FileText },
-  ];
-
-  const getNavigationItems = () => {
-    if (user?.role === 'admin') return adminNav;
-    if (user?.user_type === 'landlord') return landlordNav;
-    return tenantNav;
-  };
-
-  const navigationItems = getNavigationItems();
+  ] : landlordNav;
 
   const isActive = (url) => location.pathname === url;
 
@@ -63,12 +54,6 @@ export default function Layout({ children, currentPageName }) {
     base44.auth.redirectToLogin(createPageUrl("Home"));
   };
 
-  const getDefaultRoute = () => {
-    if (user?.role === 'admin') return createPageUrl("Admin");
-    if (user?.user_type === 'landlord') return createPageUrl("LandlordDashboard");
-    return createPageUrl("Home");
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
       {/* Navigation Header */}
@@ -76,7 +61,7 @@ export default function Layout({ children, currentPageName }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
-            <Link to={getDefaultRoute()} className="flex items-center gap-2">
+            <Link to={user ? createPageUrl("Dashboard") : createPageUrl("Home")} className="flex items-center gap-2">
               <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
                 <Building2 className="w-6 h-6 text-white" />
               </div>
@@ -206,11 +191,8 @@ export default function Layout({ children, currentPageName }) {
               <h3 className="font-semibold mb-4">Quick Links</h3>
               <ul className="space-y-2 text-gray-400">
                 <li><Link to={createPageUrl("Home")} className="hover:text-white transition-colors">Home</Link></li>
-                {user?.user_type === 'landlord' && (
-                  <li><Link to={createPageUrl("LandlordDashboard")} className="hover:text-white transition-colors">Dashboard</Link></li>
-                )}
-                {user?.role === 'admin' && (
-                  <li><Link to={createPageUrl("Admin")} className="hover:text-white transition-colors">Admin</Link></li>
+                {user && (
+                  <li><Link to={createPageUrl("Dashboard")} className="hover:text-white transition-colors">Dashboard</Link></li>
                 )}
               </ul>
             </div>

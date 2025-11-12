@@ -10,6 +10,7 @@ import ManageProperties from './pages/ManageProperties';
 import Subscription from './pages/Subscription';
 import PublicReportFault from './pages/PublicReportFault';
 import Admin from './pages/Admin';
+import Dashboard from './pages/Dashboard';
 import Layout from './Layout.jsx';
 
 
@@ -26,6 +27,7 @@ export const PAGES = {
     "Subscription": Subscription,
     "PublicReportFault": PublicReportFault,
     "Admin": Admin,
+    "Dashboard": Dashboard,
 }
 
 export const pagesConfig = {

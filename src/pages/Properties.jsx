@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -19,17 +18,19 @@ function PropertiesContent() {
     queryFn: () => base44.auth.me(),
   });
 
+  const isLandlord = user?.user_type === 'landlord';
+  const isAdmin = user?.role === 'admin';
+
   const { data: properties = [], isLoading: loadingProperties } = useQuery({
     queryKey: ['user-properties'],
     queryFn: async () => {
       const allProperties = await base44.entities.Property.list();
-      // Filter by landlord_id for tenants, or show own properties for landlords
-      if (user?.user_type === 'tenant' && user?.landlord_id) {
-        return allProperties.filter(p => p.landlord_id === user.landlord_id);
-      } else if (user?.user_type === 'landlord') {
+      if (isLandlord) {
         return allProperties.filter(p => p.landlord_id === user.id);
+      } else if (user?.landlord_id) {
+        return allProperties.filter(p => p.landlord_id === user.landlord_id);
       }
-      return [];
+      return allProperties; // Admin sees all
     },
     enabled: !!user,
   });
@@ -38,13 +39,12 @@ function PropertiesContent() {
     queryKey: ['user-faults'],
     queryFn: async () => {
       const faults = await base44.entities.Fault.list('-created_date');
-      // Filter by landlord_id
-      if (user?.user_type === 'tenant' && user?.landlord_id) {
-        return faults.filter(f => f.landlord_id === user.landlord_id);
-      } else if (user?.user_type === 'landlord') {
+      if (isLandlord) {
         return faults.filter(f => f.landlord_id === user.id);
+      } else if (user?.landlord_id) {
+        return faults.filter(f => f.landlord_id === user.landlord_id);
       }
-      return [];
+      return faults; // Admin sees all
     },
     enabled: !!user,
   });
@@ -70,8 +70,12 @@ function PropertiesContent() {
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">Properties</h1>
-            <p className="text-lg text-gray-600">Manage your properties and track maintenance</p>
+            <h1 className="text-4xl font-bold text-gray-900">Properties</h1>
+            <p className="text-lg text-gray-600">
+              {isLandlord ? 'Manage your properties and track maintenance' : 
+               isAdmin ? 'View all properties in the system' : 
+               'View your property information'}
+            </p>
           </div>
           <Link to={createPageUrl("ReportFault")}>
             <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
