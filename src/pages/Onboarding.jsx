@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -9,8 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Building2, CheckCircle, Loader2, KeyRound } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import ProtectedRoute from "../components/auth/ProtectedRoute";
 
-export default function Onboarding() {
+function OnboardingContent() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     user_type: "landlord",
@@ -281,5 +283,13 @@ export default function Onboarding() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function Onboarding() {
+  return (
+    <ProtectedRoute>
+      <OnboardingContent />
+    </ProtectedRoute>
   );
 }

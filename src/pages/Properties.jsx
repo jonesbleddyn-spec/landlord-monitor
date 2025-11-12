@@ -9,8 +9,9 @@ import { Building2, MapPin, AlertCircle, CheckCircle, Clock, Users } from "lucid
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import PropertyFaults from "../components/properties/PropertyFaults";
+import ProtectedRoute from "../components/auth/ProtectedRoute";
 
-export default function Properties() {
+function PropertiesContent() {
   const [selectedProperty, setSelectedProperty] = useState(null);
 
   const { data: user } = useQuery({
@@ -175,5 +176,13 @@ export default function Properties() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function Properties() {
+  return (
+    <ProtectedRoute>
+      <PropertiesContent />
+    </ProtectedRoute>
   );
 }

@@ -1,4 +1,3 @@
-
 import React from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -20,8 +19,9 @@ import {
   UserPlus
 } from "lucide-react";
 import InviteTenantModal from "../components/landlord/InviteTenantModal";
+import ProtectedRoute from "../components/auth/ProtectedRoute";
 
-export default function LandlordDashboard() {
+function LandlordDashboardContent() {
   const [showInviteModal, setShowInviteModal] = React.useState(false);
 
   const { data: user } = useQuery({
@@ -265,5 +265,13 @@ export default function LandlordDashboard() {
         />
       </div>
     </div>
+  );
+}
+
+export default function LandlordDashboard() {
+  return (
+    <ProtectedRoute requiredUserType="landlord">
+      <LandlordDashboardContent />
+    </ProtectedRoute>
   );
 }

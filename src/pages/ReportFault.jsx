@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -11,8 +12,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertCircle, Upload, Sparkles, Loader2, CheckCircle, Lightbulb } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import ProtectedRoute from "../components/auth/ProtectedRoute";
 
-export default function ReportFault() {
+function ReportFaultContent() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [analyzingImage, setAnalyzingImage] = useState(false);
@@ -406,5 +408,13 @@ export default function ReportFault() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function ReportFault() {
+  return (
+    <ProtectedRoute>
+      <ReportFaultContent />
+    </ProtectedRoute>
   );
 }

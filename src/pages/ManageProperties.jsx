@@ -10,8 +10,9 @@ import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import PropertyFaults from "../components/properties/PropertyFaults";
 import PropertyCodeCard from "../components/properties/PropertyCodeCard";
+import ProtectedRoute from "../components/auth/ProtectedRoute";
 
-export default function ManageProperties() {
+function ManagePropertiesContent() {
   const navigate = useNavigate();
   const [selectedProperty, setSelectedProperty] = useState(null);
   const [showCodeCard, setShowCodeCard] = useState(null);
@@ -207,5 +208,13 @@ export default function ManageProperties() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function ManageProperties() {
+  return (
+    <ProtectedRoute requiredUserType="landlord">
+      <ManagePropertiesContent />
+    </ProtectedRoute>
   );
 }

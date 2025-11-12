@@ -11,8 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { MessageSquare, Send, Calendar, User, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
+import ProtectedRoute from "../components/auth/ProtectedRoute";
 
-export default function Community() {
+function CommunityContent() {
   const queryClient = useQueryClient();
   const [selectedProperty, setSelectedProperty] = useState("");
   const [newMessage, setNewMessage] = useState({
@@ -46,12 +47,21 @@ export default function Community() {
     queryKey: ['user-messages', selectedProperty],
     queryFn: async () => {
       const allMessages = await base44.entities.Message.list('-created_date');
-      if (user?.user_type === 'tenant' && user?.landlord_id) {
-        return allMessages.filter(m => m.landlord_id === user.landlord_id);
-      } else if (user?.user_type === 'landlord') {
-        return allMessages.filter(m => m.landlord_id === user.id);
+      // Filter messages by property_id if selectedProperty is set, otherwise show all relevant messages for the user.
+      // Additionally, ensure only messages related to the user's landlord_id (for tenants) or user.id (for landlords) are shown.
+      const userRelevantMessages = allMessages.filter(m => {
+        if (user?.user_type === 'tenant' && user?.landlord_id) {
+          return m.landlord_id === user.landlord_id;
+        } else if (user?.user_type === 'landlord') {
+          return m.landlord_id === user.id;
+        }
+        return false;
+      });
+
+      if (selectedProperty) {
+        return userRelevantMessages.filter(m => m.property_id === selectedProperty);
       }
-      return [];
+      return userRelevantMessages;
     },
     enabled: !!user,
   });
@@ -68,7 +78,7 @@ export default function Community() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-messages'] });
       setNewMessage({
-        property_id: selectedProperty,
+        property_id: selectedProperty, // Keep selected property for convenience
         message_type: "community",
         title: "",
         content: "",
@@ -79,15 +89,15 @@ export default function Community() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!selectedProperty || !newMessage.content) {
+      alert("Please select a property and write a message.");
+      return;
+    }
     await createMessageMutation.mutateAsync({
       ...newMessage,
       property_id: selectedProperty
     });
   };
-
-  const filteredMessages = selectedProperty
-    ? messages.filter(m => m.property_id === selectedProperty)
-    : messages;
 
   const messageTypeColors = {
     notice: "bg-blue-100 text-blue-800",
@@ -118,7 +128,7 @@ export default function Community() {
               <CardContent className="p-6">
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
-                    <Label>Select Property *</Label>
+                    <Label htmlFor="property-select">Select Property *</Label>
                     <Select
                       value={selectedProperty}
                       onValueChange={(value) => {
@@ -126,26 +136,30 @@ export default function Community() {
                         setNewMessage(prev => ({ ...prev, property_id: value }));
                       }}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger id="property-select">
                         <SelectValue placeholder="Choose property" />
                       </SelectTrigger>
                       <SelectContent>
-                        {properties.map(property => (
-                          <SelectItem key={property.id} value={property.id}>
-                            {property.name}
-                          </SelectItem>
-                        ))}
+                        {properties.length === 0 ? (
+                          <SelectItem value={null} disabled>No properties available</SelectItem>
+                        ) : (
+                          properties.map(property => (
+                            <SelectItem key={property.id} value={property.id}>
+                              {property.name}
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
 
                   <div>
-                    <Label>Message Type</Label>
+                    <Label htmlFor="message-type-select">Message Type</Label>
                     <Select
                       value={newMessage.message_type}
                       onValueChange={(value) => setNewMessage(prev => ({ ...prev, message_type: value }))}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger id="message-type-select">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -157,8 +171,9 @@ export default function Community() {
                   </div>
 
                   <div>
-                    <Label>Title</Label>
+                    <Label htmlFor="message-title-input">Title</Label>
                     <Input
+                      id="message-title-input"
                       value={newMessage.title}
                       onChange={(e) => setNewMessage(prev => ({ ...prev, title: e.target.value }))}
                       placeholder="Message title (optional)"
@@ -166,8 +181,9 @@ export default function Community() {
                   </div>
 
                   <div>
-                    <Label>Message *</Label>
+                    <Label htmlFor="message-content-textarea">Message *</Label>
                     <Textarea
+                      id="message-content-textarea"
                       value={newMessage.content}
                       onChange={(e) => setNewMessage(prev => ({ ...prev, content: e.target.value }))}
                       placeholder="Share your message..."
@@ -177,12 +193,12 @@ export default function Community() {
                   </div>
 
                   <div>
-                    <Label>Priority</Label>
+                    <Label htmlFor="priority-select">Priority</Label>
                     <Select
                       value={newMessage.priority}
                       onValueChange={(value) => setNewMessage(prev => ({ ...prev, priority: value }))}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger id="priority-select">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -207,7 +223,7 @@ export default function Community() {
 
           {/* Messages Feed */}
           <div className="lg:col-span-2 space-y-4">
-            {filteredMessages.length === 0 ? (
+            {messages.length === 0 ? (
               <Card className="text-center py-12">
                 <CardContent>
                   <MessageSquare className="w-16 h-16 text-gray-400 mx-auto mb-4" />
@@ -215,12 +231,12 @@ export default function Community() {
                   <p className="text-gray-600">
                     {selectedProperty
                       ? "Be the first to post a message for this property!"
-                      : "Select a property to view messages"}
+                      : "Select a property to view messages, or post a new one."}
                   </p>
                 </CardContent>
               </Card>
             ) : (
-              filteredMessages.map((message) => (
+              messages.map((message) => (
                 <Card key={message.id} className="hover:shadow-lg transition-shadow border-none">
                   <CardContent className="p-6">
                     <div className="flex justify-between items-start mb-3">
@@ -259,5 +275,13 @@ export default function Community() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function Community() {
+  return (
+    <ProtectedRoute>
+      <CommunityContent />
+    </ProtectedRoute>
   );
 }

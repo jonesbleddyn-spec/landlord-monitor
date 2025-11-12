@@ -10,8 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { FileText, Upload, Calendar, ExternalLink, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
+import ProtectedRoute from "../components/auth/ProtectedRoute";
 
-export default function Documents() {
+function DocumentsContent() {
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
   const [newDocument, setNewDocument] = useState({
@@ -315,5 +316,13 @@ export default function Documents() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function Documents() {
+  return (
+    <ProtectedRoute>
+      <DocumentsContent />
+    </ProtectedRoute>
   );
 }

@@ -12,8 +12,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Building2, Upload, Loader2, ArrowLeft } from "lucide-react";
 import UpgradePrompt from "../components/subscription/UpgradePrompt";
+import ProtectedRoute from "../components/auth/ProtectedRoute";
 
-export default function AddProperty() {
+function AddPropertyContent() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [canAddProperty, setCanAddProperty] = useState(true);
@@ -270,5 +271,13 @@ export default function AddProperty() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function AddProperty() {
+  return (
+    <ProtectedRoute requiredUserType="landlord">
+      <AddPropertyContent />
+    </ProtectedRoute>
   );
 }

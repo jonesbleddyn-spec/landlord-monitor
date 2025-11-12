@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -19,6 +20,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import ProtectedRoute from "../components/auth/ProtectedRoute";
 
 const PLANS = {
   free: {
@@ -84,7 +86,7 @@ const PLANS = {
   }
 };
 
-export default function Subscription() {
+function SubscriptionContent() {
   const queryClient = useQueryClient();
   const [selectedPlan, setSelectedPlan] = useState(null);
 
@@ -393,5 +395,13 @@ export default function Subscription() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function Subscription() {
+  return (
+    <ProtectedRoute requiredUserType="landlord">
+      <SubscriptionContent />
+    </ProtectedRoute>
   );
 }

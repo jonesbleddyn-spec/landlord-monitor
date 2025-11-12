@@ -1,66 +1,14 @@
-import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
-import { createPageUrl } from "@/utils";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, BarChart3, Key, Settings, Loader2, AlertTriangle, FileText } from "lucide-react";
+import { Shield, BarChart3, Key, Settings, FileText } from "lucide-react";
 import AdminStats from "../components/admin/AdminStats";
 import ApiKeyManager from "../components/admin/ApiKeyManager";
 import SiteSettings from "../components/admin/SiteSettings";
 import AdminReports from "../components/admin/AdminReports";
+import ProtectedRoute from "../components/auth/ProtectedRoute";
 
-export default function Admin() {
-  const navigate = useNavigate();
-
-  const { data: user, isLoading } = useQuery({
-    queryKey: ['user'],
-    queryFn: async () => {
-      try {
-        return await base44.auth.me();
-      } catch {
-        base44.auth.redirectToLogin(createPageUrl("Admin"));
-        return null;
-      }
-    },
-  });
-
-  // Check if user is super admin
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-      </div>
-    );
-  }
-
-  if (!user || user.role !== 'admin') {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800 p-4">
-        <Card className="max-w-md w-full border-red-200 bg-red-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-red-800">
-              <AlertTriangle className="w-6 h-6" />
-              Access Denied
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-red-700 mb-4">
-              You don't have permission to access the admin dashboard. This area is restricted to super administrators only.
-            </p>
-            <button
-              onClick={() => navigate(createPageUrl("Home"))}
-              className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition-colors"
-            >
-              Go to Home
-            </button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
+function AdminContent() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
@@ -116,5 +64,13 @@ export default function Admin() {
         </Tabs>
       </div>
     </div>
+  );
+}
+
+export default function Admin() {
+  return (
+    <ProtectedRoute requiredRole="admin">
+      <AdminContent />
+    </ProtectedRoute>
   );
 }
