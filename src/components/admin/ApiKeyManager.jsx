@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -107,12 +108,16 @@ export default function ApiKeyManager() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      // In a real implementation, this would save to a secure backend
-      // For now, we'll simulate a save operation
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      toast.success("API keys saved successfully!");
+      const response = await base44.functions.invoke('saveApiKeys', { apiKeys });
+      
+      if (response.data.success) {
+        toast.success(`API keys saved successfully! (${response.data.saved_keys.length} keys configured)`);
+      } else {
+        throw new Error(response.data.error || 'Failed to save API keys');
+      }
     } catch (error) {
-      toast.error("Failed to save API keys");
+      console.error('Save error:', error);
+      toast.error(error.message || "Failed to save API keys");
     }
     setSaving(false);
   };
@@ -190,6 +195,7 @@ export default function ApiKeyManager() {
         <Button
           onClick={handleSave}
           disabled={saving}
+          size="lg"
           className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
         >
           {saving ? (

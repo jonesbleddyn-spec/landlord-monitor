@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +14,8 @@ import {
   Save,
   Loader2,
   Database,
-  Globe
+  Globe,
+  CheckCircle
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -51,11 +53,16 @@ export default function SiteSettings() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      // In a real implementation, this would save to backend
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      toast.success("Settings saved successfully!");
+      const response = await base44.functions.invoke('saveSiteSettings', settings);
+      
+      if (response.data.success) {
+        toast.success("Settings saved successfully!");
+      } else {
+        throw new Error(response.data.error || 'Failed to save settings');
+      }
     } catch (error) {
-      toast.error("Failed to save settings");
+      console.error('Save error:', error);
+      toast.error(error.message || "Failed to save settings");
     }
     setSaving(false);
   };
