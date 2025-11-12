@@ -1,21 +1,23 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Upload, Sparkles, CheckCircle, AlertCircle, Loader2, Camera } from "lucide-react";
+import { AlertCircle, Upload, Sparkles, Loader2, CheckCircle, Lightbulb } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useNavigate } from "react-router-dom";
-import { createPageUrl } from "@/utils";
 
 export default function ReportFault() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [analyzingImage, setAnalyzingImage] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [aiSuggestion, setAiSuggestion] = useState(null);
   const [formData, setFormData] = useState({
     property_id: "",
     title: "",
@@ -26,9 +28,6 @@ export default function ReportFault() {
     unit_number: "",
     images: []
   });
-  const [uploadingImages, setUploadingImages] = useState(false);
-  const [analyzingWithAI, setAnalyzingWithAI] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
 
   const { data: user } = useQuery({
     queryKey: ['user'],
@@ -39,34 +38,53 @@ export default function ReportFault() {
     queryKey: ['user-properties'],
     queryFn: async () => {
       const allProperties = await base44.entities.Property.list();
-      // If tenant, filter by their landlord_id; if landlord, show their properties
       if (user?.user_type === 'tenant' && user?.landlord_id) {
         return allProperties.filter(p => p.landlord_id === user.landlord_id);
       } else if (user?.user_type === 'landlord') {
         return allProperties.filter(p => p.landlord_id === user.id);
       }
-      return allProperties;
+      return [];
     },
     enabled: !!user,
   });
 
   const createFaultMutation = useMutation({
-    mutationFn: (faultData) => {
-      const propertyData = properties.find(p => p.id === faultData.property_id);
-      return base44.entities.Fault.create({
+    mutationFn: async (faultData) => {
+      const property = properties.find(p => p.id === faultData.property_id);
+      
+      // Create the fault
+      const fault = await base44.entities.Fault.create({
         ...faultData,
-        landlord_id: propertyData?.landlord_id || user?.landlord_id || user?.id
+        landlord_id: property?.landlord_id || user?.landlord_id || user?.id,
+        status: "reported"
       });
+
+      // Get AI suggestion for quick fix
+      const suggestion = await base44.integrations.Core.InvokeLLM({
+        prompt: `A fault has been reported: "${faultData.title}". 
+        Description: ${faultData.description}
+        Category: ${faultData.category}
+        
+        Provide a brief, practical suggestion (2-3 sentences) for a quick temporary fix the tenant can try while waiting for professional repair. Be helpful and safety-conscious.`,
+      });
+
+      return { fault, suggestion };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['faults'] });
-      queryClient.invalidateQueries({ queryKey: ['landlord-faults'] });
-      setSuccessMessage("Fault reported successfully!");
+    onSuccess: ({ suggestion }) => {
+      setAiSuggestion(suggestion);
+      queryClient.invalidateQueries({ queryKey: ['user-faults'] });
+      
+      // Navigate after showing suggestion
       setTimeout(() => {
         navigate(createPageUrl("Properties"));
-      }, 2000);
+      }, 8000);
     },
   });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    await createFaultMutation.mutateAsync(formData);
+  };
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -76,65 +94,60 @@ export default function ReportFault() {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
 
-    setUploadingImages(true);
+    setUploadingImage(true);
     try {
-      const uploadPromises = files.map(file => base44.integrations.Core.UploadFile({ file }));
+      const uploadPromises = files.map(file => 
+        base44.integrations.Core.UploadFile({ file })
+      );
       const results = await Promise.all(uploadPromises);
-      const imageUrls = results.map(result => result.file_url);
+      const newImageUrls = results.map(result => result.file_url);
       
-      setFormData(prev => ({
-        ...prev,
-        images: [...prev.images, ...imageUrls]
+      setFormData(prev => ({ 
+        ...prev, 
+        images: [...prev.images, ...newImageUrls] 
       }));
     } catch (error) {
       console.error("Error uploading images:", error);
     }
-    setUploadingImages(false);
+    setUploadingImage(false);
   };
 
-  const analyzeImageWithAI = async () => {
+  const analyzeWithAI = async () => {
     if (formData.images.length === 0) return;
 
-    setAnalyzingWithAI(true);
+    setAnalyzingImage(true);
     try {
-      const result = await base44.integrations.Core.InvokeLLM({
+      const analysis = await base44.integrations.Core.InvokeLLM({
         prompt: `Analyze this image of a property maintenance issue. Provide:
-        1. A brief title (max 50 chars)
-        2. A detailed description of the problem
+        1. A brief title (under 10 words)
+        2. A detailed description (2-3 sentences)
         3. The category (one of: plumbing, electrical, heating, structural, appliances, security, pest_control, cleaning, other)
-        4. Suggested priority (low, medium, high, or urgent)
-        5. Any safety concerns`,
-        file_urls: formData.images[0],
+        4. Priority level (low, medium, high, or urgent)
+        
+        Format as JSON.`,
+        file_urls: formData.images,
         response_json_schema: {
           type: "object",
           properties: {
             title: { type: "string" },
             description: { type: "string" },
             category: { type: "string" },
-            priority: { type: "string" },
-            safety_concerns: { type: "string" }
+            priority: { type: "string" }
           }
         }
       });
 
-      if (result) {
-        setFormData(prev => ({
-          ...prev,
-          title: result.title || prev.title,
-          description: result.description || prev.description,
-          category: result.category || prev.category,
-          priority: result.priority || prev.priority
-        }));
-      }
+      setFormData(prev => ({
+        ...prev,
+        title: analysis.title || prev.title,
+        description: analysis.description || prev.description,
+        category: analysis.category || prev.category,
+        priority: analysis.priority || prev.priority
+      }));
     } catch (error) {
-      console.error("Error analyzing image:", error);
+      console.error("AI analysis error:", error);
     }
-    setAnalyzingWithAI(false);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    await createFaultMutation.mutateAsync(formData);
+    setAnalyzingImage(false);
   };
 
   const categories = [
@@ -149,40 +162,83 @@ export default function ReportFault() {
     { value: "other", label: "Other" }
   ];
 
+  if (createFaultMutation.isSuccess && aiSuggestion) {
+    return (
+      <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-2xl mx-auto">
+          <Card className="border-none shadow-2xl">
+            <CardHeader className="bg-gradient-to-r from-green-600 to-emerald-600 text-white">
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle className="w-6 h-6" />
+                Fault Reported Successfully
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-8 space-y-6">
+              <Alert className="bg-blue-50 border-blue-200">
+                <Lightbulb className="w-5 h-5 text-blue-600" />
+                <AlertDescription className="text-blue-900">
+                  <p className="font-semibold mb-2">Quick Fix Suggestion:</p>
+                  <p>{aiSuggestion}</p>
+                </AlertDescription>
+              </Alert>
+
+              <div className="space-y-4 text-gray-700">
+                <p className="text-lg">
+                  ✅ Your fault report has been submitted and the landlord has been notified via email.
+                </p>
+                <p>
+                  📧 You'll receive email updates as the status changes.
+                </p>
+                <p className="text-sm text-gray-600">
+                  Redirecting to properties page...
+                </p>
+              </div>
+
+              <Button
+                onClick={() => navigate(createPageUrl("Properties"))}
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600"
+              >
+                View Properties
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">Report a Fault</h1>
           <p className="text-lg text-gray-600">
-            Use AI to analyze images and create detailed fault reports instantly
+            Let us know about any maintenance issues that need attention
           </p>
         </div>
 
-        {successMessage && (
-          <Alert className="mb-6 bg-green-50 border-green-200">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            <AlertDescription className="text-green-800">{successMessage}</AlertDescription>
-          </Alert>
-        )}
-
-        <Card className="shadow-xl border-none">
+        <Card className="shadow-2xl border-none">
           <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-            <CardTitle className="text-2xl">Fault Details</CardTitle>
+            <CardTitle className="text-2xl flex items-center gap-2">
+              <AlertCircle className="w-6 h-6" />
+              Fault Details
+            </CardTitle>
           </CardHeader>
-          <CardContent className="p-6">
+          <CardContent className="p-8">
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Property Selection */}
               <div>
-                <Label htmlFor="property">Property *</Label>
-                <Select value={formData.property_id} onValueChange={(value) => handleInputChange('property_id', value)}>
+                <Label>Property *</Label>
+                <Select
+                  value={formData.property_id}
+                  onValueChange={(value) => handleInputChange('property_id', value)}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select property" />
                   </SelectTrigger>
                   <SelectContent>
                     {properties.map(property => (
                       <SelectItem key={property.id} value={property.id}>
-                        {property.name} - {property.address}
+                        {property.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -191,57 +247,66 @@ export default function ReportFault() {
 
               {/* Image Upload with AI Analysis */}
               <div>
-                <Label>Upload Photos</Label>
-                <div className="mt-2 border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-purple-500 transition-colors">
+                <Label>Upload Images</Label>
+                <div className="mt-2 space-y-3">
                   <input
                     type="file"
-                    multiple
                     accept="image/*"
+                    multiple
                     onChange={handleImageUpload}
+                    disabled={uploadingImage}
                     className="hidden"
                     id="image-upload"
                   />
-                  <label htmlFor="image-upload" className="cursor-pointer">
-                    <Camera className="w-12 h-12 mx-auto text-gray-400 mb-2" />
-                    <p className="text-sm text-gray-600">Click to upload images</p>
-                    <p className="text-xs text-gray-500 mt-1">PNG, JPG up to 10MB</p>
+                  <label
+                    htmlFor="image-upload"
+                    className="flex items-center justify-center gap-2 border-2 border-dashed border-gray-300 rounded-lg p-6 cursor-pointer hover:border-blue-500 transition-colors"
+                  >
+                    <Upload className="w-6 h-6 text-gray-400" />
+                    <span className="text-gray-600">
+                      {uploadingImage ? "Uploading..." : "Click to upload images"}
+                    </span>
                   </label>
-                </div>
 
-                {formData.images.length > 0 && (
-                  <div className="mt-4">
-                    <div className="grid grid-cols-3 gap-2">
-                      {formData.images.map((url, index) => (
-                        <img key={index} src={url} alt={`Upload ${index + 1}`} className="rounded-lg h-24 w-full object-cover" />
-                      ))}
-                    </div>
-                    <Button
-                      type="button"
-                      onClick={analyzeImageWithAI}
-                      disabled={analyzingWithAI}
-                      className="mt-4 w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-                    >
-                      {analyzingWithAI ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Analyzing with AI...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="w-4 h-4 mr-2" />
-                          Analyze with AI
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                )}
+                  {formData.images.length > 0 && (
+                    <>
+                      <div className="grid grid-cols-3 gap-3">
+                        {formData.images.map((url, idx) => (
+                          <img
+                            key={idx}
+                            src={url}
+                            alt={`Fault ${idx + 1}`}
+                            className="w-full h-32 object-cover rounded-lg"
+                          />
+                        ))}
+                      </div>
+                      
+                      <Button
+                        type="button"
+                        onClick={analyzeWithAI}
+                        disabled={analyzingImage}
+                        className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                      >
+                        {analyzingImage ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Analyzing with AI...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-4 h-4 mr-2" />
+                            Analyze with AI
+                          </>
+                        )}
+                      </Button>
+                    </>
+                  )}
+                </div>
               </div>
 
-              {/* Title */}
               <div>
-                <Label htmlFor="title">Fault Title *</Label>
+                <Label>Fault Title *</Label>
                 <Input
-                  id="title"
                   value={formData.title}
                   onChange={(e) => handleInputChange('title', e.target.value)}
                   placeholder="Brief description of the issue"
@@ -249,37 +314,43 @@ export default function ReportFault() {
                 />
               </div>
 
-              {/* Description */}
               <div>
-                <Label htmlFor="description">Detailed Description</Label>
+                <Label>Detailed Description *</Label>
                 <Textarea
-                  id="description"
                   value={formData.description}
                   onChange={(e) => handleInputChange('description', e.target.value)}
-                  placeholder="Provide more details about the fault"
+                  placeholder="Provide more details about the fault..."
                   rows={4}
+                  required
                 />
               </div>
 
-              {/* Category and Priority */}
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid md:grid-cols-2 gap-6">
                 <div>
-                  <Label htmlFor="category">Category *</Label>
-                  <Select value={formData.category} onValueChange={(value) => handleInputChange('category', value)}>
+                  <Label>Category *</Label>
+                  <Select
+                    value={formData.category}
+                    onValueChange={(value) => handleInputChange('category', value)}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
                       {categories.map(cat => (
-                        <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
+                        <SelectItem key={cat.value} value={cat.value}>
+                          {cat.label}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div>
-                  <Label htmlFor="priority">Priority</Label>
-                  <Select value={formData.priority} onValueChange={(value) => handleInputChange('priority', value)}>
+                  <Label>Priority</Label>
+                  <Select
+                    value={formData.priority}
+                    onValueChange={(value) => handleInputChange('priority', value)}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -293,12 +364,10 @@ export default function ReportFault() {
                 </div>
               </div>
 
-              {/* Location and Unit */}
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid md:grid-cols-2 gap-6">
                 <div>
-                  <Label htmlFor="location">Location</Label>
+                  <Label>Location</Label>
                   <Input
-                    id="location"
                     value={formData.location}
                     onChange={(e) => handleInputChange('location', e.target.value)}
                     placeholder="e.g., Kitchen, Bathroom"
@@ -306,20 +375,18 @@ export default function ReportFault() {
                 </div>
 
                 <div>
-                  <Label htmlFor="unit_number">Unit Number</Label>
+                  <Label>Unit Number</Label>
                   <Input
-                    id="unit_number"
                     value={formData.unit_number}
                     onChange={(e) => handleInputChange('unit_number', e.target.value)}
-                    placeholder="e.g., Apt 4B"
+                    placeholder="e.g., Apt 101"
                   />
                 </div>
               </div>
 
-              {/* Submit Button */}
               <Button
                 type="submit"
-                disabled={createFaultMutation.isPending || !formData.property_id || !formData.title || !formData.category}
+                disabled={createFaultMutation.isPending || !formData.property_id || !formData.title || !formData.description || !formData.category}
                 className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg py-6"
               >
                 {createFaultMutation.isPending ? (
@@ -329,7 +396,7 @@ export default function ReportFault() {
                   </>
                 ) : (
                   <>
-                    <CheckCircle className="w-5 h-5 mr-2" />
+                    <AlertCircle className="w-5 h-5 mr-2" />
                     Submit Fault Report
                   </>
                 )}
