@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { Building2, MessageSquare, FileText, Menu, X, LayoutDashboard, LogOut, LogIn, CreditCard, Shield } from "lucide-react";
+import { Building2, MessageSquare, FileText, Menu, X, LayoutDashboard, LogOut, LogIn, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function Layout({ children, currentPageName }) {
@@ -21,7 +21,18 @@ export default function Layout({ children, currentPageName }) {
     },
   });
 
-  const isAdmin = user?.role === 'admin';
+  const { data: siteSettings } = useQuery({
+    queryKey: ['siteSettings'],
+    queryFn: async () => {
+      try {
+        const response = await base44.functions.invoke('getSiteSettings');
+        return response.data.settings || {};
+      } catch {
+        return {};
+      }
+    },
+  });
+
   const isLandlord = user?.user_type === 'landlord';
 
   // Universal navigation for all logged-in users
@@ -32,17 +43,11 @@ export default function Layout({ children, currentPageName }) {
     { title: "Documents", url: createPageUrl("Documents"), icon: FileText },
   ];
 
-  // Add subscription for landlords
-  const landlordNav = isLandlord ? [
+  // Add subscription for landlords only
+  const navigationItems = isLandlord ? [
     ...commonNav,
     { title: "Subscription", url: createPageUrl("Subscription"), icon: CreditCard },
   ] : commonNav;
-
-  // Add Admin Dashboard for admins
-  const navigationItems = isAdmin ? [
-    ...landlordNav,
-    { title: "Admin Dashboard", url: createPageUrl("Admin"), icon: Shield },
-  ] : landlordNav;
 
   const isActive = (url) => location.pathname === url;
 
@@ -53,6 +58,8 @@ export default function Layout({ children, currentPageName }) {
   const handleLogin = () => {
     base44.auth.redirectToLogin(createPageUrl("Home"));
   };
+
+  const supportEmail = siteSettings?.support_email || 'support@landlordmonitor.com';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
@@ -66,7 +73,7 @@ export default function Layout({ children, currentPageName }) {
                 <Building2 className="w-6 h-6 text-white" />
               </div>
               <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Landlord Monitor
+                {siteSettings?.site_name || 'Landlord Monitor'}
               </span>
             </Link>
 
@@ -180,7 +187,7 @@ export default function Layout({ children, currentPageName }) {
                 <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
                   <Building2 className="w-6 h-6 text-white" />
                 </div>
-                <span className="text-xl font-bold">Landlord Monitor</span>
+                <span className="text-xl font-bold">{siteSettings?.site_name || 'Landlord Monitor'}</span>
               </div>
               <p className="text-gray-400 max-w-md">
                 SaaS property management platform for landlords and letting businesses. 
@@ -199,13 +206,13 @@ export default function Layout({ children, currentPageName }) {
             <div>
               <h3 className="font-semibold mb-4">Contact</h3>
               <ul className="space-y-2 text-gray-400">
-                <li>support@landlordmonitor.com</li>
+                <li>{supportEmail}</li>
                 <li>+44 20 1234 5678</li>
               </ul>
             </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2025 Landlord Monitor. All rights reserved.</p>
+            <p>&copy; 2025 {siteSettings?.site_name || 'Landlord Monitor'}. All rights reserved.</p>
           </div>
         </div>
       </footer>

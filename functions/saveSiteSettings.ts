@@ -11,17 +11,13 @@ Deno.serve(async (req) => {
 
         const settings = await req.json();
 
-        // In a production app, you would:
-        // 1. Validate all settings
-        // 2. Store in a secure configuration database or environment
-        // 3. Apply settings to the application
-
-        // For now, we'll validate and return success
+        // Validate settings
         const validatedSettings = {
             // SMTP Settings
             smtp_host: settings.smtp_host || '',
             smtp_port: parseInt(settings.smtp_port) || 587,
             smtp_username: settings.smtp_username || '',
+            smtp_password: settings.smtp_password || '',
             smtp_from_email: settings.smtp_from_email || '',
             smtp_from_name: settings.smtp_from_name || 'Landlord Monitor',
             smtp_use_tls: settings.smtp_use_tls !== false,
@@ -29,7 +25,7 @@ Deno.serve(async (req) => {
             // General Settings
             site_name: settings.site_name || 'Landlord Monitor',
             site_url: settings.site_url || '',
-            support_email: settings.support_email || '',
+            support_email: settings.support_email || 'support@landlordmonitor.com',
             
             // Maintenance Mode
             maintenance_mode: settings.maintenance_mode === true,
@@ -45,13 +41,27 @@ Deno.serve(async (req) => {
             allowed_file_types: settings.allowed_file_types || 'jpg,jpeg,png,pdf,doc,docx'
         };
 
-        // Log the settings save action
+        // Check if settings exist
+        const allSettings = await base44.asServiceRole.entities.SiteSettings.list();
+        
+        let savedSettings;
+        if (allSettings.length > 0) {
+            // Update existing settings
+            savedSettings = await base44.asServiceRole.entities.SiteSettings.update(
+                allSettings[0].id, 
+                validatedSettings
+            );
+        } else {
+            // Create new settings
+            savedSettings = await base44.asServiceRole.entities.SiteSettings.create(validatedSettings);
+        }
+
         console.log(`Admin ${user.email} updated site settings`);
 
         return Response.json({ 
             success: true,
             message: 'Settings saved successfully',
-            settings: validatedSettings
+            settings: savedSettings
         });
     } catch (error) {
         console.error('Error saving settings:', error);
