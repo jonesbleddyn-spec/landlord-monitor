@@ -18,7 +18,7 @@ import {
   Zap, 
   Flame, 
   Home, 
-  Tool, 
+  Settings, 
   Shield, 
   Bug, 
   Sparkles,
@@ -64,15 +64,23 @@ export default function PropertyFaults({ property, faults, onClose }) {
     electrical: Zap,
     heating: Flame,
     structural: Home,
-    appliances: Tool,
+    appliances: Settings,
     security: Shield,
     pest_control: Bug,
     cleaning: Sparkles,
-    other: Tool
+    other: Settings
   };
 
   const updateFaultMutation = useMutation({
-    mutationFn: ({ faultId, data }) => base44.entities.Fault.update(faultId, data),
+    mutationFn: async ({ faultId, data }) => {
+      await base44.entities.Fault.update(faultId, data);
+      // Send notification email
+      await base44.functions.invoke('notifyFaultUpdate', {
+        fault_id: faultId,
+        notification_type: data.status === 'completed' ? 'completed' : 
+                          data.contractor_name ? 'contractor_assigned' : 'status_update'
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['landlord-faults'] });
       queryClient.invalidateQueries({ queryKey: ['user-faults'] });
@@ -138,7 +146,7 @@ export default function PropertyFaults({ property, faults, onClose }) {
             </div>
           ) : (
             faults.map((fault) => {
-              const CategoryIcon = categoryIcons[fault.category] || Tool;
+              const CategoryIcon = categoryIcons[fault.category] || Settings;
               const isEditing = editingFault === fault.id;
 
               return (
