@@ -4,14 +4,16 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Building2, MapPin, AlertCircle, CheckCircle, Clock, Users } from "lucide-react";
+import { Building2, MapPin, AlertCircle, CheckCircle, Clock, Users, Eye } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import PropertyFaults from "../components/properties/PropertyFaults";
+import PropertyDetails from "../components/properties/PropertyDetails";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
 
 function PropertiesContent() {
-  const [selectedProperty, setSelectedProperty] = useState(null);
+  const [selectedPropertyForFaults, setSelectedPropertyForFaults] = useState(null);
+  const [selectedPropertyForDetails, setSelectedPropertyForDetails] = useState(null);
 
   const { data: user } = useQuery({
     queryKey: ['user'],
@@ -102,7 +104,11 @@ function PropertiesContent() {
             {properties.map((property) => {
               const stats = getPropertyStats(property.id);
               return (
-                <Card key={property.id} className="group hover:shadow-2xl transition-all duration-300 overflow-hidden border-none">
+                <Card 
+                  key={property.id} 
+                  className="group hover:shadow-2xl transition-all duration-300 overflow-hidden border-none cursor-pointer"
+                  onClick={() => setSelectedPropertyForDetails(property)}
+                >
                   <div className="relative h-48 overflow-hidden">
                     <img
                       src={property.image_url || "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&q=80"}
@@ -113,6 +119,11 @@ function PropertiesContent() {
                       <Badge className={getPriorityColor(stats.urgent)}>
                         {stats.urgent} Urgent
                       </Badge>
+                    </div>
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white rounded-full p-3">
+                        <Eye className="w-6 h-6 text-purple-600" />
+                      </div>
                     </div>
                   </div>
                   <CardHeader>
@@ -149,7 +160,10 @@ function PropertiesContent() {
                     </div>
 
                     <Button
-                      onClick={() => setSelectedProperty(property)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedPropertyForFaults(property);
+                      }}
                       className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
                     >
                       View Faults
@@ -171,11 +185,20 @@ function PropertiesContent() {
           </Card>
         )}
 
-        {selectedProperty && (
+        {selectedPropertyForDetails && (
+          <PropertyDetails
+            property={selectedPropertyForDetails}
+            faults={allFaults.filter(f => f.property_id === selectedPropertyForDetails.id)}
+            open={!!selectedPropertyForDetails}
+            onClose={() => setSelectedPropertyForDetails(null)}
+          />
+        )}
+
+        {selectedPropertyForFaults && (
           <PropertyFaults
-            property={selectedProperty}
-            faults={allFaults.filter(f => f.property_id === selectedProperty.id)}
-            onClose={() => setSelectedProperty(null)}
+            property={selectedPropertyForFaults}
+            faults={allFaults.filter(f => f.property_id === selectedPropertyForFaults.id)}
+            onClose={() => setSelectedPropertyForFaults(null)}
           />
         )}
       </div>
