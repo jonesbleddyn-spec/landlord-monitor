@@ -15,7 +15,6 @@ import {
   AlertCircle
 } from "lucide-react";
 import { toast } from "sonner";
-import { QRCodeSVG } from "qrcode.react";
 
 export default function PropertyDetails({ property, open, onClose, faults = [] }) {
   const [copiedCode, setCopiedCode] = useState(false);
@@ -24,6 +23,7 @@ export default function PropertyDetails({ property, open, onClose, faults = [] }
   if (!property) return null;
 
   const reportUrl = `${window.location.origin}${window.location.pathname}?page=PublicReportFault&property_code=${property.property_code}`;
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(reportUrl)}`;
 
   const stats = {
     total: faults.length,
@@ -144,11 +144,10 @@ export default function PropertyDetails({ property, open, onClose, faults = [] }
                 <div>
                   <p className="text-sm text-gray-500 mb-2">QR Code for Fault Reporting</p>
                   <div className="bg-white p-4 rounded-lg border-2 border-gray-200 flex justify-center">
-                    <QRCodeSVG
-                      value={reportUrl}
-                      size={180}
-                      level="H"
-                      includeMargin={true}
+                    <img
+                      src={qrCodeUrl}
+                      alt="QR Code for fault reporting"
+                      className="w-[180px] h-[180px]"
                     />
                   </div>
                   <p className="text-xs text-gray-500 mt-2 text-center">
