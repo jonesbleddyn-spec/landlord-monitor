@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -22,12 +21,12 @@ function AddPropertyContent() {
   const [formData, setFormData] = useState({
     name: "",
     address: "",
-    type: "", // Changed initial value from "apartment" to ""
-    units: "", // Changed initial value from 1 to ""
+    type: "apartment",
+    units: 1,
     manager_email: "",
     image_url: ""
   });
-  const [uploadingImage, setUploadingImage] = useState(false); // Renamed state variable
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const { data: user } = useQuery({
     queryKey: ['user'],
@@ -47,9 +46,7 @@ function AddPropertyContent() {
         }
       } catch (error) {
         console.error('Error checking limits:', error);
-        // Optionally handle error by assuming restrictions or displaying a message
-        setCanAddProperty(false); // Assume restricted on error to be safe
-        setLimitMessage("Failed to check subscription limits. Please try again later.");
+        setCanAddProperty(true); // Allow if check fails
       }
     };
 
@@ -71,40 +68,32 @@ function AddPropertyContent() {
   const createPropertyMutation = useMutation({
     mutationFn: (propertyData) => base44.entities.Property.create({
       ...propertyData,
-      property_code: generatePropertyCode(), // Added property_code generation
+      property_code: generatePropertyCode(),
       landlord_id: user.id
     }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['landlord-properties'] });
-      navigate(createPageUrl("ManageProperties")); // Changed navigation target
+      queryClient.invalidateQueries({ queryKey: ['user-properties'] });
+      navigate(createPageUrl("Properties"));
     },
-    onError: (error) => {
-        console.error("Error creating property:", error);
-        // Optionally display an error message to the user
-    }
   });
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    setUploadingImage(true); // Using renamed state variable
+    setUploadingImage(true);
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       setFormData(prev => ({ ...prev, image_url: file_url }));
     } catch (error) {
       console.error("Error uploading image:", error);
-      // Optionally display an error message to the user
     }
-    setUploadingImage(false); // Using renamed state variable
+    setUploadingImage(false);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!canAddProperty) {
-      // Prevent submission if not allowed
-      return;
-    }
+    if (!canAddProperty) return;
     await createPropertyMutation.mutateAsync(formData);
   };
 
@@ -112,7 +101,7 @@ function AddPropertyContent() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
         <div className="mb-8">
-          <Link to={createPageUrl("LandlordDashboard")}>
+          <Link to={createPageUrl("Dashboard")}>
             <Button variant="outline" size="sm" className="mb-4">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Dashboard
@@ -171,7 +160,7 @@ function AddPropertyContent() {
                     onValueChange={(value) => setFormData(prev => ({ ...prev, type: value }))}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select type" /> {/* Added placeholder for empty state */}
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="apartment">Apartment Building</SelectItem>
@@ -189,7 +178,7 @@ function AddPropertyContent() {
                     type="number"
                     min="1"
                     value={formData.units}
-                    onChange={(e) => setFormData(prev => ({ ...prev, units: parseInt(e.target.value) || "" }))} // Handle empty string correctly
+                    onChange={(e) => setFormData(prev => ({ ...prev, units: parseInt(e.target.value) || 1 }))}
                   />
                 </div>
               </div>
@@ -233,7 +222,7 @@ function AddPropertyContent() {
                         type="file"
                         accept="image/*"
                         onChange={handleImageUpload}
-                        disabled={uploadingImage} // Using renamed state variable
+                        disabled={uploadingImage}
                         className="hidden"
                         id="image-upload"
                       />
@@ -251,7 +240,7 @@ function AddPropertyContent() {
               {/* Submit Button */}
               <Button
                 type="submit"
-                disabled={createPropertyMutation.isPending || uploadingImage || !formData.name || !formData.address || !canAddProperty} // Using renamed state variable
+                disabled={createPropertyMutation.isPending || uploadingImage || !formData.name || !formData.address || !canAddProperty}
                 className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg py-6"
               >
                 {createPropertyMutation.isPending ? (

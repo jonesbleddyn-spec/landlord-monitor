@@ -12,11 +12,11 @@ import {
   CheckCircle, 
   Clock, 
   Plus,
-  Users,
   FileText,
   MessageSquare,
   UserPlus,
-  Shield
+  Shield,
+  Home
 } from "lucide-react";
 import InviteTenantModal from "../components/landlord/InviteTenantModal";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
@@ -31,6 +31,7 @@ function DashboardContent() {
 
   const isLandlord = user?.user_type === 'landlord';
   const isAdmin = user?.role === 'admin';
+  const isTenant = user?.user_type === 'tenant';
 
   const { data: properties = [] } = useQuery({
     queryKey: ['user-properties'],
@@ -38,8 +39,9 @@ function DashboardContent() {
       const allProperties = await base44.entities.Property.list();
       if (isLandlord) {
         return allProperties.filter(p => p.landlord_id === user.id);
-      } else if (user?.landlord_id) {
-        return allProperties.filter(p => p.landlord_id === user.landlord_id);
+      } else if (isTenant && user?.property_id) {
+        // Tenant sees ONLY their assigned property
+        return allProperties.filter(p => p.id === user.property_id);
       }
       return allProperties; // Admin sees all
     },
@@ -52,8 +54,9 @@ function DashboardContent() {
       const allFaults = await base44.entities.Fault.list('-created_date');
       if (isLandlord) {
         return allFaults.filter(f => f.landlord_id === user.id);
-      } else if (user?.landlord_id) {
-        return allFaults.filter(f => f.landlord_id === user.landlord_id);
+      } else if (isTenant && user?.property_id) {
+        // Tenant sees only faults for their property
+        return allFaults.filter(f => f.property_id === user.property_id);
       }
       return allFaults; // Admin sees all
     },
@@ -66,8 +69,9 @@ function DashboardContent() {
       const allMessages = await base44.entities.Message.list('-created_date');
       if (isLandlord) {
         return allMessages.filter(m => m.landlord_id === user.id);
-      } else if (user?.landlord_id) {
-        return allMessages.filter(m => m.landlord_id === user.landlord_id);
+      } else if (isTenant && user?.property_id) {
+        // Tenant sees only messages for their property
+        return allMessages.filter(m => m.property_id === user.property_id);
       }
       return allMessages; // Admin sees all
     },
@@ -88,13 +92,18 @@ function DashboardContent() {
   const getGreeting = () => {
     if (isAdmin) return `Welcome Admin${user?.full_name ? `, ${user.full_name}` : ''}!`;
     if (isLandlord) return `Welcome back${user?.full_name ? `, ${user.full_name}` : ''}!`;
-    return `Welcome${user?.full_name ? `, ${user.full_name}` : ''}!`;
+    if (isTenant) return `Welcome${user?.full_name ? `, ${user.full_name}` : ''}!`;
+    return 'Welcome!';
   };
 
   const getSubtitle = () => {
     if (isAdmin) return 'System Administrator Dashboard';
     if (isLandlord) return user?.company_name || 'Your Property Management Dashboard';
-    return 'Your Property Dashboard';
+    if (isTenant) {
+      const property = properties[0];
+      return property ? `Tenant at ${property.name}` : 'Your Tenant Dashboard';
+    }
+    return 'Your Dashboard';
   };
 
   return (
@@ -134,7 +143,7 @@ function DashboardContent() {
                   </Link>
                 </>
               )}
-              {!isLandlord && !isAdmin && (
+              {isTenant && (
                 <Link to={createPageUrl("ReportFault")}>
                   <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
                     <AlertCircle className="w-4 h-4 mr-2" />
@@ -145,7 +154,7 @@ function DashboardContent() {
             </div>
           </div>
           
-          {user?.subscription_status === 'trial' && user?.trial_end_date && (
+          {user?.subscription_status === 'trial' && user?.trial_end_date && isLandlord && (
             <Badge className="bg-blue-100 text-blue-800">
               <Clock className="w-3 h-3 mr-1" />
               Trial ends {new Date(user.trial_end_date).toLocaleDateString()}
@@ -153,30 +162,51 @@ function DashboardContent() {
           )}
         </div>
 
-        {/* Stats Grid */}
+        {/* Stats Grid - Simplified for tenants */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="border-none shadow-lg hover:shadow-xl transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Properties</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">{stats.totalProperties}</p>
+          {!isTenant && (
+            <Card className="border-none shadow-lg hover:shadow-xl transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Properties</p>
+                    <p className="text-3xl font-bold text-gray-900 mt-2">{stats.totalProperties}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                    <Building2 className="w-6 h-6 text-blue-600" />
+                  </div>
                 </div>
-                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                  <Building2 className="w-6 h-6 text-blue-600" />
+                <Link to={createPageUrl("Properties")}>
+                  <Button variant="link" className="p-0 h-auto text-blue-600">View all →</Button>
+                </Link>
+              </CardContent>
+            </Card>
+          )}
+
+          {isTenant && properties[0] && (
+            <Card className="border-none shadow-lg hover:shadow-xl transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">My Property</p>
+                    <p className="text-lg font-bold text-gray-900 mt-2">{properties[0].name}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                    <Home className="w-6 h-6 text-blue-600" />
+                  </div>
                 </div>
-              </div>
-              <Link to={createPageUrl("Properties")}>
-                <Button variant="link" className="p-0 h-auto text-blue-600">View all →</Button>
-              </Link>
-            </CardContent>
-          </Card>
+                <p className="text-sm text-gray-600">{properties[0].address}</p>
+              </CardContent>
+            </Card>
+          )}
 
           <Card className="border-none shadow-lg hover:shadow-xl transition-shadow">
             <CardContent className="p-6">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Open Faults</p>
+                  <p className="text-sm font-medium text-gray-500">
+                    {isTenant ? "My Faults" : "Open Faults"}
+                  </p>
                   <p className="text-3xl font-bold text-gray-900 mt-2">{stats.openFaults}</p>
                 </div>
                 <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
@@ -226,7 +256,7 @@ function DashboardContent() {
           </Card>
         </div>
 
-        {/* Quick Actions */}
+        {/* Quick Actions - Simplified for tenants */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {isLandlord && (
             <Link to={createPageUrl("AddProperty")} className="block">
@@ -239,14 +269,27 @@ function DashboardContent() {
             </Link>
           )}
 
-          <Link to={createPageUrl("Properties")} className="block">
-            <Card className="border-2 border-dashed border-gray-300 hover:border-purple-500 hover:bg-purple-50 transition-all cursor-pointer">
-              <CardContent className="p-6 text-center">
-                <Building2 className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                <p className="font-medium text-gray-700">View Properties</p>
-              </CardContent>
-            </Card>
-          </Link>
+          {isTenant && (
+            <Link to={createPageUrl("ReportFault")} className="block">
+              <Card className="border-2 border-dashed border-gray-300 hover:border-red-500 hover:bg-red-50 transition-all cursor-pointer">
+                <CardContent className="p-6 text-center">
+                  <AlertCircle className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                  <p className="font-medium text-gray-700">Report Fault</p>
+                </CardContent>
+              </Card>
+            </Link>
+          )}
+
+          {!isTenant && (
+            <Link to={createPageUrl("Properties")} className="block">
+              <Card className="border-2 border-dashed border-gray-300 hover:border-purple-500 hover:bg-purple-50 transition-all cursor-pointer">
+                <CardContent className="p-6 text-center">
+                  <Building2 className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                  <p className="font-medium text-gray-700">View Properties</p>
+                </CardContent>
+              </Card>
+            </Link>
+          )}
 
           <Link to={createPageUrl("Documents")} className="block">
             <Card className="border-2 border-dashed border-gray-300 hover:border-green-500 hover:bg-green-50 transition-all cursor-pointer">
@@ -271,17 +314,19 @@ function DashboardContent() {
         <Card className="border-none shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <span>Recent Faults</span>
-              <Link to={createPageUrl("Properties")}>
-                <Button variant="outline" size="sm">View All</Button>
-              </Link>
+              <span>{isTenant ? "My Recent Faults" : "Recent Faults"}</span>
+              {!isTenant && (
+                <Link to={createPageUrl("Properties")}>
+                  <Button variant="outline" size="sm">View All</Button>
+                </Link>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {recentFaults.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <CheckCircle className="w-12 h-12 mx-auto mb-2 text-green-500" />
-                <p>No faults reported yet. Great job!</p>
+                <p>{isTenant ? "You haven't reported any faults yet." : "No faults reported yet. Great job!"}</p>
               </div>
             ) : (
               <div className="space-y-4">

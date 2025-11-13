@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,12 +28,15 @@ function CommunityContent() {
     queryFn: () => base44.auth.me(),
   });
 
+  const isTenant = user?.user_type === 'tenant';
+
   const { data: properties = [] } = useQuery({
     queryKey: ['user-properties'],
     queryFn: async () => {
       const allProperties = await base44.entities.Property.list();
-      if (user?.user_type === 'tenant' && user?.landlord_id) {
-        return allProperties.filter(p => p.landlord_id === user.landlord_id);
+      if (isTenant && user?.property_id) {
+        // Tenant sees ONLY their assigned property
+        return allProperties.filter(p => p.id === user.property_id);
       } else if (user?.user_type === 'landlord') {
         return allProperties.filter(p => p.landlord_id === user.id);
       }
@@ -43,25 +45,30 @@ function CommunityContent() {
     enabled: !!user,
   });
 
+  // Auto-select property for tenants
+  useEffect(() => {
+    if (isTenant && properties.length === 1) {
+      setSelectedProperty(properties[0].id);
+      setNewMessage(prev => ({ ...prev, property_id: properties[0].id }));
+    }
+  }, [isTenant, properties]);
+
   const { data: messages = [] } = useQuery({
     queryKey: ['user-messages', selectedProperty],
     queryFn: async () => {
       const allMessages = await base44.entities.Message.list('-created_date');
-      // Filter messages by property_id if selectedProperty is set, otherwise show all relevant messages for the user.
-      // Additionally, ensure only messages related to the user's landlord_id (for tenants) or user.id (for landlords) are shown.
-      const userRelevantMessages = allMessages.filter(m => {
-        if (user?.user_type === 'tenant' && user?.landlord_id) {
-          return m.landlord_id === user.landlord_id;
-        } else if (user?.user_type === 'landlord') {
-          return m.landlord_id === user.id;
+      
+      if (isTenant && user?.property_id) {
+        // Tenant sees only messages for their property
+        return allMessages.filter(m => m.property_id === user.property_id);
+      } else if (user?.user_type === 'landlord') {
+        const userRelevantMessages = allMessages.filter(m => m.landlord_id === user.id);
+        if (selectedProperty) {
+          return userRelevantMessages.filter(m => m.property_id === selectedProperty);
         }
-        return false;
-      });
-
-      if (selectedProperty) {
-        return userRelevantMessages.filter(m => m.property_id === selectedProperty);
+        return userRelevantMessages;
       }
-      return userRelevantMessages;
+      return [];
     },
     enabled: !!user,
   });
@@ -78,7 +85,7 @@ function CommunityContent() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-messages'] });
       setNewMessage({
-        property_id: selectedProperty, // Keep selected property for convenience
+        property_id: selectedProperty,
         message_type: "community",
         title: "",
         content: "",
@@ -111,7 +118,9 @@ function CommunityContent() {
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">Community Board</h1>
           <p className="text-lg text-gray-600">
-            Connect with your neighbors and stay updated with building announcements
+            {isTenant 
+              ? "Stay connected with your building community"
+              : "Connect with your neighbors and stay updated with building announcements"}
           </p>
         </div>
 
@@ -127,31 +136,33 @@ function CommunityContent() {
               </CardHeader>
               <CardContent className="p-6">
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-                    <Label htmlFor="property-select">Select Property *</Label>
-                    <Select
-                      value={selectedProperty}
-                      onValueChange={(value) => {
-                        setSelectedProperty(value);
-                        setNewMessage(prev => ({ ...prev, property_id: value }));
-                      }}
-                    >
-                      <SelectTrigger id="property-select">
-                        <SelectValue placeholder="Choose property" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {properties.length === 0 ? (
-                          <SelectItem value={null} disabled>No properties available</SelectItem>
-                        ) : (
-                          properties.map(property => (
-                            <SelectItem key={property.id} value={property.id}>
-                              {property.name}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {!isTenant && (
+                    <div>
+                      <Label htmlFor="property-select">Select Property *</Label>
+                      <Select
+                        value={selectedProperty}
+                        onValueChange={(value) => {
+                          setSelectedProperty(value);
+                          setNewMessage(prev => ({ ...prev, property_id: value }));
+                        }}
+                      >
+                        <SelectTrigger id="property-select">
+                          <SelectValue placeholder="Choose property" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {properties.length === 0 ? (
+                            <SelectItem value={null} disabled>No properties available</SelectItem>
+                          ) : (
+                            properties.map(property => (
+                              <SelectItem key={property.id} value={property.id}>
+                                {property.name}
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
 
                   <div>
                     <Label htmlFor="message-type-select">Message Type</Label>
@@ -229,7 +240,9 @@ function CommunityContent() {
                   <MessageSquare className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">No Messages Yet</h3>
                   <p className="text-gray-600">
-                    {selectedProperty
+                    {isTenant 
+                      ? "No messages have been posted for your property yet."
+                      : selectedProperty
                       ? "Be the first to post a message for this property!"
                       : "Select a property to view messages, or post a new one."}
                   </p>

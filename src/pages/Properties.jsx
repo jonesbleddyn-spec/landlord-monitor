@@ -22,6 +22,7 @@ function PropertiesContent() {
 
   const isLandlord = user?.user_type === 'landlord';
   const isAdmin = user?.role === 'admin';
+  const isTenant = user?.user_type === 'tenant';
 
   const { data: properties = [], isLoading: loadingProperties } = useQuery({
     queryKey: ['user-properties'],
@@ -29,8 +30,9 @@ function PropertiesContent() {
       const allProperties = await base44.entities.Property.list();
       if (isLandlord) {
         return allProperties.filter(p => p.landlord_id === user.id);
-      } else if (user?.landlord_id) {
-        return allProperties.filter(p => p.landlord_id === user.landlord_id);
+      } else if (isTenant && user?.property_id) {
+        // Tenant sees ONLY their assigned property
+        return allProperties.filter(p => p.id === user.property_id);
       }
       return allProperties; // Admin sees all
     },
@@ -43,8 +45,9 @@ function PropertiesContent() {
       const faults = await base44.entities.Fault.list('-created_date');
       if (isLandlord) {
         return faults.filter(f => f.landlord_id === user.id);
-      } else if (user?.landlord_id) {
-        return faults.filter(f => f.landlord_id === user.landlord_id);
+      } else if (isTenant && user?.property_id) {
+        // Tenant sees only faults for their property
+        return faults.filter(f => f.property_id === user.property_id);
       }
       return faults; // Admin sees all
     },
@@ -72,19 +75,23 @@ function PropertiesContent() {
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-4xl font-bold text-gray-900">Properties</h1>
+            <h1 className="text-4xl font-bold text-gray-900">
+              {isTenant ? "My Property" : "Properties"}
+            </h1>
             <p className="text-lg text-gray-600">
               {isLandlord ? 'Manage your properties and track maintenance' : 
                isAdmin ? 'View all properties in the system' : 
-               'View your property information'}
+               'View your property information and report faults'}
             </p>
           </div>
-          <Link to={createPageUrl("ReportFault")}>
-            <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-              <AlertCircle className="w-4 h-4 mr-2" />
-              Report Fault
-            </Button>
-          </Link>
+          {isTenant && (
+            <Link to={createPageUrl("ReportFault")}>
+              <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                <AlertCircle className="w-4 h-4 mr-2" />
+                Report Fault
+              </Button>
+            </Link>
+          )}
         </div>
 
         {loadingProperties ? (
@@ -100,7 +107,7 @@ function PropertiesContent() {
             ))}
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className={`grid ${isTenant ? 'md:grid-cols-1 max-w-2xl mx-auto' : 'md:grid-cols-2 lg:grid-cols-3'} gap-6`}>
             {properties.map((property) => {
               const stats = getPropertyStats(property.id);
               return (
@@ -179,8 +186,14 @@ function PropertiesContent() {
           <Card className="text-center py-12">
             <CardContent>
               <Building2 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">No Properties Yet</h3>
-              <p className="text-gray-600">Properties will appear here once added to the system.</p>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                {isTenant ? "No Property Assigned" : "No Properties Yet"}
+              </h3>
+              <p className="text-gray-600">
+                {isTenant 
+                  ? "You haven't been assigned to a property yet. Please contact your landlord."
+                  : "Properties will appear here once added to the system."}
+              </p>
             </CardContent>
           </Card>
         )}
