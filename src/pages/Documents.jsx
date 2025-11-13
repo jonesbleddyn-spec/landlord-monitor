@@ -7,13 +7,26 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Upload, Calendar, ExternalLink, AlertCircle } from "lucide-react";
+import { FileText, Upload, Calendar, ExternalLink, AlertCircle, Trash2 } from "lucide-react";
 import { format } from "date-fns";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
 
 function DocumentsContent() {
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [documentToDelete, setDocumentToDelete] = useState(null);
   const [newDocument, setNewDocument] = useState({
     property_id: "",
     title: "",
@@ -29,6 +42,7 @@ function DocumentsContent() {
   });
 
   const isTenant = user?.user_type === 'tenant';
+  const isLandlord = user?.user_type === 'landlord';
 
   const { data: properties = [] } = useQuery({
     queryKey: ['user-properties'],
@@ -37,7 +51,7 @@ function DocumentsContent() {
       if (isTenant && user?.property_id) {
         // Tenant sees ONLY their assigned property
         return allProperties.filter(p => p.id === user.property_id);
-      } else if (user?.user_type === 'landlord') {
+      } else if (isLandlord) {
         return allProperties.filter(p => p.landlord_id === user.id);
       }
       return [];
@@ -52,7 +66,7 @@ function DocumentsContent() {
       if (isTenant && user?.property_id) {
         // Tenant sees only documents for their property
         return allDocuments.filter(d => d.property_id === user.property_id);
-      } else if (user?.user_type === 'landlord') {
+      } else if (isLandlord) {
         return allDocuments.filter(d => d.landlord_id === user.id);
       }
       return [];
@@ -78,7 +92,22 @@ function DocumentsContent() {
         expiry_date: "",
         notes: ""
       });
+      toast.success("Document uploaded successfully!");
     },
+  });
+
+  const deleteDocumentMutation = useMutation({
+    mutationFn: (documentId) => base44.entities.Document.delete(documentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-documents'] });
+      toast.success("Document deleted successfully");
+      setDeleteDialogOpen(false);
+      setDocumentToDelete(null);
+    },
+    onError: (error) => {
+      toast.error("Failed to delete document");
+      console.error(error);
+    }
   });
 
   const handleFileUpload = async (e) => {
@@ -94,8 +123,20 @@ function DocumentsContent() {
       });
     } catch (error) {
       console.error("Error uploading file:", error);
+      toast.error("Failed to upload document");
     }
     setUploading(false);
+  };
+
+  const handleDeleteClick = (doc) => {
+    setDocumentToDelete(doc);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (documentToDelete) {
+      deleteDocumentMutation.mutate(documentToDelete.id);
+    }
   };
 
   const documentTypes = [
@@ -272,7 +313,9 @@ function DocumentsContent() {
                             <div className="text-4xl">{getDocTypeIcon(doc.document_type)}</div>
                             <div className="flex-1">
                               <h3 className="text-lg font-semibold text-gray-900 mb-1">{doc.title}</h3>
-                              <p className="text-sm text-gray-600 mb-3">{property?.name || "Unknown Property"}</p>
+                              {!isTenant && (
+                                <p className="text-sm text-gray-600 mb-3">{property?.name || "Unknown Property"}</p>
+                              )}
 
                               <div className="flex flex-wrap gap-2 mb-3">
                                 <Badge variant="outline">
@@ -312,14 +355,27 @@ function DocumentsContent() {
                             </div>
                           </div>
 
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => window.open(doc.file_url, '_blank')}
-                          >
-                            <ExternalLink className="w-4 h-4 mr-2" />
-                            View
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => window.open(doc.file_url, '_blank')}
+                            >
+                              <ExternalLink className="w-4 h-4 mr-2" />
+                              View
+                            </Button>
+                            
+                            {isLandlord && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDeleteClick(doc)}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
@@ -330,6 +386,27 @@ function DocumentsContent() {
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Document</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{documentToDelete?.title}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
