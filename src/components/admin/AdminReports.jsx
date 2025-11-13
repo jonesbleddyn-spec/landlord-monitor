@@ -20,8 +20,8 @@ import {
   Loader2,
   AlertCircle,
   CheckCircle,
-  ArrowUpCircle,
-  ArrowDownCircle
+  MessageSquare,
+  FileText
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -31,7 +31,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -158,10 +157,13 @@ export default function AdminReports() {
     
     return data.map(tenant => {
       const tenantFaults = faults.filter(f => f.created_by === tenant.email);
+      // Get landlord info
+      const landlord = users.find(u => u.id === tenant.landlord_id);
       return {
         ...tenant,
         faultCount: tenantFaults.length,
-        openFaults: tenantFaults.filter(f => !['completed', 'closed'].includes(f.status)).length
+        openFaults: tenantFaults.filter(f => !['completed', 'closed'].includes(f.status)).length,
+        landlordName: landlord?.company_name || landlord?.full_name || landlord?.email || 'N/A'
       };
     });
   };
@@ -210,7 +212,7 @@ export default function AdminReports() {
         break;
       case 'tenants':
         data = getTenantReport();
-        headers = ['Email', 'Name', 'Faults', 'Open Faults', 'Joined'];
+        headers = ['Email', 'Name', 'Landlord', 'Faults', 'Open Faults', 'Joined'];
         break;
       case 'finance':
         data = getFinanceReport();
@@ -238,6 +240,7 @@ export default function AdminReports() {
             return [
               row.email,
               row.full_name || '',
+              row.landlordName,
               row.faultCount,
               row.openFaults,
               format(new Date(row.created_date), 'yyyy-MM-dd')
@@ -444,6 +447,7 @@ export default function AdminReports() {
                   <tr className="border-b border-gray-700">
                     <th className="text-left py-3 px-4 text-gray-300 font-semibold">Email</th>
                     <th className="text-left py-3 px-4 text-gray-300 font-semibold">Name</th>
+                    <th className="text-left py-3 px-4 text-gray-300 font-semibold">Landlord</th>
                     <th className="text-left py-3 px-4 text-gray-300 font-semibold">Total Faults</th>
                     <th className="text-left py-3 px-4 text-gray-300 font-semibold">Open Faults</th>
                     <th className="text-left py-3 px-4 text-gray-300 font-semibold">Joined</th>
@@ -455,8 +459,13 @@ export default function AdminReports() {
                     <tr key={tenant.id} className="border-b border-gray-700 hover:bg-gray-700/30">
                       <td className="py-3 px-4 text-gray-300">{tenant.email}</td>
                       <td className="py-3 px-4 text-gray-300">{tenant.full_name || '-'}</td>
+                      <td className="py-3 px-4 text-gray-300">{tenant.landlordName}</td>
                       <td className="py-3 px-4 text-gray-300">{tenant.faultCount}</td>
-                      <td className="py-3 px-4 text-gray-300">{tenant.openFaults}</td>
+                      <td className="py-3 px-4 text-gray-300">
+                        <Badge className={tenant.openFaults > 0 ? 'bg-yellow-600' : 'bg-green-600'}>
+                          {tenant.openFaults}
+                        </Badge>
+                      </td>
                       <td className="py-3 px-4 text-gray-300">
                         {format(new Date(tenant.created_date), 'MMM d, yyyy')}
                       </td>
@@ -621,7 +630,7 @@ export default function AdminReports() {
               </SelectContent>
             </Select>
           </div>
-          <DialogFooter>
+          <div className="flex justify-end gap-2">
             <Button
               variant="outline"
               onClick={() => setUserToChangePlan(null)}
@@ -643,20 +652,28 @@ export default function AdminReports() {
                 'Change Plan'
               )}
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
-      {/* Ghost View Dialog */}
+      {/* Ghost View Dialog - Enhanced for Tenants */}
       <Dialog open={!!ghostViewUser} onOpenChange={() => setGhostViewUser(null)}>
         <DialogContent className="max-w-6xl bg-gray-800 border-gray-700 max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2">
-              <Eye className="w-5 h-5" />
+              <Eye className="w-5 h-5 text-blue-400" />
               Ghost View: {ghostViewUser?.email}
             </DialogTitle>
             <DialogDescription className="text-gray-300">
-              Viewing {ghostViewUser?.full_name || ghostViewUser?.email}'s account data for troubleshooting
+              <div className="flex items-center gap-2 mt-2">
+                <Badge className={ghostViewUser?.user_type === 'landlord' ? 'bg-purple-600' : 'bg-blue-600'}>
+                  {ghostViewUser?.user_type}
+                </Badge>
+                {ghostViewUser?.user_type === 'landlord' && ghostViewUser?.subscription_plan && (
+                  <Badge variant="outline">{ghostViewUser.subscription_plan} plan</Badge>
+                )}
+              </div>
+              <p className="mt-2">Viewing complete account data for troubleshooting</p>
             </DialogDescription>
           </DialogHeader>
           
@@ -666,9 +683,35 @@ export default function AdminReports() {
             </div>
           ) : ghostData && (
             <div className="space-y-6 py-4">
+              {/* User Info Card */}
+              <Card className="bg-gray-700/50 border-gray-600">
+                <CardContent className="p-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                      <p className="text-xs text-gray-400">Name</p>
+                      <p className="text-sm font-medium text-white">{ghostData.user.full_name || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400">Email</p>
+                      <p className="text-sm font-medium text-white">{ghostData.user.email}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400">User Type</p>
+                      <Badge className="mt-1">{ghostData.user.user_type}</Badge>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400">Joined</p>
+                      <p className="text-sm font-medium text-white">
+                        {format(new Date(ghostData.user.created_date), 'MMM d, yyyy')}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* User Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Card className="bg-gray-700/50">
+                <Card className="bg-gray-700/50 border-gray-600">
                   <CardContent className="p-4">
                     <div className="flex items-center gap-2 text-blue-400 mb-2">
                       <Building2 className="w-4 h-4" />
@@ -677,7 +720,7 @@ export default function AdminReports() {
                     <p className="text-2xl font-bold text-white">{ghostData.stats.totalProperties}</p>
                   </CardContent>
                 </Card>
-                <Card className="bg-gray-700/50">
+                <Card className="bg-gray-700/50 border-gray-600">
                   <CardContent className="p-4">
                     <div className="flex items-center gap-2 text-yellow-400 mb-2">
                       <AlertCircle className="w-4 h-4" />
@@ -686,7 +729,7 @@ export default function AdminReports() {
                     <p className="text-2xl font-bold text-white">{ghostData.stats.openFaults}</p>
                   </CardContent>
                 </Card>
-                <Card className="bg-gray-700/50">
+                <Card className="bg-gray-700/50 border-gray-600">
                   <CardContent className="p-4">
                     <div className="flex items-center gap-2 text-green-400 mb-2">
                       <CheckCircle className="w-4 h-4" />
@@ -695,10 +738,10 @@ export default function AdminReports() {
                     <p className="text-2xl font-bold text-white">{ghostData.stats.completedFaults}</p>
                   </CardContent>
                 </Card>
-                <Card className="bg-gray-700/50">
+                <Card className="bg-gray-700/50 border-gray-600">
                   <CardContent className="p-4">
                     <div className="flex items-center gap-2 text-purple-400 mb-2">
-                      <Users className="w-4 h-4" />
+                      <MessageSquare className="w-4 h-4" />
                       <span className="text-sm">Messages</span>
                     </div>
                     <p className="text-2xl font-bold text-white">{ghostData.stats.totalMessages}</p>
@@ -708,21 +751,26 @@ export default function AdminReports() {
 
               {/* Properties */}
               <div>
-                <h3 className="text-lg font-semibold text-white mb-3">Properties</h3>
-                <div className="space-y-2">
+                <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+                  <Building2 className="w-5 h-5" />
+                  Properties {ghostData.user.user_type === 'tenant' ? '(Tenant Access)' : '(Owned)'}
+                </h3>
+                <div className="space-y-2 max-h-60 overflow-y-auto">
                   {ghostData.properties.length === 0 ? (
-                    <p className="text-gray-400">No properties</p>
+                    <p className="text-gray-400 text-center py-4">No properties</p>
                   ) : (
                     ghostData.properties.map(prop => (
-                      <div key={prop.id} className="bg-gray-700/50 p-3 rounded-lg">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium text-white">{prop.name}</p>
-                            <p className="text-sm text-gray-400">{prop.address}</p>
+                      <Card key={prop.id} className="bg-gray-700/50 border-gray-600">
+                        <CardContent className="p-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <p className="font-medium text-white">{prop.name}</p>
+                              <p className="text-sm text-gray-400">{prop.address}</p>
+                            </div>
+                            <Badge variant="outline">{prop.units || 0} units</Badge>
                           </div>
-                          <Badge variant="outline">{prop.units || 0} units</Badge>
-                        </div>
-                      </div>
+                        </CardContent>
+                      </Card>
                     ))
                   )}
                 </div>
@@ -730,34 +778,96 @@ export default function AdminReports() {
 
               {/* Recent Faults */}
               <div>
-                <h3 className="text-lg font-semibold text-white mb-3">Recent Faults</h3>
-                <div className="space-y-2">
+                <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5" />
+                  Recent Faults
+                </h3>
+                <div className="space-y-2 max-h-60 overflow-y-auto">
                   {ghostData.faults.slice(0, 5).length === 0 ? (
-                    <p className="text-gray-400">No faults</p>
+                    <p className="text-gray-400 text-center py-4">No faults reported</p>
                   ) : (
                     ghostData.faults.slice(0, 5).map(fault => (
-                      <div key={fault.id} className="bg-gray-700/50 p-3 rounded-lg">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium text-white">{fault.title}</p>
-                            <p className="text-sm text-gray-400">{fault.category}</p>
+                      <Card key={fault.id} className="bg-gray-700/50 border-gray-600">
+                        <CardContent className="p-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <p className="font-medium text-white">{fault.title}</p>
+                              <p className="text-sm text-gray-400">
+                                {fault.category} • {format(new Date(fault.created_date), 'MMM d, yyyy')}
+                              </p>
+                            </div>
+                            <div className="flex gap-2">
+                              <Badge className={
+                                fault.priority === 'urgent' ? 'bg-red-600' :
+                                fault.priority === 'high' ? 'bg-orange-600' :
+                                'bg-yellow-600'
+                              }>
+                                {fault.priority}
+                              </Badge>
+                              <Badge variant="outline">{fault.status.replace(/_/g, ' ')}</Badge>
+                            </div>
                           </div>
-                          <div className="flex gap-2">
-                            <Badge className={
-                              fault.priority === 'urgent' ? 'bg-red-600' :
-                              fault.priority === 'high' ? 'bg-orange-600' :
-                              'bg-yellow-600'
-                            }>
-                              {fault.priority}
-                            </Badge>
-                            <Badge variant="outline">{fault.status}</Badge>
-                          </div>
-                        </div>
-                      </div>
+                        </CardContent>
+                      </Card>
                     ))
                   )}
                 </div>
               </div>
+
+              {/* Recent Messages */}
+              {ghostData.messages.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+                    <MessageSquare className="w-5 h-5" />
+                    Recent Messages
+                  </h3>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {ghostData.messages.slice(0, 3).map(msg => (
+                      <Card key={msg.id} className="bg-gray-700/50 border-gray-600">
+                        <CardContent className="p-3">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              {msg.title && <p className="font-medium text-white">{msg.title}</p>}
+                              <p className="text-sm text-gray-400 line-clamp-2">{msg.content}</p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {format(new Date(msg.created_date), 'MMM d, yyyy')}
+                              </p>
+                            </div>
+                            <Badge variant="outline">{msg.message_type}</Badge>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Documents */}
+              {ghostData.documents.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+                    <FileText className="w-5 h-5" />
+                    Documents ({ghostData.stats.totalDocuments})
+                  </h3>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {ghostData.documents.slice(0, 5).map(doc => (
+                      <Card key={doc.id} className="bg-gray-700/50 border-gray-600">
+                        <CardContent className="p-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <p className="font-medium text-white">{doc.title}</p>
+                              <p className="text-sm text-gray-400">{doc.document_type.replace(/_/g, ' ')}</p>
+                            </div>
+                            <Badge variant="outline">
+                              {format(new Date(doc.created_date), 'MMM yyyy')}
+                            </Badge>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </DialogContent>
