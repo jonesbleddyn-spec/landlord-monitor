@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Send, Calendar, User, AlertCircle } from "lucide-react";
+import { MessageSquare, Send, Calendar, User, AlertCircle, Megaphone, Shield } from "lucide-react";
 import { format } from "date-fns";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
 
@@ -29,15 +29,15 @@ function CommunityContent() {
   });
 
   const isTenant = user?.user_type === 'tenant';
+  const isLandlord = user?.user_type === 'landlord';
 
   const { data: properties = [] } = useQuery({
     queryKey: ['user-properties'],
     queryFn: async () => {
       const allProperties = await base44.entities.Property.list();
       if (isTenant && user?.property_id) {
-        // Tenant sees ONLY their assigned property
         return allProperties.filter(p => p.id === user.property_id);
-      } else if (user?.user_type === 'landlord') {
+      } else if (isLandlord) {
         return allProperties.filter(p => p.landlord_id === user.id);
       }
       return [];
@@ -53,16 +53,28 @@ function CommunityContent() {
     }
   }, [isTenant, properties]);
 
+  // Fetch admin broadcasts (for landlords only)
+  const { data: adminBroadcasts = [] } = useQuery({
+    queryKey: ['admin-broadcasts'],
+    queryFn: async () => {
+      if (!isLandlord) return [];
+      const allMessages = await base44.entities.Message.list('-created_date');
+      return allMessages.filter(m => m.is_admin_broadcast === true);
+    },
+    enabled: isLandlord,
+  });
+
   const { data: messages = [] } = useQuery({
     queryKey: ['user-messages', selectedProperty],
     queryFn: async () => {
       const allMessages = await base44.entities.Message.list('-created_date');
       
       if (isTenant && user?.property_id) {
-        // Tenant sees only messages for their property
-        return allMessages.filter(m => m.property_id === user.property_id);
-      } else if (user?.user_type === 'landlord') {
-        const userRelevantMessages = allMessages.filter(m => m.landlord_id === user.id);
+        return allMessages.filter(m => m.property_id === user.property_id && !m.is_admin_broadcast);
+      } else if (isLandlord) {
+        const userRelevantMessages = allMessages.filter(m => 
+          m.landlord_id === user.id && !m.is_admin_broadcast
+        );
         if (selectedProperty) {
           return userRelevantMessages.filter(m => m.property_id === selectedProperty);
         }
@@ -79,7 +91,8 @@ function CommunityContent() {
       return base44.entities.Message.create({
         ...messageData,
         landlord_id: propertyData?.landlord_id || user?.landlord_id || user?.id,
-        author_name: user?.full_name || user?.email || "Anonymous"
+        author_name: user?.full_name || user?.email || "Anonymous",
+        is_admin_broadcast: false
       });
     },
     onSuccess: () => {
@@ -109,7 +122,8 @@ function CommunityContent() {
   const messageTypeColors = {
     notice: "bg-blue-100 text-blue-800",
     community: "bg-purple-100 text-purple-800",
-    announcement: "bg-green-100 text-green-800"
+    announcement: "bg-green-100 text-green-800",
+    admin_broadcast: "bg-red-100 text-red-800"
   };
 
   return (
@@ -123,6 +137,52 @@ function CommunityContent() {
               : "Connect with your neighbors and stay updated with building announcements"}
           </p>
         </div>
+
+        {/* Admin Broadcasts Section (Landlords Only) */}
+        {isLandlord && adminBroadcasts.length > 0 && (
+          <div className="mb-8">
+            <Card className="border-2 border-red-500 shadow-xl">
+              <CardHeader className="bg-gradient-to-r from-red-600 to-pink-600 text-white">
+                <CardTitle className="flex items-center gap-2">
+                  <Megaphone className="w-5 h-5" />
+                  System Administrator Announcements
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 space-y-4">
+                {adminBroadcasts.map((broadcast) => (
+                  <Card key={broadcast.id} className="border-l-4 border-red-500">
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex items-center gap-2">
+                          <Badge className="bg-red-100 text-red-800">
+                            <Shield className="w-3 h-3 mr-1" />
+                            Admin
+                          </Badge>
+                          {broadcast.priority === "important" && (
+                            <Badge className="bg-yellow-100 text-yellow-800">
+                              <AlertCircle className="w-3 h-3 mr-1" />
+                              Important
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-500">
+                          <Calendar className="w-4 h-4" />
+                          {format(new Date(broadcast.created_date), "MMM d, yyyy")}
+                        </div>
+                      </div>
+
+                      {broadcast.title && (
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">{broadcast.title}</h3>
+                      )}
+
+                      <p className="text-gray-700 whitespace-pre-wrap">{broadcast.content}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Post Message Form */}
@@ -234,6 +294,8 @@ function CommunityContent() {
 
           {/* Messages Feed */}
           <div className="lg:col-span-2 space-y-4">
+            <h3 className="text-xl font-bold text-gray-900">Property Messages</h3>
+            
             {messages.length === 0 ? (
               <Card className="text-center py-12">
                 <CardContent>

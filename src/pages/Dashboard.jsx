@@ -16,7 +16,8 @@ import {
   MessageSquare,
   UserPlus,
   Shield,
-  Home
+  Home,
+  Megaphone
 } from "lucide-react";
 import InviteTenantModal from "../components/landlord/InviteTenantModal";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
@@ -40,7 +41,6 @@ function DashboardContent() {
       if (isLandlord) {
         return allProperties.filter(p => p.landlord_id === user.id);
       } else if (isTenant && user?.property_id) {
-        // Tenant sees ONLY their assigned property
         return allProperties.filter(p => p.id === user.property_id);
       }
       return allProperties; // Admin sees all
@@ -55,7 +55,6 @@ function DashboardContent() {
       if (isLandlord) {
         return allFaults.filter(f => f.landlord_id === user.id);
       } else if (isTenant && user?.property_id) {
-        // Tenant sees only faults for their property
         return allFaults.filter(f => f.property_id === user.property_id);
       }
       return allFaults; // Admin sees all
@@ -70,12 +69,22 @@ function DashboardContent() {
       if (isLandlord) {
         return allMessages.filter(m => m.landlord_id === user.id);
       } else if (isTenant && user?.property_id) {
-        // Tenant sees only messages for their property
         return allMessages.filter(m => m.property_id === user.property_id);
       }
       return allMessages; // Admin sees all
     },
     enabled: !!user,
+  });
+
+  // Admin broadcasts count for landlords
+  const { data: adminBroadcasts = [] } = useQuery({
+    queryKey: ['admin-broadcasts-count'],
+    queryFn: async () => {
+      if (!isLandlord) return [];
+      const allMessages = await base44.entities.Message.list('-created_date');
+      return allMessages.filter(m => m.is_admin_broadcast === true);
+    },
+    enabled: isLandlord,
   });
 
   const stats = {
@@ -84,7 +93,8 @@ function DashboardContent() {
     openFaults: faults.filter(f => !['completed', 'closed'].includes(f.status)).length,
     urgentFaults: faults.filter(f => f.priority === 'urgent').length,
     completedFaults: faults.filter(f => f.status === 'completed').length,
-    totalMessages: messages.length
+    totalMessages: messages.length,
+    adminBroadcasts: adminBroadcasts.length
   };
 
   const recentFaults = faults.slice(0, 5);
@@ -162,7 +172,31 @@ function DashboardContent() {
           )}
         </div>
 
-        {/* Stats Grid - Simplified for tenants */}
+        {/* Admin Broadcast Alert for Landlords */}
+        {isLandlord && stats.adminBroadcasts > 0 && (
+          <Link to={createPageUrl("Community")}>
+            <Card className="mb-6 border-2 border-red-500 hover:shadow-xl transition-all cursor-pointer">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                    <Megaphone className="w-6 h-6 text-red-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900">System Administrator Announcements</h3>
+                    <p className="text-sm text-gray-600">
+                      You have {stats.adminBroadcasts} new announcement{stats.adminBroadcasts !== 1 ? 's' : ''} from the admin
+                    </p>
+                  </div>
+                  <Badge className="bg-red-100 text-red-800">
+                    {stats.adminBroadcasts} New
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        )}
+
+        {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {!isTenant && (
             <Card className="border-none shadow-lg hover:shadow-xl transition-shadow">
@@ -256,7 +290,7 @@ function DashboardContent() {
           </Card>
         </div>
 
-        {/* Quick Actions - Simplified for tenants */}
+        {/* Quick Actions */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {isLandlord && (
             <Link to={createPageUrl("AddProperty")} className="block">
