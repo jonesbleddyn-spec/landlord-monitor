@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -10,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertCircle, Upload, Sparkles, Loader2, CheckCircle, Lightbulb } from "lucide-react";
+import { AlertCircle, Upload, Sparkles, Loader2, CheckCircle, Lightbulb, Home } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
 
@@ -36,12 +35,22 @@ function ReportFaultContent() {
     queryFn: () => base44.auth.me(),
   });
 
+  const isTenant = user?.user_type === 'tenant';
+
   const { data: properties = [] } = useQuery({
     queryKey: ['user-properties'],
     queryFn: async () => {
       const allProperties = await base44.entities.Property.list();
-      if (user?.user_type === 'tenant' && user?.landlord_id) {
-        return allProperties.filter(p => p.landlord_id === user.landlord_id);
+      
+      if (isTenant) {
+        // Tenant sees ONLY their assigned property
+        if (user?.property_id) {
+          return allProperties.filter(p => p.id === user.property_id);
+        } else if (user?.landlord_id) {
+          const landlordProps = allProperties.filter(p => p.landlord_id === user.landlord_id);
+          return landlordProps.slice(0, 1);
+        }
+        return [];
       } else if (user?.user_type === 'landlord') {
         return allProperties.filter(p => p.landlord_id === user.id);
       }
@@ -49,6 +58,13 @@ function ReportFaultContent() {
     },
     enabled: !!user,
   });
+
+  // Auto-select property for tenants
+  useEffect(() => {
+    if (isTenant && properties.length === 1 && !formData.property_id) {
+      setFormData(prev => ({ ...prev, property_id: properties[0].id }));
+    }
+  }, [isTenant, properties, formData.property_id]);
 
   const createFaultMutation = useMutation({
     mutationFn: async (faultData) => {
@@ -228,24 +244,46 @@ function ReportFaultContent() {
           </CardHeader>
           <CardContent className="p-8">
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <Label>Property *</Label>
-                <Select
-                  value={formData.property_id}
-                  onValueChange={(value) => handleInputChange('property_id', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select property" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {properties.map(property => (
-                      <SelectItem key={property.id} value={property.id}>
-                        {property.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* Property Selection - Different for Tenant vs Landlord */}
+              {isTenant ? (
+                <div>
+                  <Label>Property</Label>
+                  <div className="mt-2 p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <Home className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900">
+                          {properties[0]?.name || "Your Property"}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {properties[0]?.address || "Loading..."}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <Label>Property *</Label>
+                  <Select
+                    value={formData.property_id}
+                    onValueChange={(value) => handleInputChange('property_id', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select property" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {properties.map(property => (
+                        <SelectItem key={property.id} value={property.id}>
+                          {property.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               {/* Image Upload with AI Analysis */}
               <div>
