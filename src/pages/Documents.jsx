@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Upload, Calendar, ExternalLink, AlertCircle, Trash2 } from "lucide-react";
+import { FileText, Upload, Calendar, ExternalLink, AlertCircle, Trash2, Home } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import {
@@ -51,6 +51,9 @@ function DocumentsContent() {
       if (isTenant && user?.property_id) {
         // Tenant sees ONLY their assigned property
         return allProperties.filter(p => p.id === user.property_id);
+      } else if (user?.landlord_id && isTenant) {
+        // Fallback for older tenants
+        return allProperties.filter(p => p.landlord_id === user.landlord_id).slice(0, 1);
       } else if (isLandlord) {
         return allProperties.filter(p => p.landlord_id === user.id);
       }
@@ -59,19 +62,26 @@ function DocumentsContent() {
     enabled: !!user,
   });
 
-  const { data: documents = [] } = useQuery({
-    queryKey: ['user-documents'],
+  const { data: documents = [], isLoading: loadingDocuments } = useQuery({
+    queryKey: ['user-documents', user?.property_id],
     queryFn: async () => {
       const allDocuments = await base44.entities.Document.list('-created_date');
-      if (isTenant && user?.property_id) {
-        // Tenant sees only documents for their property
-        return allDocuments.filter(d => d.property_id === user.property_id);
+      
+      if (isTenant) {
+        // Tenant sees documents for their property
+        if (user?.property_id) {
+          return allDocuments.filter(d => d.property_id === user.property_id);
+        } else if (properties.length > 0) {
+          // Fallback to first property
+          return allDocuments.filter(d => d.property_id === properties[0].id);
+        }
+        return [];
       } else if (isLandlord) {
         return allDocuments.filter(d => d.landlord_id === user.id);
       }
       return [];
     },
-    enabled: !!user,
+    enabled: !!user && (isLandlord || (isTenant && (!!user?.property_id || properties.length > 0))),
   });
 
   const createDocumentMutation = useMutation({
@@ -177,6 +187,28 @@ function DocumentsContent() {
               : "Store and manage all your property-related documents securely"}
           </p>
         </div>
+
+        {/* Tenant Property Info Banner */}
+        {isTenant && properties.length > 0 && (
+          <Card className="mb-6 border-2 border-blue-200 bg-blue-50">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <Home className="w-6 h-6 text-blue-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-gray-900">Viewing documents for:</h3>
+                  <p className="text-sm text-gray-600">
+                    {properties[0]?.name} - {properties[0]?.address}
+                  </p>
+                </div>
+                <Badge className="bg-blue-100 text-blue-800">
+                  {documents.length} Document{documents.length !== 1 ? 's' : ''}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <div className={`grid ${isTenant ? 'lg:grid-cols-1' : 'lg:grid-cols-3'} gap-6 mb-8`}>
           {/* Upload Form - Hidden for tenants */}
@@ -287,14 +319,21 @@ function DocumentsContent() {
           {/* Documents List */}
           <div className={isTenant ? 'col-span-1' : 'lg:col-span-2'}>
             <div className="space-y-4">
-              {documents.length === 0 ? (
+              {loadingDocuments ? (
                 <Card className="text-center py-12">
+                  <CardContent>
+                    <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4 animate-pulse" />
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">Loading documents...</h3>
+                  </CardContent>
+                </Card>
+              ) : documents.length === 0 ? (
+                <Card className="text-center py-12 border-2 border-dashed border-gray-300">
                   <CardContent>
                     <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                     <h3 className="text-xl font-semibold text-gray-900 mb-2">No Documents Yet</h3>
                     <p className="text-gray-600">
                       {isTenant 
-                        ? "No documents have been uploaded for your property yet."
+                        ? "No documents have been uploaded for your property yet. Check back later or contact your landlord."
                         : "Upload your first document to get started."}
                     </p>
                   </CardContent>
@@ -360,9 +399,10 @@ function DocumentsContent() {
                               variant="outline"
                               size="sm"
                               onClick={() => window.open(doc.file_url, '_blank')}
+                              className="whitespace-nowrap"
                             >
                               <ExternalLink className="w-4 h-4 mr-2" />
-                              View
+                              {isTenant ? 'View' : 'View'}
                             </Button>
                             
                             {isLandlord && (
