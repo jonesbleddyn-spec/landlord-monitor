@@ -17,7 +17,8 @@ import {
   UserPlus,
   Shield,
   Home,
-  Megaphone
+  Megaphone,
+  Sparkles
 } from "lucide-react";
 import InviteTenantModal from "../components/landlord/InviteTenantModal";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
@@ -63,15 +64,27 @@ function DashboardContent() {
   });
 
   const { data: messages = [] } = useQuery({
-    queryKey: ['user-messages'],
+    queryKey: ['user-messages-dashboard'],
     queryFn: async () => {
       const allMessages = await base44.entities.Message.list('-created_date');
-      if (isLandlord) {
-        return allMessages.filter(m => m.landlord_id === user.id);
-      } else if (isTenant && user?.property_id) {
-        return allMessages.filter(m => m.property_id === user.property_id);
+      
+      if (isTenant) {
+        const tenantPropertyId = user?.property_id;
+        const tenantLandlordId = user?.landlord_id;
+        
+        if (!tenantPropertyId) return [];
+        
+        // Tenant sees: their property messages + announcements for their landlord
+        return allMessages.filter(m => 
+          !m.is_admin_broadcast && (
+            m.property_id === tenantPropertyId || 
+            (m.message_type === 'announcement' && m.landlord_id === tenantLandlordId && m.all_properties)
+          )
+        );
+      } else if (isLandlord) {
+        return allMessages.filter(m => m.landlord_id === user.id && !m.is_admin_broadcast);
       }
-      return allMessages; // Admin sees all
+      return allMessages.filter(m => !m.is_admin_broadcast); // Admin sees all non-broadcast
     },
     enabled: !!user,
   });
@@ -87,14 +100,29 @@ function DashboardContent() {
     enabled: isLandlord,
   });
 
+  // Calculate "new" items (within last 24 hours)
+  const isNew = (dateString) => {
+    const itemDate = new Date(dateString);
+    const now = new Date();
+    const hoursDiff = (now - itemDate) / (1000 * 60 * 60);
+    return hoursDiff <= 24;
+  };
+
+  const newMessagesCount = messages.filter(m => isNew(m.created_date)).length;
+  const newFaultsCount = faults.filter(f => isNew(f.created_date)).length;
+  const newPropertiesCount = properties.filter(p => isNew(p.created_date)).length;
+
   const stats = {
     totalProperties: properties.length,
     totalFaults: faults.length,
     openFaults: faults.filter(f => !['completed', 'closed'].includes(f.status)).length,
-    urgentFaults: faults.filter(f => f.priority === 'urgent').length,
+    urgentFaults: faults.filter(f => f.priority === 'urgent' && !['completed', 'closed'].includes(f.status)).length,
     completedFaults: faults.filter(f => f.status === 'completed').length,
     totalMessages: messages.length,
-    adminBroadcasts: adminBroadcasts.length
+    adminBroadcasts: adminBroadcasts.length,
+    newMessages: newMessagesCount,
+    newFaults: newFaultsCount,
+    newProperties: newPropertiesCount
   };
 
   const recentFaults = faults.slice(0, 5);
@@ -199,7 +227,7 @@ function DashboardContent() {
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {!isTenant && (
-            <Card className="border-none shadow-lg hover:shadow-xl transition-shadow">
+            <Card className="border-none shadow-lg hover:shadow-xl transition-shadow relative overflow-visible">
               <CardContent className="p-6">
                 <div className="flex justify-between items-start mb-4">
                   <div>
@@ -210,6 +238,12 @@ function DashboardContent() {
                     <Building2 className="w-6 h-6 text-blue-600" />
                   </div>
                 </div>
+                {stats.newProperties > 0 && (
+                  <Badge className="bg-green-500 text-white mb-2 animate-pulse">
+                    <Sparkles className="w-3 h-3 mr-1" />
+                    {stats.newProperties} New
+                  </Badge>
+                )}
                 <Link to={createPageUrl("Properties")}>
                   <Button variant="link" className="p-0 h-auto text-blue-600">View all →</Button>
                 </Link>
@@ -234,7 +268,7 @@ function DashboardContent() {
             </Card>
           )}
 
-          <Card className="border-none shadow-lg hover:shadow-xl transition-shadow">
+          <Card className="border-none shadow-lg hover:shadow-xl transition-shadow relative overflow-visible">
             <CardContent className="p-6">
               <div className="flex justify-between items-start mb-4">
                 <div>
@@ -247,9 +281,15 @@ function DashboardContent() {
                   <AlertCircle className="w-6 h-6 text-yellow-600" />
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 {stats.urgentFaults > 0 && (
                   <Badge className="bg-red-100 text-red-800">{stats.urgentFaults} Urgent</Badge>
+                )}
+                {stats.newFaults > 0 && (
+                  <Badge className="bg-green-500 text-white animate-pulse">
+                    <Sparkles className="w-3 h-3 mr-1" />
+                    {stats.newFaults} New
+                  </Badge>
                 )}
               </div>
             </CardContent>
@@ -259,7 +299,7 @@ function DashboardContent() {
             <CardContent className="p-6">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Completed</p>
+                  <p className="text-sm font-medium text-gray-500">Completed Faults</p>
                   <p className="text-3xl font-bold text-gray-900 mt-2">{stats.completedFaults}</p>
                 </div>
                 <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
@@ -272,7 +312,7 @@ function DashboardContent() {
             </CardContent>
           </Card>
 
-          <Card className="border-none shadow-lg hover:shadow-xl transition-shadow">
+          <Card className="border-none shadow-lg hover:shadow-xl transition-shadow relative overflow-visible">
             <CardContent className="p-6">
               <div className="flex justify-between items-start mb-4">
                 <div>
@@ -283,8 +323,16 @@ function DashboardContent() {
                   <MessageSquare className="w-6 h-6 text-purple-600" />
                 </div>
               </div>
+              <div className="flex items-center gap-2 flex-wrap mb-2">
+                {stats.newMessages > 0 && (
+                  <Badge className="bg-green-500 text-white animate-pulse">
+                    <Sparkles className="w-3 h-3 mr-1" />
+                    {stats.newMessages} New
+                  </Badge>
+                )}
+              </div>
               <Link to={createPageUrl("Community")}>
-                <Button variant="link" className="p-0 h-auto text-purple-600">View community →</Button>
+                <Button variant="link" className="p-0 h-auto text-purple-600">View messages →</Button>
               </Link>
             </CardContent>
           </Card>
@@ -338,7 +386,7 @@ function DashboardContent() {
             <Card className="border-2 border-dashed border-gray-300 hover:border-orange-500 hover:bg-orange-50 transition-all cursor-pointer">
               <CardContent className="p-6 text-center">
                 <MessageSquare className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                <p className="font-medium text-gray-700">Community</p>
+                <p className="font-medium text-gray-700">Property Messages</p>
               </CardContent>
             </Card>
           </Link>
@@ -366,10 +414,19 @@ function DashboardContent() {
               <div className="space-y-4">
                 {recentFaults.map((fault) => {
                   const property = properties.find(p => p.id === fault.property_id);
+                  const faultIsNew = isNew(fault.created_date);
                   return (
                     <div key={fault.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                       <div className="flex-1">
-                        <h4 className="font-semibold text-gray-900">{fault.title}</h4>
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-semibold text-gray-900">{fault.title}</h4>
+                          {faultIsNew && (
+                            <Badge className="bg-green-500 text-white text-xs">
+                              <Sparkles className="w-3 h-3 mr-1" />
+                              New
+                            </Badge>
+                          )}
+                        </div>
                         <p className="text-sm text-gray-600">{property?.name || 'Unknown Property'}</p>
                       </div>
                       <div className="flex items-center gap-3">
