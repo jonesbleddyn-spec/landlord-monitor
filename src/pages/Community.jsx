@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Send, Calendar, User, AlertCircle, Megaphone, Shield, Trash2, Reply, Home } from "lucide-react";
+import { MessageSquare, Send, Calendar, User, AlertCircle, Megaphone, Shield, Trash2, Reply, Home, Eye } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import {
@@ -51,7 +51,6 @@ function CommunityContent() {
     queryFn: async () => {
       const allProperties = await base44.entities.Property.list();
       if (isTenant) {
-        // Tenant sees ONLY their assigned property
         if (user?.property_id) {
           return allProperties.filter(p => p.id === user.property_id);
         } else if (user?.landlord_id) {
@@ -62,12 +61,11 @@ function CommunityContent() {
       } else if (isLandlord) {
         return allProperties.filter(p => p.landlord_id === user.id);
       }
-      return allProperties; // Admin sees all
+      return allProperties;
     },
     enabled: !!user,
   });
 
-  // Auto-select property for tenants - with proper dependency
   useEffect(() => {
     if (isTenant && properties.length > 0 && !selectedProperty) {
       const tenantProperty = properties[0];
@@ -76,7 +74,6 @@ function CommunityContent() {
     }
   }, [isTenant, properties, selectedProperty]);
 
-  // Fetch admin broadcasts (for landlords only)
   const { data: adminBroadcasts = [] } = useQuery({
     queryKey: ['admin-broadcasts'],
     queryFn: async () => {
@@ -87,9 +84,8 @@ function CommunityContent() {
     enabled: isLandlord,
   });
 
-  // Fetch ALL user messages (same query key as Dashboard)
   const { data: allMessages = [], isLoading: loadingMessages } = useQuery({
-    queryKey: ['user-messages', user?.id, user?.property_id, user?.landlord_id],
+    queryKey: ['user-messages'],
     queryFn: async () => {
       const messages = await base44.entities.Message.list('-created_date');
       
@@ -99,18 +95,27 @@ function CommunityContent() {
         
         if (!tenantPropertyId) return [];
         
-        // Tenant sees: their property messages + announcements for their landlord
-        return messages.filter(m => 
-          !m.is_admin_broadcast && (
-            m.property_id === tenantPropertyId || 
-            (m.message_type === 'announcement' && m.landlord_id === tenantLandlordId && m.all_properties)
-          )
-        );
+        // Tenant sees:
+        // 1. Property chat messages for their property
+        // 2. Notices for their property only
+        // 3. Announcements from their landlord (all_properties = true)
+        return messages.filter(m => {
+          if (m.is_admin_broadcast) return false;
+          
+          // Property chat - their property
+          if (m.message_type === 'community' && m.property_id === tenantPropertyId) return true;
+          
+          // Notices - their property only
+          if (m.message_type === 'notice' && m.property_id === tenantPropertyId) return true;
+          
+          // Announcements - from their landlord to all properties
+          if (m.message_type === 'announcement' && m.landlord_id === tenantLandlordId && m.all_properties) return true;
+          
+          return false;
+        });
       } else if (isLandlord) {
-        // Landlord sees only their messages (excluding admin broadcasts)
         return messages.filter(m => m.landlord_id === user.id && !m.is_admin_broadcast);
       } else if (isAdmin) {
-        // Admin sees all non-broadcast messages
         return messages.filter(m => !m.is_admin_broadcast);
       }
       return [];
@@ -118,20 +123,41 @@ function CommunityContent() {
     enabled: !!user,
   });
 
-  // Filter messages based on selected property (client-side filtering)
+  // Mark messages as viewed when component mounts
+  useEffect(() => {
+    if (!user || !allMessages || allMessages.length === 0) return;
+    
+    const markAsViewed = async () => {
+      const messagesToMark = allMessages.filter(m => {
+        const viewedBy = m.viewed_by || [];
+        return !viewedBy.includes(user.email);
+      });
+      
+      if (messagesToMark.length > 0) {
+        for (const message of messagesToMark) {
+          const viewedBy = message.viewed_by || [];
+          await base44.entities.Message.update(message.id, {
+            viewed_by: [...viewedBy, user.email]
+          });
+        }
+        queryClient.invalidateQueries({ queryKey: ['user-messages'] });
+      }
+    };
+    
+    const timer = setTimeout(markAsViewed, 1000);
+    return () => clearTimeout(timer);
+  }, [allMessages, user, queryClient]);
+
   const messages = React.useMemo(() => {
     if (!allMessages) return [];
     
     if (isTenant) {
-      // Tenants see all their messages (already filtered by query)
       return allMessages;
     } else if (isLandlord && selectedProperty) {
-      // Landlords see messages for selected property + all-property announcements
       return allMessages.filter(m => 
         m.property_id === selectedProperty || (m.message_type === 'announcement' && m.all_properties)
       );
     } else {
-      // No property selected or admin
       return allMessages;
     }
   }, [allMessages, selectedProperty, isTenant, isLandlord]);
@@ -139,7 +165,6 @@ function CommunityContent() {
   const createMessageMutation = useMutation({
     mutationFn: async (messageData) => {
       if (messageData.message_type === 'announcement' && isLandlord) {
-        // Create announcement for all landlord's properties
         const createPromises = properties.map(property => 
           base44.entities.Message.create({
             ...messageData,
@@ -147,19 +172,20 @@ function CommunityContent() {
             landlord_id: user.id,
             author_name: user?.full_name || user?.email || "Anonymous",
             is_admin_broadcast: false,
-            all_properties: true
+            all_properties: true,
+            viewed_by: [user.email]
           })
         );
         await Promise.all(createPromises);
         return { success: true };
       } else {
-        // Normal message creation (including tenant messages)
         return base44.entities.Message.create({
           ...messageData,
           landlord_id: user?.landlord_id || user?.id,
           author_name: user?.full_name || user?.email || "Anonymous",
           is_admin_broadcast: false,
-          all_properties: false
+          all_properties: false,
+          viewed_by: [user.email]
         });
       }
     },
@@ -176,10 +202,6 @@ function CommunityContent() {
       setReplyingTo(null);
       toast.success("Message posted successfully!");
     },
-    onError: (error) => {
-      toast.error("Failed to post message");
-      console.error("Message post error:", error);
-    }
   });
 
   const deleteMessageMutation = useMutation({
@@ -196,7 +218,6 @@ function CommunityContent() {
     e.preventDefault();
     
     if (newMessage.message_type === 'announcement' && isLandlord) {
-      // Announcement goes to all properties
       await createMessageMutation.mutateAsync(newMessage);
     } else {
       const propertyToUse = isTenant && properties.length > 0 ? properties[0].id : selectedProperty;
@@ -237,15 +258,12 @@ function CommunityContent() {
   const canDelete = (message) => {
     if (isAdmin) return true;
     if (isLandlord && message.landlord_id === user.id) return true;
-    // Tenants can delete their own messages
     if (isTenant && message.created_by === user.email) return true;
     return false;
   };
 
   const canReply = (message) => {
-    // Only community messages can be replied to
     if (message.message_type !== 'community') return false;
-    // Everyone can reply to community messages
     return true;
   };
 
@@ -253,7 +271,6 @@ function CommunityContent() {
     notice: "bg-blue-100 text-blue-800",
     community: "bg-purple-100 text-purple-800",
     announcement: "bg-green-100 text-green-800",
-    admin_broadcast: "bg-red-100 text-red-800"
   };
 
   const messageTypeDescriptions = {
@@ -262,7 +279,6 @@ function CommunityContent() {
     announcement: "Broadcast to all your properties (read-only for tenants)"
   };
 
-  // Group messages by parent/reply
   const organizedMessages = messages.reduce((acc, msg) => {
     if (!msg.parent_message_id) {
       acc.push({ ...msg, replies: [] });
@@ -270,7 +286,6 @@ function CommunityContent() {
     return acc;
   }, []);
 
-  // Add replies to their parent messages
   messages.forEach(msg => {
     if (msg.parent_message_id) {
       const parent = organizedMessages.find(m => m.id === msg.parent_message_id);
@@ -292,7 +307,6 @@ function CommunityContent() {
           </p>
         </div>
 
-        {/* Tenant Property Banner */}
         {isTenant && properties.length > 0 && (
           <Card className="mb-6 border-2 border-blue-200 bg-blue-50">
             <CardContent className="p-4">
@@ -314,7 +328,6 @@ function CommunityContent() {
           </Card>
         )}
 
-        {/* Admin Broadcasts Section (Landlords Only) */}
         {isLandlord && adminBroadcasts.length > 0 && (
           <div className="mb-8">
             <Card className="border-2 border-red-500 shadow-xl">
@@ -361,7 +374,6 @@ function CommunityContent() {
         )}
 
         <div className="grid lg:grid-cols-3 gap-6">
-          {/* Post Message Form */}
           <div className="lg:col-span-1">
             <Card className="sticky top-20 shadow-xl border-none">
               <CardHeader className="bg-gradient-to-r from-purple-600 to-pink-600 text-white">
@@ -523,7 +535,6 @@ function CommunityContent() {
             </Card>
           </div>
 
-          {/* Messages Feed */}
           <div className="lg:col-span-2 space-y-4">
             <h3 className="text-xl font-bold text-gray-900">
               {isTenant 
@@ -555,129 +566,138 @@ function CommunityContent() {
                 </CardContent>
               </Card>
             ) : (
-              organizedMessages.map((message) => (
-                <div key={message.id}>
-                  <Card className="hover:shadow-lg transition-shadow border-none">
-                    <CardContent className="p-6">
-                      <div className="flex justify-between items-start mb-3">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Badge className={messageTypeColors[message.message_type]}>
-                            {message.message_type === 'community' ? 'Property Chat' : message.message_type}
-                          </Badge>
-                          {message.all_properties && (
-                            <Badge className="bg-green-100 text-green-800">
-                              All Properties
+              organizedMessages.map((message) => {
+                const isReadOnly = isTenant && (message.message_type === 'notice' || message.message_type === 'announcement');
+                
+                return (
+                  <div key={message.id}>
+                    <Card className="hover:shadow-lg transition-shadow border-none">
+                      <CardContent className="p-6">
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge className={messageTypeColors[message.message_type]}>
+                              {message.message_type === 'community' ? 'Property Chat' : 
+                               message.message_type === 'notice' ? 'Notice' : 'Announcement'}
                             </Badge>
-                          )}
-                          {message.priority === "important" && (
-                            <Badge className="bg-red-100 text-red-800">
-                              <AlertCircle className="w-3 h-3 mr-1" />
-                              Important
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="text-sm text-gray-500 flex items-center gap-1">
-                            <Calendar className="w-4 h-4" />
-                            {format(new Date(message.created_date), "MMM d, yyyy")}
+                            {isReadOnly && (
+                              <Badge variant="outline">
+                                <Eye className="w-3 h-3 mr-1" />
+                                View Only
+                              </Badge>
+                            )}
+                            {message.all_properties && (
+                              <Badge className="bg-green-100 text-green-800">
+                                All Properties
+                              </Badge>
+                            )}
+                            {message.priority === "important" && (
+                              <Badge className="bg-red-100 text-red-800">
+                                <AlertCircle className="w-3 h-3 mr-1" />
+                                Important
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="text-sm text-gray-500 flex items-center gap-1">
+                              <Calendar className="w-4 h-4" />
+                              {format(new Date(message.created_date), "MMM d, yyyy")}
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      {message.title && (
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2">{message.title}</h3>
-                      )}
+                        {message.title && (
+                          <h3 className="text-lg font-semibold text-gray-900 mb-2">{message.title}</h3>
+                        )}
 
-                      <p className="text-gray-700 mb-4 whitespace-pre-wrap">{message.content}</p>
+                        <p className="text-gray-700 mb-4 whitespace-pre-wrap">{message.content}</p>
 
-                      <div className="flex items-center justify-between border-t pt-3">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <User className="w-4 h-4" />
-                          <span className="font-medium">{message.author_name}</span>
-                        </div>
-                        
-                        <div className="flex gap-2">
-                          {canReply(message) && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleReply(message)}
-                            >
-                              <Reply className="w-4 h-4 mr-1" />
-                              Reply
-                            </Button>
-                          )}
+                        <div className="flex items-center justify-between border-t pt-3">
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <User className="w-4 h-4" />
+                            <span className="font-medium">{message.author_name}</span>
+                          </div>
                           
-                          {canDelete(message) && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleDeleteClick(message)}
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Replies */}
-                  {message.replies && message.replies.length > 0 && (
-                    <div className="ml-12 mt-3 space-y-3">
-                      {message.replies.map((reply) => (
-                        <Card key={reply.id} className="bg-gray-50 border-l-4 border-purple-500">
-                          <CardContent className="p-4">
-                            <div className="flex justify-between items-start mb-2">
-                              <Badge variant="outline" className="text-xs">
-                                <Reply className="w-3 h-3 mr-1" />
+                          <div className="flex gap-2">
+                            {canReply(message) && !isReadOnly && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleReply(message)}
+                              >
+                                <Reply className="w-4 h-4 mr-1" />
                                 Reply
-                              </Badge>
-                              <div className="text-xs text-gray-500 flex items-center gap-1">
-                                <Calendar className="w-3 h-3" />
-                                {format(new Date(reply.created_date), "MMM d, yyyy")}
+                              </Button>
+                            )}
+                            
+                            {canDelete(message) && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDeleteClick(message)}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {message.replies && message.replies.length > 0 && (
+                      <div className="ml-12 mt-3 space-y-3">
+                        {message.replies.map((reply) => (
+                          <Card key={reply.id} className="bg-gray-50 border-l-4 border-purple-500">
+                            <CardContent className="p-4">
+                              <div className="flex justify-between items-start mb-2">
+                                <Badge variant="outline" className="text-xs">
+                                  <Reply className="w-3 h-3 mr-1" />
+                                  Reply
+                                </Badge>
+                                <div className="text-xs text-gray-500 flex items-center gap-1">
+                                  <Calendar className="w-3 h-3" />
+                                  {format(new Date(reply.created_date), "MMM d, yyyy")}
+                                </div>
                               </div>
-                            </div>
 
-                            <p className="text-gray-700 mb-3 text-sm whitespace-pre-wrap">{reply.content}</p>
+                              <p className="text-gray-700 mb-3 text-sm whitespace-pre-wrap">{reply.content}</p>
 
-                            <div className="flex items-center justify-between border-t pt-2">
-                              <div className="flex items-center gap-2 text-xs text-gray-600">
-                                <User className="w-3 h-3" />
-                                <span className="font-medium">{reply.author_name}</span>
+                              <div className="flex items-center justify-between border-t pt-2">
+                                <div className="flex items-center gap-2 text-xs text-gray-600">
+                                  <User className="w-3 h-3" />
+                                  <span className="font-medium">{reply.author_name}</span>
+                                </div>
+
+                                {canDelete(reply) && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleDeleteClick(reply)}
+                                    className="h-7 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </Button>
+                                )}
                               </div>
-
-                              {canDelete(reply) && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleDeleteClick(reply)}
-                                  className="h-7 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </Button>
-                              )}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
             )}
           </div>
         </div>
       </div>
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Message</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this message? This action cannot be undone.
+              Are you sure you want to delete this message? This action cannot be undone and will remove it from everyone's view.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
