@@ -47,6 +47,8 @@ function DashboardContent() {
       return allProperties; // Admin sees all
     },
     enabled: !!user,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true
   });
 
   const { data: faults = [] } = useQuery({
@@ -61,10 +63,12 @@ function DashboardContent() {
       return allFaults; // Admin sees all
     },
     enabled: !!user,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true
   });
 
   const { data: messages = [] } = useQuery({
-    queryKey: ['user-messages-dashboard'],
+    queryKey: ['user-messages'],
     queryFn: async () => {
       const allMessages = await base44.entities.Message.list('-created_date');
       
@@ -87,17 +91,21 @@ function DashboardContent() {
       return allMessages.filter(m => !m.is_admin_broadcast); // Admin sees all non-broadcast
     },
     enabled: !!user,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true
   });
 
   // Admin broadcasts count for landlords
   const { data: adminBroadcasts = [] } = useQuery({
-    queryKey: ['admin-broadcasts-count'],
+    queryKey: ['admin-broadcasts'],
     queryFn: async () => {
       if (!isLandlord) return [];
       const allMessages = await base44.entities.Message.list('-created_date');
       return allMessages.filter(m => m.is_admin_broadcast === true);
     },
     enabled: isLandlord,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true
   });
 
   // Calculate "new" items (within last 24 hours)
