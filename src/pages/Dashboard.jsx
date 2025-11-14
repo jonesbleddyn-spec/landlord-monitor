@@ -47,8 +47,6 @@ function DashboardContent() {
       return allProperties; // Admin sees all
     },
     enabled: !!user,
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: true
   });
 
   const { data: faults = [] } = useQuery({
@@ -63,14 +61,12 @@ function DashboardContent() {
       return allFaults; // Admin sees all
     },
     enabled: !!user,
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: true
   });
 
-  const { data: messages = [] } = useQuery({
-    queryKey: ['user-messages'],
+  const { data: allMessages = [] } = useQuery({
+    queryKey: ['user-messages', user?.id, user?.property_id, user?.landlord_id],
     queryFn: async () => {
-      const allMessages = await base44.entities.Message.list('-created_date');
+      const messages = await base44.entities.Message.list('-created_date');
       
       if (isTenant) {
         const tenantPropertyId = user?.property_id;
@@ -79,20 +75,22 @@ function DashboardContent() {
         if (!tenantPropertyId) return [];
         
         // Tenant sees: their property messages + announcements for their landlord
-        return allMessages.filter(m => 
+        return messages.filter(m => 
           !m.is_admin_broadcast && (
             m.property_id === tenantPropertyId || 
             (m.message_type === 'announcement' && m.landlord_id === tenantLandlordId && m.all_properties)
           )
         );
       } else if (isLandlord) {
-        return allMessages.filter(m => m.landlord_id === user.id && !m.is_admin_broadcast);
+        // Landlord sees only their messages (excluding admin broadcasts)
+        return messages.filter(m => m.landlord_id === user.id && !m.is_admin_broadcast);
+      } else if (isAdmin) {
+        // Admin sees all non-broadcast messages
+        return messages.filter(m => !m.is_admin_broadcast);
       }
-      return allMessages.filter(m => !m.is_admin_broadcast); // Admin sees all non-broadcast
+      return [];
     },
     enabled: !!user,
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: true
   });
 
   // Admin broadcasts count for landlords
@@ -104,19 +102,18 @@ function DashboardContent() {
       return allMessages.filter(m => m.is_admin_broadcast === true);
     },
     enabled: isLandlord,
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: true
   });
 
   // Calculate "new" items (within last 24 hours)
   const isNew = (dateString) => {
+    if (!dateString) return false;
     const itemDate = new Date(dateString);
     const now = new Date();
     const hoursDiff = (now - itemDate) / (1000 * 60 * 60);
-    return hoursDiff <= 24;
+    return hoursDiff <= 24 && hoursDiff >= 0;
   };
 
-  const newMessagesCount = messages.filter(m => isNew(m.created_date)).length;
+  const newMessagesCount = allMessages.filter(m => isNew(m.created_date)).length;
   const newFaultsCount = faults.filter(f => isNew(f.created_date)).length;
   const newPropertiesCount = properties.filter(p => isNew(p.created_date)).length;
 
@@ -126,7 +123,7 @@ function DashboardContent() {
     openFaults: faults.filter(f => !['completed', 'closed'].includes(f.status)).length,
     urgentFaults: faults.filter(f => f.priority === 'urgent' && !['completed', 'closed'].includes(f.status)).length,
     completedFaults: faults.filter(f => f.status === 'completed').length,
-    totalMessages: messages.length,
+    totalMessages: allMessages.length,
     adminBroadcasts: adminBroadcasts.length,
     newMessages: newMessagesCount,
     newFaults: newFaultsCount,

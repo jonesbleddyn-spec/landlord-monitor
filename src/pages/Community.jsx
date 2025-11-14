@@ -87,42 +87,54 @@ function CommunityContent() {
     enabled: isLandlord,
   });
 
-  const { data: messages = [], isLoading: loadingMessages } = useQuery({
-    queryKey: ['user-messages', selectedProperty, user?.property_id, user?.landlord_id],
+  // Fetch ALL user messages (same query key as Dashboard)
+  const { data: allMessages = [], isLoading: loadingMessages } = useQuery({
+    queryKey: ['user-messages', user?.id, user?.property_id, user?.landlord_id],
     queryFn: async () => {
-      const allMessages = await base44.entities.Message.list('-created_date');
+      const messages = await base44.entities.Message.list('-created_date');
       
       if (isTenant) {
-        const tenantPropertyId = user?.property_id || (properties.length > 0 ? properties[0].id : null);
+        const tenantPropertyId = user?.property_id;
         const tenantLandlordId = user?.landlord_id;
         
         if (!tenantPropertyId) return [];
         
         // Tenant sees: their property messages + announcements for their landlord
-        return allMessages.filter(m => 
+        return messages.filter(m => 
           !m.is_admin_broadcast && (
             m.property_id === tenantPropertyId || 
             (m.message_type === 'announcement' && m.landlord_id === tenantLandlordId && m.all_properties)
           )
         );
       } else if (isLandlord) {
-        const userRelevantMessages = allMessages.filter(m => 
-          m.landlord_id === user.id && !m.is_admin_broadcast
-        );
-        if (selectedProperty) {
-          // Show property-specific + announcements for all properties
-          return userRelevantMessages.filter(m => 
-            m.property_id === selectedProperty || (m.message_type === 'announcement' && m.all_properties)
-          );
-        }
-        return userRelevantMessages;
+        // Landlord sees only their messages (excluding admin broadcasts)
+        return messages.filter(m => m.landlord_id === user.id && !m.is_admin_broadcast);
       } else if (isAdmin) {
-        return allMessages.filter(m => !m.is_admin_broadcast);
+        // Admin sees all non-broadcast messages
+        return messages.filter(m => !m.is_admin_broadcast);
       }
       return [];
     },
-    enabled: !!user && (isAdmin || isLandlord || (isTenant && (!!user?.property_id || properties.length > 0))),
+    enabled: !!user,
   });
+
+  // Filter messages based on selected property (client-side filtering)
+  const messages = React.useMemo(() => {
+    if (!allMessages) return [];
+    
+    if (isTenant) {
+      // Tenants see all their messages (already filtered by query)
+      return allMessages;
+    } else if (isLandlord && selectedProperty) {
+      // Landlords see messages for selected property + all-property announcements
+      return allMessages.filter(m => 
+        m.property_id === selectedProperty || (m.message_type === 'announcement' && m.all_properties)
+      );
+    } else {
+      // No property selected or admin
+      return allMessages;
+    }
+  }, [allMessages, selectedProperty, isTenant, isLandlord]);
 
   const createMessageMutation = useMutation({
     mutationFn: async (messageData) => {
@@ -295,7 +307,7 @@ function CommunityContent() {
                   </p>
                 </div>
                 <Badge className="bg-blue-100 text-blue-800">
-                  {messages.length} Message{messages.length !== 1 ? 's' : ''}
+                  {allMessages.length} Message{allMessages.length !== 1 ? 's' : ''}
                 </Badge>
               </div>
             </CardContent>
