@@ -1,7 +1,6 @@
 import Home from './pages/Home';
 import ReportFault from './pages/ReportFault';
 import Properties from './pages/Properties';
-import Community from './pages/Community';
 import Documents from './pages/Documents';
 import Onboarding from './pages/Onboarding';
 import LandlordDashboard from './pages/LandlordDashboard';
@@ -18,7 +17,6 @@ export const PAGES = {
     "Home": Home,
     "ReportFault": ReportFault,
     "Properties": Properties,
-    "Community": Community,
     "Documents": Documents,
     "Onboarding": Onboarding,
     "LandlordDashboard": LandlordDashboard,
