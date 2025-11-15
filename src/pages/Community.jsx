@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Send, Calendar, User, AlertCircle, Trash2, Reply, Home, Eye, Megaphone } from "lucide-react";
+import { MessageSquare, Send, Calendar, User, AlertCircle, Trash2, Reply, Home } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import {
@@ -76,16 +76,24 @@ function CommunityContent() {
       
       if (isTenant) {
         const myPropertyId = user?.property_id;
-        if (!myPropertyId) return [];
+        if (!myPropertyId || properties.length === 0) return [];
         
-        const myProperty = properties.find(p => p.id === myPropertyId);
-        const myLandlordId = myProperty?.landlord_id;
+        const myProperty = properties[0];
+        const myLandlordId = myProperty.landlord_id;
         
-        return allDbMessages.filter(msg => {
-          if (msg.message_type === 'announcement' && msg.landlord_id === myLandlordId) return true;
-          if (msg.property_id === myPropertyId) return true;
+        const filtered = allDbMessages.filter(msg => {
+          // Announcements from my landlord
+          if (msg.message_type === 'announcement' && msg.landlord_id === myLandlordId) {
+            return true;
+          }
+          // Messages/notices for my property
+          if (msg.property_id === myPropertyId) {
+            return true;
+          }
           return false;
         });
+        
+        return filtered;
       } else if (isLandlord) {
         return allDbMessages.filter(msg => msg.landlord_id === user.id);
       }
@@ -93,30 +101,6 @@ function CommunityContent() {
     },
     enabled: !!user && properties.length > 0,
   });
-
-  useEffect(() => {
-    if (!user || !allMessages || allMessages.length === 0) return;
-    
-    const markAsViewed = async () => {
-      const unviewedMessages = allMessages.filter(m => {
-        const viewedBy = m.viewed_by || [];
-        return !viewedBy.includes(user.email);
-      });
-      
-      if (unviewedMessages.length > 0) {
-        for (const message of unviewedMessages) {
-          const viewedBy = message.viewed_by || [];
-          await base44.entities.Message.update(message.id, {
-            viewed_by: [...viewedBy, user.email]
-          });
-        }
-        queryClient.invalidateQueries({ queryKey: ['user-messages'] });
-      }
-    };
-    
-    const timer = setTimeout(markAsViewed, 1000);
-    return () => clearTimeout(timer);
-  }, [allMessages, user, queryClient]);
 
   const messages = React.useMemo(() => {
     if (!allMessages) return [];
@@ -136,10 +120,12 @@ function CommunityContent() {
   const createMessageMutation = useMutation({
     mutationFn: async (messageData) => {
       let landlordId;
+      let propertyId = messageData.property_id;
       
       if (isTenant) {
-        const property = properties.find(p => p.id === messageData.property_id);
-        landlordId = property?.landlord_id;
+        const property = properties[0];
+        landlordId = property.landlord_id;
+        propertyId = property.id;
       } else {
         landlordId = user.id;
       }
@@ -149,11 +135,11 @@ function CommunityContent() {
         content: messageData.content,
         message_type: messageData.message_type,
         priority: messageData.priority || "normal",
-        property_id: messageData.message_type === 'announcement' ? null : messageData.property_id,
+        property_id: messageData.message_type === 'announcement' ? null : propertyId,
         parent_message_id: messageData.parent_message_id || null,
         landlord_id: landlordId,
         author_name: user?.full_name || user?.email || "Anonymous",
-        viewed_by: [user.email]
+        viewed_by: []
       });
     },
     onSuccess: () => {
@@ -240,12 +226,6 @@ function CommunityContent() {
     message: "bg-purple-100 text-purple-800",
   };
 
-  const messageTypeIcons = {
-    announcement: Megaphone,
-    notice: AlertCircle,
-    message: MessageSquare,
-  };
-
   const organizedMessages = messages.reduce((acc, msg) => {
     if (!msg.parent_message_id) {
       acc.push({ ...msg, replies: [] });
@@ -266,11 +246,11 @@ function CommunityContent() {
     <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900">Property Messages</h1>
+          <h1 className="text-4xl font-bold text-gray-900">Community Board</h1>
           <p className="text-lg text-gray-600">
             {isTenant 
-              ? "View announcements, notices, and chat with your landlord"
-              : "Send announcements, notices, and chat with tenants"}
+              ? "Communicate with your landlord"
+              : "Communicate with your tenants"}
           </p>
         </div>
 
@@ -282,7 +262,7 @@ function CommunityContent() {
                   <Home className="w-6 h-6 text-blue-600" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900">Messaging for:</h3>
+                  <h3 className="font-semibold text-gray-900">Your Property</h3>
                   <p className="text-sm text-gray-600">
                     {properties[0]?.name} - {properties[0]?.address}
                   </p>
@@ -341,9 +321,9 @@ function CommunityContent() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="announcement">📢 Announcement (All Properties)</SelectItem>
-                          <SelectItem value="notice">📋 Notice (One Property)</SelectItem>
-                          <SelectItem value="message">💬 Message (Two-Way)</SelectItem>
+                          <SelectItem value="announcement">📢 Announcement (All)</SelectItem>
+                          <SelectItem value="notice">📋 Notice (Property)</SelectItem>
+                          <SelectItem value="message">💬 Message</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -370,14 +350,6 @@ function CommunityContent() {
                           ))}
                         </SelectContent>
                       </Select>
-                    </div>
-                  )}
-
-                  {isTenant && properties.length > 0 && (
-                    <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                      <p className="text-sm text-gray-600">
-                        To: <span className="font-semibold">{properties[0]?.name}</span>
-                      </p>
                     </div>
                   )}
 
@@ -433,11 +405,6 @@ function CommunityContent() {
           </div>
 
           <div className="lg:col-span-2 space-y-4">
-            <h3 className="text-xl font-bold text-gray-900">
-              {isTenant ? 'Messages' : selectedProperty && properties.find(p => p.id === selectedProperty)
-                ? properties.find(p => p.id === selectedProperty)?.name : 'All Messages'}
-            </h3>
-            
             {loadingMessages ? (
               <Card className="text-center py-12">
                 <CardContent>
@@ -456,7 +423,6 @@ function CommunityContent() {
             ) : (
               organizedMessages.map((message) => {
                 const isViewOnly = isTenant && (message.message_type === 'announcement' || message.message_type === 'notice');
-                const TypeIcon = messageTypeIcons[message.message_type];
                 
                 return (
                   <div key={message.id}>
@@ -465,16 +431,9 @@ function CommunityContent() {
                         <div className="flex justify-between items-start mb-3">
                           <div className="flex items-center gap-2 flex-wrap">
                             <Badge className={messageTypeColors[message.message_type]}>
-                              <TypeIcon className="w-3 h-3 mr-1" />
-                              {message.message_type === 'announcement' ? 'Announcement' : 
-                               message.message_type === 'notice' ? 'Notice' : 'Message'}
+                              {message.message_type === 'announcement' ? '📢 Announcement' : 
+                               message.message_type === 'notice' ? '📋 Notice' : '💬 Message'}
                             </Badge>
-                            {isViewOnly && (
-                              <Badge variant="outline">
-                                <Eye className="w-3 h-3 mr-1" />
-                                Read Only
-                              </Badge>
-                            )}
                             {message.priority === "important" && (
                               <Badge className="bg-red-100 text-red-800">Important</Badge>
                             )}
