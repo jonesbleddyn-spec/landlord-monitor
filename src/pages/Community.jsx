@@ -55,12 +55,11 @@ function CommunityContent() {
       } else if (isLandlord) {
         return allProperties.filter(p => p.landlord_id === user.id);
       }
-      return allProperties; // Admin sees all
+      return allProperties;
     },
     enabled: !!user,
   });
 
-  // Auto-select property for tenants
   useEffect(() => {
     if (isTenant && properties.length === 1) {
       setSelectedProperty(properties[0].id);
@@ -68,7 +67,6 @@ function CommunityContent() {
     }
   }, [isTenant, properties]);
 
-  // Fetch admin broadcasts (for landlords only)
   const { data: adminBroadcasts = [] } = useQuery({
     queryKey: ['admin-broadcasts'],
     queryFn: async () => {
@@ -80,23 +78,30 @@ function CommunityContent() {
   });
 
   const { data: messages = [] } = useQuery({
-    queryKey: isTenant ? ['user-messages', user?.property_id] : ['user-messages', selectedProperty],
+    queryKey: ['community-messages', selectedProperty, user?.property_id],
     queryFn: async () => {
       const allMessages = await base44.entities.Message.list('-created_date');
       
-      if (isTenant && user?.property_id) {
-        // Tenants see all messages for their property (not admin broadcasts)
-        return allMessages.filter(m => m.property_id === user.property_id && !m.is_admin_broadcast);
+      if (isTenant) {
+        // Tenants see ALL messages for their property (notices, announcements, community)
+        const tenantPropertyId = user?.property_id || properties[0]?.id;
+        if (!tenantPropertyId) return [];
+        
+        return allMessages.filter(m => 
+          m.property_id === tenantPropertyId && 
+          m.is_admin_broadcast !== true
+        );
       } else if (isLandlord) {
-        const userRelevantMessages = allMessages.filter(m => 
+        // Landlords see messages for selected property or all their properties
+        const userMessages = allMessages.filter(m => 
           m.landlord_id === user.id && !m.is_admin_broadcast
         );
+        
         if (selectedProperty) {
-          return userRelevantMessages.filter(m => m.property_id === selectedProperty);
+          return userMessages.filter(m => m.property_id === selectedProperty);
         }
-        return userRelevantMessages;
+        return userMessages;
       } else if (isAdmin) {
-        // Admin sees all non-broadcast messages
         const nonBroadcasts = allMessages.filter(m => !m.is_admin_broadcast);
         if (selectedProperty) {
           return nonBroadcasts.filter(m => m.property_id === selectedProperty);
@@ -105,16 +110,14 @@ function CommunityContent() {
       }
       return [];
     },
-    enabled: !!user && (isAdmin || isLandlord || (isTenant && !!user?.property_id)),
+    enabled: !!user,
   });
 
   const createMessageMutation = useMutation({
     mutationFn: (messageData) => {
       const propertyData = properties.find(p => p.id === messageData.property_id);
       
-      // For announcements, landlord should broadcast to all their properties
       if (messageData.message_type === "announcement" && isLandlord) {
-        // Create message for each property
         const propertiesToMessage = properties.map(p => ({
           ...messageData,
           property_id: p.id,
@@ -133,6 +136,7 @@ function CommunityContent() {
       });
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['community-messages'] });
       queryClient.invalidateQueries({ queryKey: ['user-messages'] });
       setNewMessage({
         property_id: selectedProperty,
@@ -149,6 +153,7 @@ function CommunityContent() {
   const deleteMessageMutation = useMutation({
     mutationFn: (messageId) => base44.entities.Message.delete(messageId),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['community-messages'] });
       queryClient.invalidateQueries({ queryKey: ['user-messages'] });
       toast.success("Message deleted successfully");
       setDeleteDialogOpen(false);
@@ -162,7 +167,6 @@ function CommunityContent() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // For announcements, landlord doesn't need to select a property
     if (newMessage.message_type === "announcement" && isLandlord) {
       if (!newMessage.content) {
         toast.error("Please write a message.");
@@ -170,7 +174,7 @@ function CommunityContent() {
       }
       await createMessageMutation.mutateAsync({
         ...newMessage,
-        property_id: "" // Will be set for each property
+        property_id: ""
       });
       return;
     }
@@ -214,11 +218,9 @@ function CommunityContent() {
   };
 
   const canReplyToMessage = (message) => {
-    // Tenants can reply to notices and community messages, but not announcements
     if (isTenant) {
       return message.message_type === "notice" || message.message_type === "community";
     }
-    // Landlords and admins can reply to anything
     return true;
   };
 
@@ -241,7 +243,6 @@ function CommunityContent() {
           </p>
         </div>
 
-        {/* Admin Broadcasts Section (Landlords Only) - READ ONLY */}
         {isLandlord && adminBroadcasts.length > 0 && (
           <div className="mb-8">
             <Card className="border-2 border-red-500 shadow-xl">
@@ -288,7 +289,6 @@ function CommunityContent() {
         )}
 
         <div className="grid lg:grid-cols-3 gap-6">
-          {/* Post Message Form */}
           <div className="lg:col-span-1">
             <Card className="sticky top-20 shadow-xl border-none">
               <CardHeader className="bg-gradient-to-r from-purple-600 to-pink-600 text-white">
@@ -328,15 +328,11 @@ function CommunityContent() {
                           <SelectValue placeholder="Choose property" />
                         </SelectTrigger>
                         <SelectContent>
-                          {properties.length === 0 ? (
-                            <SelectItem value={null} disabled>No properties available</SelectItem>
-                          ) : (
-                            properties.map(property => (
-                              <SelectItem key={property.id} value={property.id}>
-                                {property.name}
-                              </SelectItem>
-                            ))
-                          )}
+                          {properties.map(property => (
+                            <SelectItem key={property.id} value={property.id}>
+                              {property.name}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
@@ -347,7 +343,6 @@ function CommunityContent() {
                     <Select
                       value={newMessage.message_type}
                       onValueChange={(value) => setNewMessage(prev => ({ ...prev, message_type: value }))}
-                      disabled={isTenant && replyingTo && replyingTo.message_type === "announcement"}
                     >
                       <SelectTrigger id="message-type-select">
                         <SelectValue />
@@ -422,7 +417,6 @@ function CommunityContent() {
             </Card>
           </div>
 
-          {/* Messages Feed */}
           <div className="lg:col-span-2 space-y-4">
             <h3 className="text-xl font-bold text-gray-900">
               {isTenant ? "My Property Messages" : "Property Messages"}
@@ -512,7 +506,6 @@ function CommunityContent() {
         </div>
       </div>
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
