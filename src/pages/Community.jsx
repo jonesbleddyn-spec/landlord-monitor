@@ -231,6 +231,13 @@ function CommunityContent() {
     admin_broadcast: "bg-red-100 text-red-800"
   };
 
+  const messageTypeLabels = {
+    notice: "notice",
+    community: "message",
+    announcement: "announcement",
+    admin_broadcast: "admin broadcast"
+  };
+
   return (
     <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
@@ -348,7 +355,7 @@ function CommunityContent() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="community">Community</SelectItem>
+                        <SelectItem value="community">Message</SelectItem>
                         {!isTenant && <SelectItem value="notice">Notice (Property Specific)</SelectItem>}
                         {!isTenant && <SelectItem value="announcement">Announcement (All Properties)</SelectItem>}
                       </SelectContent>
@@ -450,7 +457,7 @@ function CommunityContent() {
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex items-center gap-2">
                         <Badge className={messageTypeColors[message.message_type]}>
-                          {message.message_type}
+                          {messageTypeLabels[message.message_type] || message.message_type}
                         </Badge>
                         {message.priority === "important" && (
                           <Badge className="bg-red-100 text-red-800">
