@@ -86,8 +86,12 @@ function CommunityContent() {
       const allMessages = await base44.entities.Message.list('-created_date');
       
       if (isTenant && user?.property_id) {
-        // Tenants see messages for their property only
-        return allMessages.filter(m => m.property_id === user.property_id && !m.is_admin_broadcast);
+        // Tenants see all messages for their property (community, notice, announcement)
+        // But NOT admin broadcasts (those are in separate section for landlords only)
+        return allMessages.filter(m => 
+          m.property_id === user.property_id && 
+          m.is_admin_broadcast !== true
+        );
       } else if (isLandlord) {
         const userRelevantMessages = allMessages.filter(m => 
           m.landlord_id === user.id && !m.is_admin_broadcast
@@ -210,14 +214,6 @@ function CommunityContent() {
     return isLandlord || isAdmin;
   };
 
-  const canPostMessageType = (type) => {
-    // Tenants can't post announcements (view only)
-    if (isTenant && type === "announcement") {
-      return false;
-    }
-    return true;
-  };
-
   const messageTypeColors = {
     notice: "bg-blue-100 text-blue-800",
     community: "bg-purple-100 text-purple-800",
@@ -237,6 +233,15 @@ function CommunityContent() {
       { value: "notice", label: "Notice" },
       { value: "announcement", label: "Announcement (All Properties)" }
     ];
+  };
+
+  const getMessageTypeDescription = (type) => {
+    if (type === "announcement") {
+      return "📢 View only for tenants - broadcasts to all properties";
+    } else if (type === "notice") {
+      return "📋 Specific to selected property - tenants can reply";
+    }
+    return "";
   };
 
   return (
@@ -362,7 +367,7 @@ function CommunityContent() {
                         </SelectContent>
                       </Select>
                       {newMessage.message_type === "announcement" && (
-                        <p className="text-xs text-blue-600 mt-1">
+                        <p className="text-xs text-green-600 mt-1">
                           📢 This announcement will be posted to all your properties
                         </p>
                       )}
@@ -375,8 +380,8 @@ function CommunityContent() {
                       value={newMessage.message_type}
                       onValueChange={(value) => {
                         setNewMessage(prev => ({ ...prev, message_type: value }));
-                        // Clear property selection for announcements
-                        if (value === "announcement") {
+                        // Set a default property for announcements
+                        if (value === "announcement" && properties.length > 0) {
                           setSelectedProperty(properties[0]?.id || "");
                         }
                       }}
@@ -393,9 +398,9 @@ function CommunityContent() {
                         ))}
                       </SelectContent>
                     </Select>
-                    {newMessage.message_type === "notice" && (
+                    {getMessageTypeDescription(newMessage.message_type) && (
                       <p className="text-xs text-gray-600 mt-1">
-                        ℹ️ Notice: Specific to selected property
+                        {getMessageTypeDescription(newMessage.message_type)}
                       </p>
                     )}
                   </div>
@@ -477,6 +482,7 @@ function CommunityContent() {
               messages.map((message) => {
                 const property = properties.find(p => p.id === message.property_id);
                 const isReply = message.parent_message_id;
+                const isAnnouncement = message.message_type === "announcement";
                 
                 return (
                   <Card 
@@ -495,6 +501,11 @@ function CommunityContent() {
                           <Badge className={messageTypeColors[message.message_type]}>
                             {message.message_type}
                           </Badge>
+                          {isAnnouncement && isTenant && (
+                            <Badge variant="outline" className="bg-green-50 text-green-700">
+                              View Only
+                            </Badge>
+                          )}
                           {message.priority === "important" && (
                             <Badge className="bg-red-100 text-red-800">
                               <AlertCircle className="w-3 h-3 mr-1" />
