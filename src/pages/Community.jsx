@@ -63,32 +63,61 @@ function CommunityContent() {
     if (isTenant && properties.length > 0) {
       setSelectedProperty(properties[0].id);
       setNewMessage(prev => ({ ...prev, property_id: properties[0].id }));
+    } else if (isLandlord && properties.length > 0 && !selectedProperty) {
+      setSelectedProperty(properties[0].id);
+      setNewMessage(prev => ({ ...prev, property_id: properties[0].id }));
     }
-  }, [isTenant, properties]);
+  }, [isTenant, isLandlord, properties, selectedProperty]);
 
   const { data: allMessages = [], isLoading: loadingMessages } = useQuery({
     queryKey: ['user-messages'],
     queryFn: async () => {
       const messages = await base44.entities.Message.list('-created_date');
       
+      console.log('🔍 All messages from DB:', messages.length);
+      console.log('👤 User type:', user?.user_type);
+      console.log('🏠 User property_id:', user?.property_id);
+      console.log('🏢 User landlord_id:', user?.landlord_id);
+      
       if (isTenant) {
         const tenantPropertyId = user?.property_id;
         const tenantLandlordId = user?.landlord_id;
         
-        if (!tenantPropertyId) return [];
+        if (!tenantPropertyId) {
+          console.log('❌ Tenant has no property_id');
+          return [];
+        }
         
-        return messages.filter(m => {
+        const filtered = messages.filter(m => {
+          console.log('Checking message:', {
+            id: m.id,
+            type: m.message_type,
+            landlord_id: m.landlord_id,
+            property_id: m.property_id,
+            matches: {
+              announcement: m.message_type === 'announcement' && m.landlord_id === tenantLandlordId,
+              notice: m.message_type === 'notice' && m.property_id === tenantPropertyId,
+              message: m.message_type === 'message' && m.property_id === tenantPropertyId
+            }
+          });
+          
           if (m.message_type === 'announcement' && m.landlord_id === tenantLandlordId) return true;
           if (m.message_type === 'notice' && m.property_id === tenantPropertyId) return true;
           if (m.message_type === 'message' && m.property_id === tenantPropertyId) return true;
           return false;
         });
+        
+        console.log('✅ Tenant filtered messages:', filtered.length);
+        return filtered;
       } else if (isLandlord) {
-        return messages.filter(m => m.landlord_id === user.id);
+        const filtered = messages.filter(m => m.landlord_id === user.id);
+        console.log('✅ Landlord filtered messages:', filtered.length);
+        return filtered;
       }
       return [];
     },
     enabled: !!user,
+    refetchInterval: 3000,
   });
 
   useEffect(() => {
@@ -131,8 +160,10 @@ function CommunityContent() {
 
   const createMessageMutation = useMutation({
     mutationFn: async (messageData) => {
+      console.log('📤 Creating message with data:', messageData);
+      
       const propertyData = properties.find(p => p.id === messageData.property_id);
-      return base44.entities.Message.create({
+      const messagePayload = {
         title: messageData.title,
         content: messageData.content,
         message_type: messageData.message_type,
@@ -142,9 +173,14 @@ function CommunityContent() {
         landlord_id: isTenant ? propertyData?.landlord_id : user.id,
         author_name: user?.full_name || user?.email || "Anonymous",
         viewed_by: [user.email]
-      });
+      };
+      
+      console.log('💾 Message payload:', messagePayload);
+      
+      return base44.entities.Message.create(messagePayload);
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('✅ Message created successfully:', data);
       queryClient.invalidateQueries({ queryKey: ['user-messages'] });
       setNewMessage({
         property_id: isTenant && properties.length > 0 ? properties[0].id : selectedProperty,
@@ -157,6 +193,10 @@ function CommunityContent() {
       setReplyingTo(null);
       toast.success("Message posted successfully!");
     },
+    onError: (error) => {
+      console.error('❌ Error creating message:', error);
+      toast.error("Failed to post message");
+    }
   });
 
   const deleteMessageMutation = useMutation({
@@ -173,6 +213,14 @@ function CommunityContent() {
     e.preventDefault();
     
     const propertyToUse = isTenant && properties.length > 0 ? properties[0].id : selectedProperty;
+    
+    console.log('📝 Submitting message:', {
+      propertyToUse,
+      messageType: newMessage.message_type,
+      content: newMessage.content,
+      isTenant,
+      selectedProperty
+    });
     
     if (!propertyToUse && newMessage.message_type !== 'announcement') {
       toast.error("Please select a property.");
