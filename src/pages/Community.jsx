@@ -43,15 +43,19 @@ function CommunityContent() {
   });
 
   const { data: messages = [] } = useQuery({
-    queryKey: ['messages'],
+    queryKey: ['messages', user?.id],
     queryFn: async () => {
       const allMessages = await base44.entities.Message.list('-created_date');
       
       if (isLandlord) {
         return allMessages.filter(m => m.landlord_id === user.id);
-      } else if (isTenant && user?.property_id) {
+      } else if (isTenant) {
+        // Tenant sees:
+        // 1. Announcements from their landlord
+        // 2. Notices for their property
+        // 3. Private messages for their property
         return allMessages.filter(m => {
-          if (m.message_type === 'announcement' && properties[0]?.landlord_id === m.landlord_id) return true;
+          if (m.message_type === 'announcement' && m.landlord_id === user.landlord_id) return true;
           if (m.message_type === 'notice' && m.property_id === user.property_id) return true;
           if (m.message_type === 'message' && m.property_id === user.property_id) return true;
           return false;
@@ -59,7 +63,7 @@ function CommunityContent() {
       }
       return [];
     },
-    enabled: !!user && properties.length > 0,
+    enabled: !!user,
   });
 
   const createMessageMutation = useMutation({
@@ -112,7 +116,7 @@ function CommunityContent() {
     if (!messageForm.content.trim()) return;
     
     await createMessageMutation.mutateAsync({
-      landlord_id: isLandlord ? user.id : properties[0]?.landlord_id,
+      landlord_id: isLandlord ? user.id : user.landlord_id,
       property_id: propertyId,
       message_type: "message",
       title: "Private Message",
@@ -474,14 +478,14 @@ function CommunityContent() {
                       onChange={(e) => setMessageForm({ content: e.target.value })}
                       placeholder="Type your message..."
                       onKeyPress={(e) => {
-                        if (e.key === 'Enter' && messageForm.content.trim() && properties[0] && !createMessageMutation.isPending) {
-                          handleSendMessage(properties[0].id);
+                        if (e.key === 'Enter' && messageForm.content.trim() && user?.property_id && !createMessageMutation.isPending) {
+                          handleSendMessage(user.property_id);
                         }
                       }}
                     />
                     <Button
-                      onClick={() => handleSendMessage(properties[0]?.id)}
-                      disabled={!messageForm.content.trim() || !properties[0] || createMessageMutation.isPending}
+                      onClick={() => handleSendMessage(user?.property_id)}
+                      disabled={!messageForm.content.trim() || !user?.property_id || createMessageMutation.isPending}
                     >
                       <Send className="w-4 h-4" />
                     </Button>
