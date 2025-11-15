@@ -65,26 +65,26 @@ function DashboardContent() {
   const { data: messages = [] } = useQuery({
     queryKey: ['user-messages'],
     queryFn: async () => {
-      const allMessages = await base44.entities.Message.list('-created_date');
+      const allDbMessages = await base44.entities.Message.list('-created_date');
       
       if (isTenant) {
-        const tenantPropertyId = user?.property_id;
-        const tenantLandlordId = user?.landlord_id;
+        const myPropertyId = user?.property_id;
+        if (!myPropertyId) return [];
         
-        if (!tenantPropertyId) return [];
+        const myProperty = properties.find(p => p.id === myPropertyId);
+        const myLandlordId = myProperty?.landlord_id;
         
-        return allMessages.filter(m => {
-          if (m.message_type === 'announcement' && m.landlord_id === tenantLandlordId) return true;
-          if (m.message_type === 'notice' && m.property_id === tenantPropertyId) return true;
-          if (m.message_type === 'message' && m.property_id === tenantPropertyId) return true;
+        return allDbMessages.filter(msg => {
+          if (msg.message_type === 'announcement' && msg.landlord_id === myLandlordId) return true;
+          if (msg.property_id === myPropertyId) return true;
           return false;
         });
       } else if (isLandlord) {
-        return allMessages.filter(m => m.landlord_id === user.id);
+        return allDbMessages.filter(msg => msg.landlord_id === user.id);
       }
       return [];
     },
-    enabled: !!user,
+    enabled: !!user && properties.length > 0,
   });
 
   const newMessagesCount = messages.filter(m => {
@@ -133,7 +133,7 @@ function DashboardContent() {
             <div className="flex gap-2">
               {isAdmin && (
                 <Link to={createPageUrl("Admin")}>
-                  <Button className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700">
+                  <Button className="bg-gradient-to-r from-red-600 to-pink-600">
                     <Shield className="w-4 h-4 mr-2" />
                     Admin Panel
                   </Button>
@@ -150,7 +150,7 @@ function DashboardContent() {
                     Invite Tenant
                   </Button>
                   <Link to={createPageUrl("AddProperty")}>
-                    <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                    <Button className="bg-gradient-to-r from-blue-600 to-purple-600">
                       <Plus className="w-4 h-4 mr-2" />
                       Add Property
                     </Button>
@@ -159,7 +159,7 @@ function DashboardContent() {
               )}
               {isTenant && (
                 <Link to={createPageUrl("ReportFault")}>
-                  <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                  <Button className="bg-gradient-to-r from-blue-600 to-purple-600">
                     <AlertCircle className="w-4 h-4 mr-2" />
                     Report Fault
                   </Button>
@@ -217,9 +217,7 @@ function DashboardContent() {
             <CardContent className="p-6">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <p className="text-sm font-medium text-gray-500">
-                    {isTenant ? "My Faults" : "Open Faults"}
-                  </p>
+                  <p className="text-sm font-medium text-gray-500">{isTenant ? "My Faults" : "Open Faults"}</p>
                   <p className="text-3xl font-bold text-gray-900 mt-2">{stats.openFaults}</p>
                 </div>
                 <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
@@ -236,7 +234,7 @@ function DashboardContent() {
             <CardContent className="p-6">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Completed Faults</p>
+                  <p className="text-sm font-medium text-gray-500">Completed</p>
                   <p className="text-3xl font-bold text-gray-900 mt-2">{stats.completedFaults}</p>
                 </div>
                 <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
@@ -244,7 +242,7 @@ function DashboardContent() {
                 </div>
               </div>
               <div className="text-sm text-gray-600">
-                {stats.totalFaults > 0 ? Math.round((stats.completedFaults / stats.totalFaults) * 100) : 0}% completion rate
+                {stats.totalFaults > 0 ? Math.round((stats.completedFaults / stats.totalFaults) * 100) : 0}% rate
               </div>
             </CardContent>
           </Card>
@@ -261,13 +259,13 @@ function DashboardContent() {
                 </div>
               </div>
               {stats.newMessages > 0 && (
-                <Badge className="bg-green-500 text-white mb-2 animate-pulse">
+                <Badge className="bg-green-500 text-white animate-pulse">
                   <Sparkles className="w-3 h-3 mr-1" />
                   {stats.newMessages} New
                 </Badge>
               )}
               <Link to={createPageUrl("Community")}>
-                <Button variant="link" className="p-0 h-auto text-purple-600">View messages →</Button>
+                <Button variant="link" className="p-0 h-auto text-purple-600 mt-2">View →</Button>
               </Link>
             </CardContent>
           </Card>
@@ -301,7 +299,7 @@ function DashboardContent() {
               <Card className="border-2 border-dashed border-gray-300 hover:border-purple-500 hover:bg-purple-50 transition-all cursor-pointer">
                 <CardContent className="p-6 text-center">
                   <Building2 className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                  <p className="font-medium text-gray-700">View Properties</p>
+                  <p className="font-medium text-gray-700">Properties</p>
                 </CardContent>
               </Card>
             </Link>
@@ -320,7 +318,7 @@ function DashboardContent() {
             <Card className="border-2 border-dashed border-gray-300 hover:border-orange-500 hover:bg-orange-50 transition-all cursor-pointer">
               <CardContent className="p-6 text-center">
                 <MessageSquare className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                <p className="font-medium text-gray-700">Property Messages</p>
+                <p className="font-medium text-gray-700">Messages</p>
               </CardContent>
             </Card>
           </Link>
@@ -341,7 +339,7 @@ function DashboardContent() {
             {recentFaults.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <CheckCircle className="w-12 h-12 mx-auto mb-2 text-green-500" />
-                <p>{isTenant ? "You haven't reported any faults yet." : "No faults reported yet. Great job!"}</p>
+                <p>{isTenant ? "No faults reported" : "No faults yet!"}</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -351,7 +349,7 @@ function DashboardContent() {
                     <div key={fault.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                       <div className="flex-1">
                         <h4 className="font-semibold text-gray-900">{fault.title}</h4>
-                        <p className="text-sm text-gray-600">{property?.name || 'Unknown Property'}</p>
+                        <p className="text-sm text-gray-600">{property?.name || 'Unknown'}</p>
                       </div>
                       <div className="flex items-center gap-3">
                         <Badge className={
