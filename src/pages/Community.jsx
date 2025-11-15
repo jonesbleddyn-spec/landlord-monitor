@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,27 +43,30 @@ function CommunityContent() {
   });
 
   const { data: messages = [] } = useQuery({
-    queryKey: ['messages', user?.id],
+    queryKey: ['messages', user?.id, user?.property_id, user?.landlord_id],
     queryFn: async () => {
       const allMessages = await base44.entities.Message.list('-created_date');
       
       if (isLandlord) {
         return allMessages.filter(m => m.landlord_id === user.id);
       } else if (isTenant) {
-        // Tenant sees:
+        // Tenant sees messages where:
         // 1. Announcements from their landlord
         // 2. Notices for their property
         // 3. Private messages for their property
         return allMessages.filter(m => {
-          if (m.message_type === 'announcement' && m.landlord_id === user.landlord_id) return true;
-          if (m.message_type === 'notice' && m.property_id === user.property_id) return true;
-          if (m.message_type === 'message' && m.property_id === user.property_id) return true;
+          if (m.message_type === 'announcement' && m.landlord_id === user.landlord_id) {
+            return true;
+          }
+          if (m.property_id === user.property_id) {
+            return true;
+          }
           return false;
         });
       }
       return [];
     },
-    enabled: !!user,
+    enabled: !!user && (isLandlord || (isTenant && !!user.property_id && !!user.landlord_id)),
   });
 
   const createMessageMutation = useMutation({
@@ -129,10 +132,10 @@ function CommunityContent() {
   };
 
   const markAsViewed = (message) => {
-    if (!message.viewed_by.includes(user.email)) {
+    if (!message.viewed_by?.includes(user.email)) {
       markAsViewedMutation.mutate({
         messageId: message.id,
-        viewedBy: [...message.viewed_by, user.email]
+        viewedBy: [...(message.viewed_by || []), user.email]
       });
     }
   };
@@ -452,25 +455,32 @@ function CommunityContent() {
                 </CardHeader>
                 <CardContent className="p-6">
                   <div className="space-y-4 mb-4 max-h-96 overflow-y-auto">
-                    {privateMessages.map((message) => (
-                      <div
-                        key={message.id}
-                        className={`flex ${message.sender_type === 'tenant' ? 'justify-end' : 'justify-start'}`}
-                      >
-                        <div
-                          className={`max-w-xs p-3 rounded-lg ${
-                            message.sender_type === 'tenant'
-                              ? 'bg-purple-600 text-white'
-                              : 'bg-gray-200 text-gray-900'
-                          }`}
-                        >
-                          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                          <p className="text-xs mt-1 opacity-70">
-                            {format(new Date(message.created_date), "MMM d, h:mm a")}
-                          </p>
-                        </div>
+                    {privateMessages.length === 0 ? (
+                      <div className="text-center text-gray-500 py-8">
+                        <MessageSquare className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                        <p>No messages yet</p>
                       </div>
-                    ))}
+                    ) : (
+                      privateMessages.map((message) => (
+                        <div
+                          key={message.id}
+                          className={`flex ${message.sender_type === 'tenant' ? 'justify-end' : 'justify-start'}`}
+                        >
+                          <div
+                            className={`max-w-xs p-3 rounded-lg ${
+                              message.sender_type === 'tenant'
+                                ? 'bg-purple-600 text-white'
+                                : 'bg-gray-200 text-gray-900'
+                            }`}
+                          >
+                            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                            <p className="text-xs mt-1 opacity-70">
+                              {format(new Date(message.created_date), "MMM d, h:mm a")}
+                            </p>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                   <div className="flex gap-2">
                     <Input
