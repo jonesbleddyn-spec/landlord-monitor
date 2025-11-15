@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,30 +43,22 @@ function CommunityContent() {
   });
 
   const { data: messages = [] } = useQuery({
-    queryKey: ['messages', user?.id, user?.property_id, user?.landlord_id],
+    queryKey: ['messages'],
     queryFn: async () => {
       const allMessages = await base44.entities.Message.list('-created_date');
       
       if (isLandlord) {
         return allMessages.filter(m => m.landlord_id === user.id);
       } else if (isTenant) {
-        // Tenant sees messages where:
-        // 1. Announcements from their landlord
-        // 2. Notices for their property
-        // 3. Private messages for their property
         return allMessages.filter(m => {
-          if (m.message_type === 'announcement' && m.landlord_id === user.landlord_id) {
-            return true;
-          }
-          if (m.property_id === user.property_id) {
-            return true;
-          }
+          if (m.message_type === 'announcement' && m.landlord_id === user.landlord_id) return true;
+          if (m.property_id === user.property_id) return true;
           return false;
         });
       }
       return [];
     },
-    enabled: !!user && (isLandlord || (isTenant && !!user.property_id && !!user.landlord_id)),
+    enabled: !!user && (isLandlord || (isTenant && properties.length > 0)),
   });
 
   const createMessageMutation = useMutation({
