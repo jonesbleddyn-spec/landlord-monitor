@@ -93,27 +93,18 @@ function CommunityContent() {
         const tenantPropertyId = user?.property_id;
         const tenantLandlordId = user?.landlord_id;
         
-        if (!tenantPropertyId) {
-          console.log('Tenant has no property_id:', user);
-          return [];
-        }
+        if (!tenantPropertyId) return [];
         
-        const filtered = messages.filter(m => {
+        return messages.filter(m => {
           if (m.is_admin_broadcast) return false;
           if (m.message_type === 'community' && m.property_id === tenantPropertyId) return true;
           if (m.message_type === 'notice' && m.property_id === tenantPropertyId) return true;
           if (m.message_type === 'announcement' && m.landlord_id === tenantLandlordId && m.all_properties) return true;
           return false;
         });
-        
-        console.log('Tenant messages filtered:', filtered.length, 'from', messages.length);
-        console.log('Tenant property ID:', tenantPropertyId);
-        console.log('Sample messages:', messages.slice(0, 3));
-        return filtered;
       } else if (isLandlord) {
         const landlordMessages = messages.filter(m => m.landlord_id === user.id && !m.is_admin_broadcast);
         
-        // Group announcements by creation timestamp to count them as one
         const uniqueMessages = [];
         const seenAnnouncements = new Set();
         
@@ -129,7 +120,6 @@ function CommunityContent() {
           }
         }
         
-        console.log('Landlord unique messages:', uniqueMessages.length, 'from', landlordMessages.length);
         return uniqueMessages;
       } else if (isAdmin) {
         return messages.filter(m => !m.is_admin_broadcast);
@@ -229,7 +219,22 @@ function CommunityContent() {
   });
 
   const deleteMessageMutation = useMutation({
-    mutationFn: (messageId) => base44.entities.Message.delete(messageId),
+    mutationFn: async (message) => {
+      if (isLandlord && message.message_type === 'announcement' && message.all_properties) {
+        const allDbMessages = await base44.entities.Message.list();
+        const announcementCopies = allDbMessages.filter(m => 
+          m.landlord_id === user.id &&
+          m.message_type === 'announcement' &&
+          m.all_properties === true &&
+          m.content === message.content &&
+          m.created_date === message.created_date
+        );
+        
+        await Promise.all(announcementCopies.map(m => base44.entities.Message.delete(m.id)));
+      } else {
+        await base44.entities.Message.delete(message.id);
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-messages'] });
       toast.success("Message deleted successfully");
@@ -276,7 +281,7 @@ function CommunityContent() {
 
   const confirmDelete = () => {
     if (messageToDelete) {
-      deleteMessageMutation.mutate(messageToDelete.id);
+      deleteMessageMutation.mutate(messageToDelete);
     }
   };
 
