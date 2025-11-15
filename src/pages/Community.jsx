@@ -95,20 +95,11 @@ function CommunityContent() {
         
         if (!tenantPropertyId) return [];
         
-        // Tenant sees:
-        // 1. Property chat messages for their property
-        // 2. Notices for their property only
-        // 3. Announcements from their landlord (all_properties = true)
         return messages.filter(m => {
           if (m.is_admin_broadcast) return false;
           
-          // Property chat - their property
           if (m.message_type === 'community' && m.property_id === tenantPropertyId) return true;
-          
-          // Notices - their property only
           if (m.message_type === 'notice' && m.property_id === tenantPropertyId) return true;
-          
-          // Announcements - from their landlord to all properties
           if (m.message_type === 'announcement' && m.landlord_id === tenantLandlordId && m.all_properties) return true;
           
           return false;
@@ -123,7 +114,6 @@ function CommunityContent() {
     enabled: !!user,
   });
 
-  // Mark messages as viewed when component mounts
   useEffect(() => {
     if (!user || !allMessages || allMessages.length === 0) return;
     
@@ -167,7 +157,10 @@ function CommunityContent() {
       if (messageData.message_type === 'announcement' && isLandlord) {
         const createPromises = properties.map(property => 
           base44.entities.Message.create({
-            ...messageData,
+            title: messageData.title,
+            content: messageData.content,
+            message_type: 'announcement',
+            priority: messageData.priority,
             property_id: property.id,
             landlord_id: user.id,
             author_name: user?.full_name || user?.email || "Anonymous",
@@ -179,9 +172,15 @@ function CommunityContent() {
         await Promise.all(createPromises);
         return { success: true };
       } else {
+        const propertyData = properties.find(p => p.id === messageData.property_id);
         return base44.entities.Message.create({
-          ...messageData,
-          landlord_id: user?.landlord_id || user?.id,
+          title: messageData.title,
+          content: messageData.content,
+          message_type: messageData.message_type,
+          priority: messageData.priority,
+          property_id: messageData.property_id,
+          parent_message_id: messageData.parent_message_id,
+          landlord_id: isTenant ? propertyData?.landlord_id : user.id,
           author_name: user?.full_name || user?.email || "Anonymous",
           is_admin_broadcast: false,
           all_properties: false,
@@ -223,7 +222,7 @@ function CommunityContent() {
       const propertyToUse = isTenant && properties.length > 0 ? properties[0].id : selectedProperty;
       
       if (!propertyToUse || !newMessage.content) {
-        toast.error("Please write a message.");
+        toast.error("Please select a property and write a message.");
         return;
       }
       
@@ -238,6 +237,7 @@ function CommunityContent() {
     setReplyingTo(message);
     setNewMessage(prev => ({
       ...prev,
+      property_id: message.property_id,
       parent_message_id: message.id,
       message_type: 'community',
       title: message.title ? `Re: ${message.title}` : ''
