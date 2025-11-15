@@ -53,7 +53,7 @@ function CommunityContent() {
       const allProperties = await base44.entities.Property.list();
       if (isTenant && user?.property_id) {
         return allProperties.filter(p => p.id === user.property_id);
-      } else if (isLandlord) {
+      } else if (isLandlord && user?.id) {
         return allProperties.filter(p => p.landlord_id === user.id);
       }
       return allProperties; // Admin sees all
@@ -86,14 +86,16 @@ function CommunityContent() {
       const allMessages = await base44.entities.Message.list('-created_date');
       
       if (isTenant && user?.property_id) {
-        // Tenants see ALL message types for their property (not admin broadcasts)
-        return allMessages.filter(m => 
+        // Tenants see ALL message types (community, notice, announcement) for their property
+        // Exclude only admin broadcasts
+        const tenantMessages = allMessages.filter(m => 
           m.property_id === user.property_id && 
-          !m.is_admin_broadcast
+          m.is_admin_broadcast !== true
         );
-      } else if (isLandlord) {
+        return tenantMessages;
+      } else if (isLandlord && user?.id) {
         const userRelevantMessages = allMessages.filter(m => 
-          m.landlord_id === user.id && !m.is_admin_broadcast
+          m.landlord_id === user.id && m.is_admin_broadcast !== true
         );
         if (selectedProperty) {
           return userRelevantMessages.filter(m => m.property_id === selectedProperty);
@@ -101,20 +103,26 @@ function CommunityContent() {
         return userRelevantMessages;
       } else if (isAdmin) {
         if (selectedProperty) {
-          return allMessages.filter(m => m.property_id === selectedProperty && !m.is_admin_broadcast);
+          return allMessages.filter(m => m.property_id === selectedProperty && m.is_admin_broadcast !== true);
         }
-        return allMessages.filter(m => !m.is_admin_broadcast);
+        return allMessages.filter(m => m.is_admin_broadcast !== true);
       }
       return [];
     },
-    enabled: !!user,
+    enabled: !!user && (!!user?.property_id || !!user?.id),
   });
 
   const createMessageMutation = useMutation({
     mutationFn: async (messageData) => {
       // For announcements by landlords - post to ALL their properties
-      if (messageData.message_type === "announcement" && isLandlord) {
-        const landlordProperties = properties;
+      if (messageData.message_type === "announcement" && isLandlord && user?.id) {
+        // Get all properties that belong to this landlord
+        const allProperties = await base44.entities.Property.list();
+        const landlordProperties = allProperties.filter(p => p.landlord_id === user.id);
+        
+        if (landlordProperties.length === 0) {
+          throw new Error("No properties found to post announcement");
+        }
         
         const createPromises = landlordProperties.map(prop => 
           base44.entities.Message.create({
@@ -154,6 +162,9 @@ function CommunityContent() {
       setReplyingTo(null);
       toast.success("Message posted successfully!");
     },
+    onError: (error) => {
+      toast.error(error.message || "Failed to post message");
+    }
   });
 
   const deleteMessageMutation = useMutation({
