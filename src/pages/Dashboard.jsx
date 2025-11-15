@@ -13,11 +13,9 @@ import {
   Clock, 
   Plus,
   FileText,
-  MessageSquare,
   UserPlus,
   Shield,
-  Home,
-  Sparkles
+  Home
 } from "lucide-react";
 import InviteTenantModal from "../components/landlord/InviteTenantModal";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
@@ -62,44 +60,12 @@ function DashboardContent() {
     enabled: !!user,
   });
 
-  const { data: messages = [] } = useQuery({
-    queryKey: ['user-messages'],
-    queryFn: async () => {
-      const allDbMessages = await base44.entities.Message.list('-created_date');
-      
-      if (isTenant) {
-        const myPropertyId = user?.property_id;
-        if (!myPropertyId) return [];
-        
-        const myProperty = properties.find(p => p.id === myPropertyId);
-        const myLandlordId = myProperty?.landlord_id;
-        
-        return allDbMessages.filter(msg => {
-          if (msg.message_type === 'announcement' && msg.landlord_id === myLandlordId) return true;
-          if (msg.property_id === myPropertyId) return true;
-          return false;
-        });
-      } else if (isLandlord) {
-        return allDbMessages.filter(msg => msg.landlord_id === user.id);
-      }
-      return [];
-    },
-    enabled: !!user && properties.length > 0,
-  });
-
-  const newMessagesCount = messages.filter(m => {
-    const viewedBy = m.viewed_by || [];
-    return !viewedBy.includes(user?.email);
-  }).length;
-
   const stats = {
     totalProperties: properties.length,
     totalFaults: faults.length,
     openFaults: faults.filter(f => !['completed', 'closed'].includes(f.status)).length,
     urgentFaults: faults.filter(f => f.priority === 'urgent' && !['completed', 'closed'].includes(f.status)).length,
     completedFaults: faults.filter(f => f.status === 'completed').length,
-    totalMessages: messages.length,
-    newMessages: newMessagesCount,
   };
 
   const recentFaults = faults.slice(0, 5);
@@ -251,27 +217,21 @@ function DashboardContent() {
             <CardContent className="p-6">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Messages</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">{stats.totalMessages}</p>
+                  <p className="text-sm font-medium text-gray-500">Documents</p>
+                  <p className="text-3xl font-bold text-gray-900 mt-2">-</p>
                 </div>
                 <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                  <MessageSquare className="w-6 h-6 text-purple-600" />
+                  <FileText className="w-6 h-6 text-purple-600" />
                 </div>
               </div>
-              {stats.newMessages > 0 && (
-                <Badge className="bg-green-500 text-white animate-pulse">
-                  <Sparkles className="w-3 h-3 mr-1" />
-                  {stats.newMessages} New
-                </Badge>
-              )}
-              <Link to={createPageUrl("Community")}>
-                <Button variant="link" className="p-0 h-auto text-purple-600 mt-2">View →</Button>
+              <Link to={createPageUrl("Documents")}>
+                <Button variant="link" className="p-0 h-auto text-purple-600">View →</Button>
               </Link>
             </CardContent>
           </Card>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
           {isLandlord && (
             <Link to={createPageUrl("AddProperty")} className="block">
               <Card className="border-2 border-dashed border-gray-300 hover:border-blue-500 hover:bg-blue-50 transition-all cursor-pointer">
@@ -310,15 +270,6 @@ function DashboardContent() {
               <CardContent className="p-6 text-center">
                 <FileText className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                 <p className="font-medium text-gray-700">Documents</p>
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link to={createPageUrl("Community")} className="block">
-            <Card className="border-2 border-dashed border-gray-300 hover:border-orange-500 hover:bg-orange-50 transition-all cursor-pointer">
-              <CardContent className="p-6 text-center">
-                <MessageSquare className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                <p className="font-medium text-gray-700">Messages</p>
               </CardContent>
             </Card>
           </Link>
