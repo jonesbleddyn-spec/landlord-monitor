@@ -80,12 +80,12 @@ function CommunityContent() {
   });
 
   const { data: messages = [] } = useQuery({
-    queryKey: ['user-messages', selectedProperty],
+    queryKey: isTenant ? ['user-messages', user?.property_id] : ['user-messages', selectedProperty],
     queryFn: async () => {
       const allMessages = await base44.entities.Message.list('-created_date');
       
       if (isTenant && user?.property_id) {
-        // Tenants only see messages for their property
+        // Tenants see all messages for their property (not admin broadcasts)
         return allMessages.filter(m => m.property_id === user.property_id && !m.is_admin_broadcast);
       } else if (isLandlord) {
         const userRelevantMessages = allMessages.filter(m => 
@@ -105,7 +105,7 @@ function CommunityContent() {
       }
       return [];
     },
-    enabled: !!user,
+    enabled: !!user && (isAdmin || isLandlord || (isTenant && !!user?.property_id)),
   });
 
   const createMessageMutation = useMutation({
