@@ -81,16 +81,15 @@ function CommunityContent() {
   });
 
   const { data: messages = [] } = useQuery({
-    queryKey: ['user-messages', selectedProperty],
+    queryKey: ['user-messages', selectedProperty, user?.property_id],
     queryFn: async () => {
       const allMessages = await base44.entities.Message.list('-created_date');
       
       if (isTenant && user?.property_id) {
-        // Tenants see all messages for their property (community, notice, announcement)
-        // But NOT admin broadcasts (those are in separate section for landlords only)
+        // Tenants see ALL message types for their property (not admin broadcasts)
         return allMessages.filter(m => 
           m.property_id === user.property_id && 
-          m.is_admin_broadcast !== true
+          !m.is_admin_broadcast
         );
       } else if (isLandlord) {
         const userRelevantMessages = allMessages.filter(m => 
@@ -113,24 +112,28 @@ function CommunityContent() {
 
   const createMessageMutation = useMutation({
     mutationFn: async (messageData) => {
-      const propertyData = properties.find(p => p.id === messageData.property_id);
-      
-      // For announcements by landlords, create messages for all their properties
-      if (messageData.message_type === "announcement" && isLandlord && !messageData.parent_message_id) {
-        const landlordProperties = properties.filter(p => p.landlord_id === user.id);
+      // For announcements by landlords - post to ALL their properties
+      if (messageData.message_type === "announcement" && isLandlord) {
+        const landlordProperties = properties;
+        
         const createPromises = landlordProperties.map(prop => 
           base44.entities.Message.create({
-            ...messageData,
             property_id: prop.id,
             landlord_id: user.id,
+            message_type: "announcement",
+            title: messageData.title,
+            content: messageData.content,
+            priority: messageData.priority,
             author_name: user?.full_name || user?.email || "Anonymous",
             is_admin_broadcast: false
           })
         );
+        
         return Promise.all(createPromises);
       }
       
-      // Regular message creation
+      // Regular message creation (notice, community, replies)
+      const propertyData = properties.find(p => p.id === messageData.property_id);
       return base44.entities.Message.create({
         ...messageData,
         landlord_id: propertyData?.landlord_id || user?.landlord_id || user?.id,
@@ -168,10 +171,23 @@ function CommunityContent() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // For announcements, we don't need a specific property selected
+    if (newMessage.message_type === "announcement" && isLandlord) {
+      if (!newMessage.content) {
+        toast.error("Please write a message.");
+        return;
+      }
+      await createMessageMutation.mutateAsync(newMessage);
+      return;
+    }
+    
+    // For other message types, property is required
     if (!selectedProperty || !newMessage.content) {
       toast.error("Please select a property and write a message.");
       return;
     }
+    
     await createMessageMutation.mutateAsync({
       ...newMessage,
       property_id: selectedProperty
@@ -206,11 +222,17 @@ function CommunityContent() {
   };
 
   const canReplyToMessage = (message) => {
+    // Announcements are VIEW ONLY - no replies allowed
+    if (message.message_type === "announcement") {
+      return false;
+    }
+    
     // Tenants can only reply to notices
     if (isTenant) {
       return message.message_type === "notice";
     }
-    // Landlords and admins can reply to any message
+    
+    // Landlords and admins can reply to notice and community
     return isLandlord || isAdmin;
   };
 
@@ -233,15 +255,6 @@ function CommunityContent() {
       { value: "notice", label: "Notice" },
       { value: "announcement", label: "Announcement (All Properties)" }
     ];
-  };
-
-  const getMessageTypeDescription = (type) => {
-    if (type === "announcement") {
-      return "📢 View only for tenants - broadcasts to all properties";
-    } else if (type === "notice") {
-      return "📋 Specific to selected property - tenants can reply";
-    }
-    return "";
   };
 
   return (
@@ -337,7 +350,7 @@ function CommunityContent() {
                   {!isTenant && (
                     <div>
                       <Label htmlFor="property-select">
-                        {newMessage.message_type === "announcement" ? "Announcement to All Properties" : "Select Property *"}
+                        {newMessage.message_type === "announcement" ? "All Properties" : "Select Property *"}
                       </Label>
                       <Select
                         value={selectedProperty}
@@ -350,13 +363,13 @@ function CommunityContent() {
                         <SelectTrigger id="property-select">
                           <SelectValue placeholder={
                             newMessage.message_type === "announcement" 
-                              ? "Will post to all your properties" 
+                              ? "Will broadcast to all properties" 
                               : "Choose property"
                           } />
                         </SelectTrigger>
                         <SelectContent>
                           {properties.length === 0 ? (
-                            <SelectItem value={null} disabled>No properties available</SelectItem>
+                            <SelectItem value="none" disabled>No properties available</SelectItem>
                           ) : (
                             properties.map(property => (
                               <SelectItem key={property.id} value={property.id}>
@@ -367,9 +380,14 @@ function CommunityContent() {
                         </SelectContent>
                       </Select>
                       {newMessage.message_type === "announcement" && (
-                        <p className="text-xs text-green-600 mt-1">
-                          📢 This announcement will be posted to all your properties
-                        </p>
+                        <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded">
+                          <p className="text-xs text-green-700 font-semibold">
+                            📢 Announcement will be posted to all {properties.length} propert{properties.length !== 1 ? 'ies' : 'y'}
+                          </p>
+                          <p className="text-xs text-green-600 mt-1">
+                            View only for tenants - no replies allowed
+                          </p>
+                        </div>
                       )}
                     </div>
                   )}
@@ -380,10 +398,6 @@ function CommunityContent() {
                       value={newMessage.message_type}
                       onValueChange={(value) => {
                         setNewMessage(prev => ({ ...prev, message_type: value }));
-                        // Set a default property for announcements
-                        if (value === "announcement" && properties.length > 0) {
-                          setSelectedProperty(properties[0]?.id || "");
-                        }
                       }}
                       disabled={!!replyingTo}
                     >
@@ -398,9 +412,9 @@ function CommunityContent() {
                         ))}
                       </SelectContent>
                     </Select>
-                    {getMessageTypeDescription(newMessage.message_type) && (
-                      <p className="text-xs text-gray-600 mt-1">
-                        {getMessageTypeDescription(newMessage.message_type)}
+                    {newMessage.message_type === "notice" && (
+                      <p className="text-xs text-blue-600 mt-1">
+                        📋 Property-specific - tenants can reply
                       </p>
                     )}
                   </div>
@@ -446,7 +460,7 @@ function CommunityContent() {
                   <Button
                     type="submit"
                     disabled={
-                      (!selectedProperty && newMessage.message_type !== "announcement") || 
+                      (newMessage.message_type !== "announcement" && !selectedProperty) || 
                       !newMessage.content || 
                       createMessageMutation.isPending
                     }
@@ -501,8 +515,9 @@ function CommunityContent() {
                           <Badge className={messageTypeColors[message.message_type]}>
                             {message.message_type}
                           </Badge>
-                          {isAnnouncement && isTenant && (
-                            <Badge variant="outline" className="bg-green-50 text-green-700">
+                          {isAnnouncement && (
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">
+                              <Megaphone className="w-3 h-3 mr-1" />
                               View Only
                             </Badge>
                           )}
