@@ -60,12 +60,27 @@ function DashboardContent() {
     enabled: !!user,
   });
 
+  const { data: documents = [] } = useQuery({
+    queryKey: ['user-documents-dashboard'],
+    queryFn: async () => {
+      const allDocuments = await base44.entities.Document.list('-created_date');
+      if (isLandlord) {
+        return allDocuments.filter(d => d.landlord_id === user.id);
+      } else if (isTenant && user?.property_id) {
+        return allDocuments.filter(d => d.property_id === user.property_id);
+      }
+      return allDocuments;
+    },
+    enabled: !!user,
+  });
+
   const stats = {
     totalProperties: properties.length,
     totalFaults: faults.length,
     openFaults: faults.filter(f => !['completed', 'closed'].includes(f.status)).length,
     urgentFaults: faults.filter(f => f.priority === 'urgent' && !['completed', 'closed'].includes(f.status)).length,
     completedFaults: faults.filter(f => f.status === 'completed').length,
+    totalDocuments: documents.length,
   };
 
   const recentFaults = faults.slice(0, 5);
@@ -218,7 +233,7 @@ function DashboardContent() {
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <p className="text-sm font-medium text-gray-500">Documents</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">-</p>
+                  <p className="text-3xl font-bold text-gray-900 mt-2">{stats.totalDocuments}</p>
                 </div>
                 <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
                   <FileText className="w-6 h-6 text-purple-600" />
