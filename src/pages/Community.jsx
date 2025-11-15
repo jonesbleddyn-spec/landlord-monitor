@@ -77,22 +77,22 @@ function CommunityContent() {
     enabled: isLandlord,
   });
 
-  const { data: messages = [] } = useQuery({
-    queryKey: ['community-messages', selectedProperty, user?.property_id],
+  const { data: messages = [], isLoading: loadingMessages } = useQuery({
+    queryKey: ['community-messages', selectedProperty, user?.property_id, properties.length],
     queryFn: async () => {
       const allMessages = await base44.entities.Message.list('-created_date');
       
       if (isTenant) {
-        // Tenants see ALL messages for their property (notices, announcements, community)
         const tenantPropertyId = user?.property_id || properties[0]?.id;
         if (!tenantPropertyId) return [];
         
-        return allMessages.filter(m => 
+        const filtered = allMessages.filter(m => 
           m.property_id === tenantPropertyId && 
           m.is_admin_broadcast !== true
         );
+        
+        return filtered;
       } else if (isLandlord) {
-        // Landlords see messages for selected property or all their properties
         const userMessages = allMessages.filter(m => 
           m.landlord_id === user.id && !m.is_admin_broadcast
         );
@@ -110,7 +110,7 @@ function CommunityContent() {
       }
       return [];
     },
-    enabled: !!user,
+    enabled: !!user && (isAdmin || isLandlord || (isTenant && properties.length > 0)),
   });
 
   const createMessageMutation = useMutation({
@@ -422,7 +422,14 @@ function CommunityContent() {
               {isTenant ? "My Property Messages" : "Property Messages"}
             </h3>
             
-            {messages.length === 0 ? (
+            {loadingMessages ? (
+              <Card className="text-center py-12">
+                <CardContent>
+                  <MessageSquare className="w-16 h-16 text-gray-400 mx-auto mb-4 animate-pulse" />
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Loading messages...</h3>
+                </CardContent>
+              </Card>
+            ) : messages.length === 0 ? (
               <Card className="text-center py-12">
                 <CardContent>
                   <MessageSquare className="w-16 h-16 text-gray-400 mx-auto mb-4" />
