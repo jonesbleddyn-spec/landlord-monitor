@@ -93,19 +93,44 @@ function CommunityContent() {
         const tenantPropertyId = user?.property_id;
         const tenantLandlordId = user?.landlord_id;
         
-        if (!tenantPropertyId) return [];
+        if (!tenantPropertyId) {
+          console.log('Tenant has no property_id:', user);
+          return [];
+        }
         
-        return messages.filter(m => {
+        const filtered = messages.filter(m => {
           if (m.is_admin_broadcast) return false;
-          
           if (m.message_type === 'community' && m.property_id === tenantPropertyId) return true;
           if (m.message_type === 'notice' && m.property_id === tenantPropertyId) return true;
           if (m.message_type === 'announcement' && m.landlord_id === tenantLandlordId && m.all_properties) return true;
-          
           return false;
         });
+        
+        console.log('Tenant messages filtered:', filtered.length, 'from', messages.length);
+        console.log('Tenant property ID:', tenantPropertyId);
+        console.log('Sample messages:', messages.slice(0, 3));
+        return filtered;
       } else if (isLandlord) {
-        return messages.filter(m => m.landlord_id === user.id && !m.is_admin_broadcast);
+        const landlordMessages = messages.filter(m => m.landlord_id === user.id && !m.is_admin_broadcast);
+        
+        // Group announcements by creation timestamp to count them as one
+        const uniqueMessages = [];
+        const seenAnnouncements = new Set();
+        
+        for (const msg of landlordMessages) {
+          if (msg.message_type === 'announcement' && msg.all_properties) {
+            const key = `${msg.created_date}-${msg.content}`;
+            if (!seenAnnouncements.has(key)) {
+              seenAnnouncements.add(key);
+              uniqueMessages.push(msg);
+            }
+          } else {
+            uniqueMessages.push(msg);
+          }
+        }
+        
+        console.log('Landlord unique messages:', uniqueMessages.length, 'from', landlordMessages.length);
+        return uniqueMessages;
       } else if (isAdmin) {
         return messages.filter(m => !m.is_admin_broadcast);
       }

@@ -72,28 +72,42 @@ function DashboardContent() {
         const tenantPropertyId = user?.property_id;
         const tenantLandlordId = user?.landlord_id;
         
-        if (!tenantPropertyId) return [];
+        if (!tenantPropertyId) {
+          console.log('Tenant has no property_id:', user);
+          return [];
+        }
         
-        // Tenant sees:
-        // 1. Property chat messages for their property
-        // 2. Notices for their property only
-        // 3. Announcements from their landlord (all_properties = true)
-        return allMessages.filter(m => {
+        const filtered = allMessages.filter(m => {
           if (m.is_admin_broadcast) return false;
-          
-          // Property chat - their property
           if (m.message_type === 'community' && m.property_id === tenantPropertyId) return true;
-          
-          // Notices - their property only
           if (m.message_type === 'notice' && m.property_id === tenantPropertyId) return true;
-          
-          // Announcements - from their landlord to all properties
           if (m.message_type === 'announcement' && m.landlord_id === tenantLandlordId && m.all_properties) return true;
-          
           return false;
         });
+        
+        console.log('Tenant messages filtered:', filtered.length, 'from', allMessages.length);
+        return filtered;
       } else if (isLandlord) {
-        return allMessages.filter(m => m.landlord_id === user.id && !m.is_admin_broadcast);
+        const landlordMessages = allMessages.filter(m => m.landlord_id === user.id && !m.is_admin_broadcast);
+        
+        // Group announcements by creation timestamp to count them as one
+        const uniqueMessages = [];
+        const seenAnnouncements = new Set();
+        
+        for (const msg of landlordMessages) {
+          if (msg.message_type === 'announcement' && msg.all_properties) {
+            const key = `${msg.created_date}-${msg.content}`;
+            if (!seenAnnouncements.has(key)) {
+              seenAnnouncements.add(key);
+              uniqueMessages.push(msg);
+            }
+          } else {
+            uniqueMessages.push(msg);
+          }
+        }
+        
+        console.log('Landlord unique messages:', uniqueMessages.length, 'from', landlordMessages.length);
+        return uniqueMessages;
       } else if (isAdmin) {
         return allMessages.filter(m => !m.is_admin_broadcast);
       }
@@ -112,7 +126,6 @@ function DashboardContent() {
     enabled: isLandlord,
   });
 
-  // Calculate "new" messages (not viewed by user)
   const newMessagesCount = messages.filter(m => {
     const viewedBy = m.viewed_by || [];
     return !viewedBy.includes(user?.email);
