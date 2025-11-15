@@ -17,7 +17,6 @@ import {
   UserPlus,
   Shield,
   Home,
-  Megaphone,
   Sparkles
 } from "lucide-react";
 import InviteTenantModal from "../components/landlord/InviteTenantModal";
@@ -72,58 +71,20 @@ function DashboardContent() {
         const tenantPropertyId = user?.property_id;
         const tenantLandlordId = user?.landlord_id;
         
-        if (!tenantPropertyId) {
-          console.log('Tenant has no property_id:', user);
-          return [];
-        }
+        if (!tenantPropertyId) return [];
         
-        const filtered = allMessages.filter(m => {
-          if (m.is_admin_broadcast) return false;
-          if (m.message_type === 'community' && m.property_id === tenantPropertyId) return true;
+        return allMessages.filter(m => {
+          if (m.message_type === 'announcement' && m.landlord_id === tenantLandlordId) return true;
           if (m.message_type === 'notice' && m.property_id === tenantPropertyId) return true;
-          if (m.message_type === 'announcement' && m.landlord_id === tenantLandlordId && m.all_properties) return true;
+          if (m.message_type === 'message' && m.property_id === tenantPropertyId) return true;
           return false;
         });
-        
-        console.log('Tenant messages filtered:', filtered.length, 'from', allMessages.length);
-        return filtered;
       } else if (isLandlord) {
-        const landlordMessages = allMessages.filter(m => m.landlord_id === user.id && !m.is_admin_broadcast);
-        
-        // Group announcements by creation timestamp to count them as one
-        const uniqueMessages = [];
-        const seenAnnouncements = new Set();
-        
-        for (const msg of landlordMessages) {
-          if (msg.message_type === 'announcement' && msg.all_properties) {
-            const key = `${msg.created_date}-${msg.content}`;
-            if (!seenAnnouncements.has(key)) {
-              seenAnnouncements.add(key);
-              uniqueMessages.push(msg);
-            }
-          } else {
-            uniqueMessages.push(msg);
-          }
-        }
-        
-        console.log('Landlord unique messages:', uniqueMessages.length, 'from', landlordMessages.length);
-        return uniqueMessages;
-      } else if (isAdmin) {
-        return allMessages.filter(m => !m.is_admin_broadcast);
+        return allMessages.filter(m => m.landlord_id === user.id);
       }
       return [];
     },
     enabled: !!user,
-  });
-
-  const { data: adminBroadcasts = [] } = useQuery({
-    queryKey: ['admin-broadcasts'],
-    queryFn: async () => {
-      if (!isLandlord) return [];
-      const allMessages = await base44.entities.Message.list('-created_date');
-      return allMessages.filter(m => m.is_admin_broadcast === true);
-    },
-    enabled: isLandlord,
   });
 
   const newMessagesCount = messages.filter(m => {
@@ -138,7 +99,6 @@ function DashboardContent() {
     urgentFaults: faults.filter(f => f.priority === 'urgent' && !['completed', 'closed'].includes(f.status)).length,
     completedFaults: faults.filter(f => f.status === 'completed').length,
     totalMessages: messages.length,
-    adminBroadcasts: adminBroadcasts.length,
     newMessages: newMessagesCount,
   };
 
@@ -215,29 +175,6 @@ function DashboardContent() {
             </Badge>
           )}
         </div>
-
-        {isLandlord && stats.adminBroadcasts > 0 && (
-          <Link to={createPageUrl("Community")}>
-            <Card className="mb-6 border-2 border-red-500 hover:shadow-xl transition-all cursor-pointer">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                    <Megaphone className="w-6 h-6 text-red-600" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900">System Administrator Announcements</h3>
-                    <p className="text-sm text-gray-600">
-                      You have {stats.adminBroadcasts} new announcement{stats.adminBroadcasts !== 1 ? 's' : ''} from the admin
-                    </p>
-                  </div>
-                  <Badge className="bg-red-100 text-red-800">
-                    {stats.adminBroadcasts} New
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {!isTenant && (

@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Send, Calendar, User, AlertCircle, Megaphone, Shield, Trash2, Reply, Home, Eye } from "lucide-react";
+import { MessageSquare, Send, Calendar, User, AlertCircle, Trash2, Reply, Home, Eye, Megaphone } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import {
@@ -31,7 +31,7 @@ function CommunityContent() {
   const [messageToDelete, setMessageToDelete] = useState(null);
   const [newMessage, setNewMessage] = useState({
     property_id: "",
-    message_type: "community",
+    message_type: "message",
     title: "",
     content: "",
     priority: "normal"
@@ -44,45 +44,27 @@ function CommunityContent() {
 
   const isTenant = user?.user_type === 'tenant';
   const isLandlord = user?.user_type === 'landlord';
-  const isAdmin = user?.role === 'admin';
 
   const { data: properties = [] } = useQuery({
     queryKey: ['user-properties'],
     queryFn: async () => {
       const allProperties = await base44.entities.Property.list();
-      if (isTenant) {
-        if (user?.property_id) {
-          return allProperties.filter(p => p.id === user.property_id);
-        } else if (user?.landlord_id) {
-          const landlordProps = allProperties.filter(p => p.landlord_id === user.landlord_id);
-          return landlordProps.slice(0, 1);
-        }
-        return [];
+      if (isTenant && user?.property_id) {
+        return allProperties.filter(p => p.id === user.property_id);
       } else if (isLandlord) {
         return allProperties.filter(p => p.landlord_id === user.id);
       }
-      return allProperties;
+      return [];
     },
     enabled: !!user,
   });
 
   useEffect(() => {
-    if (isTenant && properties.length > 0 && !selectedProperty) {
-      const tenantProperty = properties[0];
-      setSelectedProperty(tenantProperty.id);
-      setNewMessage(prev => ({ ...prev, property_id: tenantProperty.id }));
+    if (isTenant && properties.length > 0) {
+      setSelectedProperty(properties[0].id);
+      setNewMessage(prev => ({ ...prev, property_id: properties[0].id }));
     }
-  }, [isTenant, properties, selectedProperty]);
-
-  const { data: adminBroadcasts = [] } = useQuery({
-    queryKey: ['admin-broadcasts'],
-    queryFn: async () => {
-      if (!isLandlord) return [];
-      const allMessages = await base44.entities.Message.list('-created_date');
-      return allMessages.filter(m => m.is_admin_broadcast === true);
-    },
-    enabled: isLandlord,
-  });
+  }, [isTenant, properties]);
 
   const { data: allMessages = [], isLoading: loadingMessages } = useQuery({
     queryKey: ['user-messages'],
@@ -96,33 +78,13 @@ function CommunityContent() {
         if (!tenantPropertyId) return [];
         
         return messages.filter(m => {
-          if (m.is_admin_broadcast) return false;
-          if (m.message_type === 'community' && m.property_id === tenantPropertyId) return true;
+          if (m.message_type === 'announcement' && m.landlord_id === tenantLandlordId) return true;
           if (m.message_type === 'notice' && m.property_id === tenantPropertyId) return true;
-          if (m.message_type === 'announcement' && m.landlord_id === tenantLandlordId && m.all_properties) return true;
+          if (m.message_type === 'message' && m.property_id === tenantPropertyId) return true;
           return false;
         });
       } else if (isLandlord) {
-        const landlordMessages = messages.filter(m => m.landlord_id === user.id && !m.is_admin_broadcast);
-        
-        const uniqueMessages = [];
-        const seenAnnouncements = new Set();
-        
-        for (const msg of landlordMessages) {
-          if (msg.message_type === 'announcement' && msg.all_properties) {
-            const key = `${msg.created_date}-${msg.content}`;
-            if (!seenAnnouncements.has(key)) {
-              seenAnnouncements.add(key);
-              uniqueMessages.push(msg);
-            }
-          } else {
-            uniqueMessages.push(msg);
-          }
-        }
-        
-        return uniqueMessages;
-      } else if (isAdmin) {
-        return messages.filter(m => !m.is_admin_broadcast);
+        return messages.filter(m => m.landlord_id === user.id);
       }
       return [];
     },
@@ -160,7 +122,7 @@ function CommunityContent() {
       return allMessages;
     } else if (isLandlord && selectedProperty) {
       return allMessages.filter(m => 
-        m.property_id === selectedProperty || (m.message_type === 'announcement' && m.all_properties)
+        m.message_type === 'announcement' || m.property_id === selectedProperty
       );
     } else {
       return allMessages;
@@ -169,45 +131,24 @@ function CommunityContent() {
 
   const createMessageMutation = useMutation({
     mutationFn: async (messageData) => {
-      if (messageData.message_type === 'announcement' && isLandlord) {
-        const createPromises = properties.map(property => 
-          base44.entities.Message.create({
-            title: messageData.title,
-            content: messageData.content,
-            message_type: 'announcement',
-            priority: messageData.priority,
-            property_id: property.id,
-            landlord_id: user.id,
-            author_name: user?.full_name || user?.email || "Anonymous",
-            is_admin_broadcast: false,
-            all_properties: true,
-            viewed_by: [user.email]
-          })
-        );
-        await Promise.all(createPromises);
-        return { success: true };
-      } else {
-        const propertyData = properties.find(p => p.id === messageData.property_id);
-        return base44.entities.Message.create({
-          title: messageData.title,
-          content: messageData.content,
-          message_type: messageData.message_type,
-          priority: messageData.priority,
-          property_id: messageData.property_id,
-          parent_message_id: messageData.parent_message_id,
-          landlord_id: isTenant ? propertyData?.landlord_id : user.id,
-          author_name: user?.full_name || user?.email || "Anonymous",
-          is_admin_broadcast: false,
-          all_properties: false,
-          viewed_by: [user.email]
-        });
-      }
+      const propertyData = properties.find(p => p.id === messageData.property_id);
+      return base44.entities.Message.create({
+        title: messageData.title,
+        content: messageData.content,
+        message_type: messageData.message_type,
+        priority: messageData.priority,
+        property_id: messageData.message_type === 'announcement' ? null : messageData.property_id,
+        parent_message_id: messageData.parent_message_id,
+        landlord_id: isTenant ? propertyData?.landlord_id : user.id,
+        author_name: user?.full_name || user?.email || "Anonymous",
+        viewed_by: [user.email]
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-messages'] });
       setNewMessage({
         property_id: isTenant && properties.length > 0 ? properties[0].id : selectedProperty,
-        message_type: "community",
+        message_type: "message",
         title: "",
         content: "",
         priority: "normal",
@@ -219,22 +160,7 @@ function CommunityContent() {
   });
 
   const deleteMessageMutation = useMutation({
-    mutationFn: async (message) => {
-      if (isLandlord && message.message_type === 'announcement' && message.all_properties) {
-        const allDbMessages = await base44.entities.Message.list();
-        const announcementCopies = allDbMessages.filter(m => 
-          m.landlord_id === user.id &&
-          m.message_type === 'announcement' &&
-          m.all_properties === true &&
-          m.content === message.content &&
-          m.created_date === message.created_date
-        );
-        
-        await Promise.all(announcementCopies.map(m => base44.entities.Message.delete(m.id)));
-      } else {
-        await base44.entities.Message.delete(message.id);
-      }
-    },
+    mutationFn: (messageId) => base44.entities.Message.delete(messageId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-messages'] });
       toast.success("Message deleted successfully");
@@ -246,21 +172,22 @@ function CommunityContent() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (newMessage.message_type === 'announcement' && isLandlord) {
-      await createMessageMutation.mutateAsync(newMessage);
-    } else {
-      const propertyToUse = isTenant && properties.length > 0 ? properties[0].id : selectedProperty;
-      
-      if (!propertyToUse || !newMessage.content) {
-        toast.error("Please select a property and write a message.");
-        return;
-      }
-      
-      await createMessageMutation.mutateAsync({
-        ...newMessage,
-        property_id: propertyToUse
-      });
+    const propertyToUse = isTenant && properties.length > 0 ? properties[0].id : selectedProperty;
+    
+    if (!propertyToUse && newMessage.message_type !== 'announcement') {
+      toast.error("Please select a property.");
+      return;
     }
+    
+    if (!newMessage.content) {
+      toast.error("Please write a message.");
+      return;
+    }
+    
+    await createMessageMutation.mutateAsync({
+      ...newMessage,
+      property_id: propertyToUse
+    });
   };
 
   const handleReply = (message) => {
@@ -269,7 +196,7 @@ function CommunityContent() {
       ...prev,
       property_id: message.property_id,
       parent_message_id: message.id,
-      message_type: 'community',
+      message_type: 'message',
       title: message.title ? `Re: ${message.title}` : ''
     }));
   };
@@ -281,32 +208,30 @@ function CommunityContent() {
 
   const confirmDelete = () => {
     if (messageToDelete) {
-      deleteMessageMutation.mutate(messageToDelete);
+      deleteMessageMutation.mutate(messageToDelete.id);
     }
   };
 
   const canDelete = (message) => {
-    if (isAdmin) return true;
     if (isLandlord && message.landlord_id === user.id) return true;
     if (isTenant && message.created_by === user.email) return true;
     return false;
   };
 
   const canReply = (message) => {
-    if (message.message_type !== 'community') return false;
-    return true;
+    return message.message_type === 'message';
   };
 
   const messageTypeColors = {
-    notice: "bg-blue-100 text-blue-800",
-    community: "bg-purple-100 text-purple-800",
-    announcement: "bg-green-100 text-green-800",
+    announcement: "bg-blue-100 text-blue-800",
+    notice: "bg-yellow-100 text-yellow-800",
+    message: "bg-purple-100 text-purple-800",
   };
 
-  const messageTypeDescriptions = {
-    community: "Two-way conversation - anyone can reply",
-    notice: "Read-only notice for this property",
-    announcement: "Broadcast to all your properties (read-only for tenants)"
+  const messageTypeIcons = {
+    announcement: Megaphone,
+    notice: AlertCircle,
+    message: MessageSquare,
   };
 
   const organizedMessages = messages.reduce((acc, msg) => {
@@ -332,8 +257,8 @@ function CommunityContent() {
           <h1 className="text-4xl font-bold text-gray-900">Property Messages</h1>
           <p className="text-lg text-gray-600">
             {isTenant 
-              ? "Communicate with your landlord and building community"
-              : "Connect with your tenants and share important updates"}
+              ? "View announcements, notices, and communicate with your landlord"
+              : "Post announcements, notices, and communicate with your tenants"}
           </p>
         </div>
 
@@ -356,51 +281,6 @@ function CommunityContent() {
               </div>
             </CardContent>
           </Card>
-        )}
-
-        {isLandlord && adminBroadcasts.length > 0 && (
-          <div className="mb-8">
-            <Card className="border-2 border-red-500 shadow-xl">
-              <CardHeader className="bg-gradient-to-r from-red-600 to-pink-600 text-white">
-                <CardTitle className="flex items-center gap-2">
-                  <Megaphone className="w-5 h-5" />
-                  System Administrator Announcements
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6 space-y-4">
-                {adminBroadcasts.map((broadcast) => (
-                  <Card key={broadcast.id} className="border-l-4 border-red-500">
-                    <CardContent className="p-4">
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="flex items-center gap-2">
-                          <Badge className="bg-red-100 text-red-800">
-                            <Shield className="w-3 h-3 mr-1" />
-                            Admin
-                          </Badge>
-                          {broadcast.priority === "important" && (
-                            <Badge className="bg-yellow-100 text-yellow-800">
-                              <AlertCircle className="w-3 h-3 mr-1" />
-                              Important
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-500">
-                          <Calendar className="w-4 h-4" />
-                          {format(new Date(broadcast.created_date), "MMM d, yyyy")}
-                        </div>
-                      </div>
-
-                      {broadcast.title && (
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2">{broadcast.title}</h3>
-                      )}
-
-                      <p className="text-gray-700 whitespace-pre-wrap">{broadcast.content}</p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </CardContent>
-            </Card>
-          </div>
         )}
 
         <div className="grid lg:grid-cols-3 gap-6">
@@ -440,39 +320,63 @@ function CommunityContent() {
                 <form onSubmit={handleSubmit} className="space-y-4">
                   {!isTenant && !replyingTo && (
                     <div>
-                      <Label htmlFor="property-select">
-                        {newMessage.message_type === 'announcement' ? 'All Properties' : 'Select Property *'}
-                      </Label>
-                      {newMessage.message_type === 'announcement' ? (
-                        <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
-                          <p className="text-sm text-green-800">
-                            📢 This announcement will be posted to all {properties.length} of your properties
-                          </p>
-                        </div>
-                      ) : (
-                        <Select
-                          value={selectedProperty}
-                          onValueChange={(value) => {
-                            setSelectedProperty(value);
-                            setNewMessage(prev => ({ ...prev, property_id: value }));
-                          }}
-                        >
-                          <SelectTrigger id="property-select">
-                            <SelectValue placeholder="Choose property" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {properties.length === 0 ? (
-                              <SelectItem value="none" disabled>No properties available</SelectItem>
-                            ) : (
-                              properties.map(property => (
-                                <SelectItem key={property.id} value={property.id}>
-                                  {property.name}
-                                </SelectItem>
-                              ))
-                            )}
-                          </SelectContent>
-                        </Select>
-                      )}
+                      <Label htmlFor="message-type-select">Message Type</Label>
+                      <Select
+                        value={newMessage.message_type}
+                        onValueChange={(value) => setNewMessage(prev => ({ ...prev, message_type: value }))}
+                      >
+                        <SelectTrigger id="message-type-select">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="announcement">
+                            📢 Announcement (All Tenants - View Only)
+                          </SelectItem>
+                          <SelectItem value="notice">
+                            📋 Notice (Property Specific - View Only)
+                          </SelectItem>
+                          <SelectItem value="message">
+                            💬 Message (Two-Way Chat)
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {newMessage.message_type === 'announcement' && 'Visible to all tenants in all properties (read-only)'}
+                        {newMessage.message_type === 'notice' && 'Visible to tenants in selected property (read-only)'}
+                        {newMessage.message_type === 'message' && 'Two-way conversation with tenants'}
+                      </p>
+                    </div>
+                  )}
+
+                  {!isTenant && !replyingTo && newMessage.message_type !== 'announcement' && (
+                    <div>
+                      <Label htmlFor="property-select">Select Property *</Label>
+                      <Select
+                        value={selectedProperty}
+                        onValueChange={(value) => {
+                          setSelectedProperty(value);
+                          setNewMessage(prev => ({ ...prev, property_id: value }));
+                        }}
+                      >
+                        <SelectTrigger id="property-select">
+                          <SelectValue placeholder="Choose property" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {properties.map(property => (
+                            <SelectItem key={property.id} value={property.id}>
+                              {property.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {!isTenant && !replyingTo && newMessage.message_type === 'announcement' && (
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-sm text-blue-800">
+                        📢 This announcement will be visible to ALL tenants in ALL your properties
+                      </p>
                     </div>
                   )}
 
@@ -484,36 +388,8 @@ function CommunityContent() {
                     </div>
                   )}
 
-                  {!replyingTo && !isTenant && (
-                    <div>
-                      <Label htmlFor="message-type-select">Message Type</Label>
-                      <Select
-                        value={newMessage.message_type}
-                        onValueChange={(value) => setNewMessage(prev => ({ ...prev, message_type: value }))}
-                      >
-                        <SelectTrigger id="message-type-select">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="community">
-                            💬 Property Chat
-                          </SelectItem>
-                          <SelectItem value="notice">
-                            📢 Notice (Read-only)
-                          </SelectItem>
-                          <SelectItem value="announcement">
-                            📣 Announcement (All Properties)
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {messageTypeDescriptions[newMessage.message_type]}
-                      </p>
-                    </div>
-                  )}
-
                   <div>
-                    <Label htmlFor="message-title-input">Title {!replyingTo && '(optional)'}</Label>
+                    <Label htmlFor="message-title-input">Title (optional)</Label>
                     <Input
                       id="message-title-input"
                       value={newMessage.title}
@@ -529,7 +405,7 @@ function CommunityContent() {
                       value={newMessage.content}
                       onChange={(e) => setNewMessage(prev => ({ ...prev, content: e.target.value }))}
                       placeholder="Write your message..."
-                      rows={replyingTo ? 3 : 4}
+                      rows={4}
                       required
                     />
                   </div>
@@ -571,7 +447,7 @@ function CommunityContent() {
                 ? 'Messages' 
                 : selectedProperty && properties.find(p => p.id === selectedProperty)
                 ? properties.find(p => p.id === selectedProperty)?.name
-                : 'All Property Messages'}
+                : 'All Messages'}
             </h3>
             
             {loadingMessages ? (
@@ -588,16 +464,17 @@ function CommunityContent() {
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">No Messages Yet</h3>
                   <p className="text-gray-600">
                     {isTenant 
-                      ? "No messages have been posted yet. Be the first to start a conversation!"
+                      ? "No messages have been posted yet."
                       : selectedProperty
                       ? "Be the first to post a message for this property!"
-                      : "Select a property to view messages, or post a new one."}
+                      : "Select a property to view messages."}
                   </p>
                 </CardContent>
               </Card>
             ) : (
               organizedMessages.map((message) => {
-                const isReadOnly = isTenant && (message.message_type === 'notice' || message.message_type === 'announcement');
+                const isViewOnly = isTenant && (message.message_type === 'announcement' || message.message_type === 'notice');
+                const TypeIcon = messageTypeIcons[message.message_type] || MessageSquare;
                 
                 return (
                   <div key={message.id}>
@@ -606,32 +483,25 @@ function CommunityContent() {
                         <div className="flex justify-between items-start mb-3">
                           <div className="flex items-center gap-2 flex-wrap">
                             <Badge className={messageTypeColors[message.message_type]}>
-                              {message.message_type === 'community' ? 'Property Chat' : 
-                               message.message_type === 'notice' ? 'Notice' : 'Announcement'}
+                              <TypeIcon className="w-3 h-3 mr-1" />
+                              {message.message_type === 'announcement' ? 'Announcement' : 
+                               message.message_type === 'notice' ? 'Notice' : 'Message'}
                             </Badge>
-                            {isReadOnly && (
+                            {isViewOnly && (
                               <Badge variant="outline">
                                 <Eye className="w-3 h-3 mr-1" />
                                 View Only
                               </Badge>
                             )}
-                            {message.all_properties && (
-                              <Badge className="bg-green-100 text-green-800">
-                                All Properties
-                              </Badge>
-                            )}
                             {message.priority === "important" && (
                               <Badge className="bg-red-100 text-red-800">
-                                <AlertCircle className="w-3 h-3 mr-1" />
                                 Important
                               </Badge>
                             )}
                           </div>
-                          <div className="flex items-center gap-2">
-                            <div className="text-sm text-gray-500 flex items-center gap-1">
-                              <Calendar className="w-4 h-4" />
-                              {format(new Date(message.created_date), "MMM d, yyyy")}
-                            </div>
+                          <div className="text-sm text-gray-500 flex items-center gap-1">
+                            <Calendar className="w-4 h-4" />
+                            {format(new Date(message.created_date), "MMM d, yyyy")}
                           </div>
                         </div>
 
@@ -648,7 +518,7 @@ function CommunityContent() {
                           </div>
                           
                           <div className="flex gap-2">
-                            {canReply(message) && !isReadOnly && (
+                            {canReply(message) && !isViewOnly && (
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -727,7 +597,7 @@ function CommunityContent() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Message</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this message? This action cannot be undone and will remove it from everyone's view.
+              Are you sure you want to delete this message? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
