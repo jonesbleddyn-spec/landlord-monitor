@@ -66,9 +66,7 @@ function CommunityContent() {
     mutationFn: (data) => base44.entities.Message.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['messages'] });
-      setAnnouncementForm({ title: "", content: "" });
-      setNoticeForm({ title: "", content: "", selectedProperties: [] });
-      setMessageForm({ content: "" });
+      queryClient.invalidateQueries({ queryKey: ['user-messages'] });
     },
   });
 
@@ -77,11 +75,12 @@ function CommunityContent() {
       base44.entities.Message.update(messageId, { viewed_by: viewedBy }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['messages'] });
+      queryClient.invalidateQueries({ queryKey: ['user-messages'] });
     },
   });
 
-  const handleCreateAnnouncement = () => {
-    createMessageMutation.mutate({
+  const handleCreateAnnouncement = async () => {
+    await createMessageMutation.mutateAsync({
       landlord_id: user.id,
       message_type: "announcement",
       title: announcementForm.title,
@@ -90,11 +89,12 @@ function CommunityContent() {
       sender_type: "landlord",
       viewed_by: []
     });
+    setAnnouncementForm({ title: "", content: "" });
   };
 
-  const handleCreateNotice = () => {
-    noticeForm.selectedProperties.forEach(propertyId => {
-      createMessageMutation.mutate({
+  const handleCreateNotice = async () => {
+    for (const propertyId of noticeForm.selectedProperties) {
+      await createMessageMutation.mutateAsync({
         landlord_id: user.id,
         property_id: propertyId,
         message_type: "notice",
@@ -104,11 +104,14 @@ function CommunityContent() {
         sender_type: "landlord",
         viewed_by: []
       });
-    });
+    }
+    setNoticeForm({ title: "", content: "", selectedProperties: [] });
   };
 
-  const handleSendMessage = (propertyId) => {
-    createMessageMutation.mutate({
+  const handleSendMessage = async (propertyId) => {
+    if (!messageForm.content.trim()) return;
+    
+    await createMessageMutation.mutateAsync({
       landlord_id: isLandlord ? user.id : properties[0]?.landlord_id,
       property_id: propertyId,
       message_type: "message",
@@ -118,6 +121,7 @@ function CommunityContent() {
       sender_type: isLandlord ? "landlord" : "tenant",
       viewed_by: []
     });
+    setMessageForm({ content: "" });
   };
 
   const markAsViewed = (message) => {
@@ -188,11 +192,11 @@ function CommunityContent() {
                   </div>
                   <Button
                     onClick={handleCreateAnnouncement}
-                    disabled={!announcementForm.title || !announcementForm.content}
+                    disabled={!announcementForm.title || !announcementForm.content || createMessageMutation.isPending}
                     className="w-full bg-gradient-to-r from-blue-600 to-purple-600"
                   >
                     <Megaphone className="w-4 h-4 mr-2" />
-                    Post Announcement
+                    {createMessageMutation.isPending ? "Posting..." : "Post Announcement"}
                   </Button>
                   <p className="text-sm text-gray-500">This will be visible to all tenants across all your properties</p>
                 </CardContent>
@@ -299,11 +303,11 @@ function CommunityContent() {
                   </div>
                   <Button
                     onClick={handleCreateNotice}
-                    disabled={!noticeForm.title || !noticeForm.content || noticeForm.selectedProperties.length === 0}
+                    disabled={!noticeForm.title || !noticeForm.content || noticeForm.selectedProperties.length === 0 || createMessageMutation.isPending}
                     className="w-full bg-gradient-to-r from-orange-600 to-red-600"
                   >
                     <FileText className="w-4 h-4 mr-2" />
-                    Post Notice
+                    {createMessageMutation.isPending ? "Posting..." : "Post Notice"}
                   </Button>
                   <p className="text-sm text-gray-500">This will be visible to tenants in the selected properties only</p>
                 </CardContent>
@@ -415,14 +419,14 @@ function CommunityContent() {
                             onChange={(e) => setMessageForm({ content: e.target.value })}
                             placeholder="Type your message..."
                             onKeyPress={(e) => {
-                              if (e.key === 'Enter' && messageForm.content) {
+                              if (e.key === 'Enter' && messageForm.content.trim() && !createMessageMutation.isPending) {
                                 handleSendMessage(selectedPropertyForMessages.id);
                               }
                             }}
                           />
                           <Button
                             onClick={() => handleSendMessage(selectedPropertyForMessages.id)}
-                            disabled={!messageForm.content}
+                            disabled={!messageForm.content.trim() || createMessageMutation.isPending}
                           >
                             <Send className="w-4 h-4" />
                           </Button>
@@ -470,14 +474,14 @@ function CommunityContent() {
                       onChange={(e) => setMessageForm({ content: e.target.value })}
                       placeholder="Type your message..."
                       onKeyPress={(e) => {
-                        if (e.key === 'Enter' && messageForm.content && properties[0]) {
+                        if (e.key === 'Enter' && messageForm.content.trim() && properties[0] && !createMessageMutation.isPending) {
                           handleSendMessage(properties[0].id);
                         }
                       }}
                     />
                     <Button
                       onClick={() => handleSendMessage(properties[0]?.id)}
-                      disabled={!messageForm.content || !properties[0]}
+                      disabled={!messageForm.content.trim() || !properties[0] || createMessageMutation.isPending}
                     >
                       <Send className="w-4 h-4" />
                     </Button>
