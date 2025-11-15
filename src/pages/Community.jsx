@@ -52,6 +52,7 @@ function CommunityContent() {
       } else if (isTenant) {
         return allMessages.filter(m => {
           if (m.message_type === 'announcement' && m.landlord_id === user.landlord_id) return true;
+          if (m.message_type === 'notice' && m.landlord_id === user.landlord_id && m.property_id === user.property_id) return true;
           if (m.property_id === user.property_id) return true;
           return false;
         });
