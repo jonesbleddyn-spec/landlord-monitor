@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Send, Calendar, User, AlertCircle, Trash2, Reply, Home } from "lucide-react";
+import { MessageSquare, Send, Calendar, User, AlertCircle, Trash2, Reply } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import {
@@ -30,7 +30,6 @@ function CommunityContent() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [messageToDelete, setMessageToDelete] = useState(null);
   const [newMessage, setNewMessage] = useState({
-    property_id: "",
     message_type: "message",
     title: "",
     content: "",
@@ -60,97 +59,72 @@ function CommunityContent() {
   });
 
   useEffect(() => {
-    if (isTenant && properties.length > 0) {
+    if (properties.length > 0 && !selectedProperty) {
       setSelectedProperty(properties[0].id);
-      setNewMessage(prev => ({ ...prev, property_id: properties[0].id }));
-    } else if (isLandlord && properties.length > 0 && !selectedProperty) {
-      setSelectedProperty(properties[0].id);
-      setNewMessage(prev => ({ ...prev, property_id: properties[0].id }));
     }
-  }, [isTenant, isLandlord, properties, selectedProperty]);
+  }, [properties, selectedProperty]);
 
-  const { data: allMessages = [], isLoading: loadingMessages } = useQuery({
-    queryKey: ['user-messages'],
+  const { data: messages = [], isLoading: loadingMessages } = useQuery({
+    queryKey: ['user-messages', user?.id, properties],
     queryFn: async () => {
-      const allDbMessages = await base44.entities.Message.list('-created_date');
+      const allMessages = await base44.entities.Message.list('-created_date');
       
       if (isTenant) {
-        const myPropertyId = user?.property_id;
-        if (!myPropertyId || properties.length === 0) return [];
-        
+        if (properties.length === 0) return [];
         const myProperty = properties[0];
+        const myPropertyId = myProperty.id;
         const myLandlordId = myProperty.landlord_id;
         
-        const filtered = allDbMessages.filter(msg => {
-          // Announcements from my landlord
-          if (msg.message_type === 'announcement' && msg.landlord_id === myLandlordId) {
-            return true;
-          }
-          // Messages/notices for my property
-          if (msg.property_id === myPropertyId) {
-            return true;
-          }
+        return allMessages.filter(m => {
+          if (m.message_type === 'announcement' && m.landlord_id === myLandlordId) return true;
+          if (m.property_id === myPropertyId) return true;
           return false;
         });
-        
-        return filtered;
       } else if (isLandlord) {
-        return allDbMessages.filter(msg => msg.landlord_id === user.id);
+        return allMessages.filter(m => m.landlord_id === user.id);
       }
       return [];
     },
     enabled: !!user && properties.length > 0,
   });
 
-  const messages = React.useMemo(() => {
-    if (!allMessages) return [];
-    
-    if (isTenant) {
-      return allMessages;
-    } else if (isLandlord && selectedProperty) {
-      return allMessages.filter(m => 
-        m.message_type === 'announcement' || m.property_id === selectedProperty
-      );
-    } else if (isLandlord) {
-      return allMessages;
-    }
-    return [];
-  }, [allMessages, selectedProperty, isTenant, isLandlord]);
+  const filteredMessages = isLandlord && selectedProperty
+    ? messages.filter(m => m.message_type === 'announcement' || m.property_id === selectedProperty)
+    : messages;
 
   const createMessageMutation = useMutation({
     mutationFn: async (messageData) => {
       let landlordId;
-      let propertyId = messageData.property_id;
+      let propertyId;
       
       if (isTenant) {
-        const property = properties[0];
-        landlordId = property.landlord_id;
-        propertyId = property.id;
+        const myProperty = properties[0];
+        landlordId = myProperty.landlord_id;
+        propertyId = myProperty.id;
       } else {
         landlordId = user.id;
+        propertyId = messageData.message_type === 'announcement' ? null : selectedProperty;
       }
       
       return base44.entities.Message.create({
+        landlord_id: landlordId,
+        property_id: propertyId,
+        message_type: messageData.message_type,
         title: messageData.title || "",
         content: messageData.content,
-        message_type: messageData.message_type,
         priority: messageData.priority || "normal",
-        property_id: messageData.message_type === 'announcement' ? null : propertyId,
-        parent_message_id: messageData.parent_message_id || null,
-        landlord_id: landlordId,
         author_name: user?.full_name || user?.email || "Anonymous",
+        parent_message_id: messageData.parent_message_id || null,
         viewed_by: []
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-messages'] });
       setNewMessage({
-        property_id: isTenant && properties.length > 0 ? properties[0].id : selectedProperty,
         message_type: "message",
         title: "",
         content: "",
-        priority: "normal",
-        parent_message_id: null
+        priority: "normal"
       });
       setReplyingTo(null);
       toast.success("Message sent!");
@@ -170,33 +144,28 @@ function CommunityContent() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    const propertyToUse = isTenant && properties.length > 0 ? properties[0].id : selectedProperty;
-    
-    if (!propertyToUse && newMessage.message_type !== 'announcement') {
-      toast.error("Please select a property.");
-      return;
-    }
-    
-    if (!newMessage.content) {
+    if (!newMessage.content.trim()) {
       toast.error("Please write a message.");
       return;
     }
     
-    await createMessageMutation.mutateAsync({
-      ...newMessage,
-      property_id: propertyToUse
-    });
+    if (isLandlord && !selectedProperty && newMessage.message_type !== 'announcement') {
+      toast.error("Please select a property.");
+      return;
+    }
+    
+    await createMessageMutation.mutateAsync(newMessage);
   };
 
   const handleReply = (message) => {
     setReplyingTo(message);
-    setNewMessage(prev => ({
-      ...prev,
-      property_id: message.property_id,
-      parent_message_id: message.id,
+    setNewMessage({
       message_type: 'message',
-      title: message.title ? `Re: ${message.title}` : ''
-    }));
+      title: message.title ? `Re: ${message.title}` : '',
+      content: "",
+      priority: "normal",
+      parent_message_id: message.id
+    });
   };
 
   const handleDeleteClick = (message) => {
@@ -226,14 +195,14 @@ function CommunityContent() {
     message: "bg-purple-100 text-purple-800",
   };
 
-  const organizedMessages = messages.reduce((acc, msg) => {
+  const organizedMessages = filteredMessages.reduce((acc, msg) => {
     if (!msg.parent_message_id) {
       acc.push({ ...msg, replies: [] });
     }
     return acc;
   }, []);
 
-  messages.forEach(msg => {
+  filteredMessages.forEach(msg => {
     if (msg.parent_message_id) {
       const parent = organizedMessages.find(m => m.id === msg.parent_message_id);
       if (parent) {
@@ -248,32 +217,9 @@ function CommunityContent() {
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900">Community Board</h1>
           <p className="text-lg text-gray-600">
-            {isTenant 
-              ? "Communicate with your landlord"
-              : "Communicate with your tenants"}
+            {isTenant ? "Communicate with your landlord" : "Communicate with your tenants"}
           </p>
         </div>
-
-        {isTenant && properties.length > 0 && (
-          <Card className="mb-6 border-2 border-blue-200 bg-blue-50">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <Home className="w-6 h-6 text-blue-600" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900">Your Property</h3>
-                  <p className="text-sm text-gray-600">
-                    {properties[0]?.name} - {properties[0]?.address}
-                  </p>
-                </div>
-                <Badge className="bg-blue-100 text-blue-800">
-                  {allMessages.length} Message{allMessages.length !== 1 ? 's' : ''}
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         <div className="grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1">
@@ -294,11 +240,12 @@ function CommunityContent() {
                         size="sm"
                         onClick={() => {
                           setReplyingTo(null);
-                          setNewMessage(prev => ({
-                            ...prev,
-                            parent_message_id: null,
-                            title: ""
-                          }));
+                          setNewMessage({
+                            message_type: "message",
+                            title: "",
+                            content: "",
+                            priority: "normal"
+                          });
                         }}
                         className="h-6 text-xs"
                       >
@@ -310,7 +257,7 @@ function CommunityContent() {
                 )}
                 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  {!isTenant && !replyingTo && (
+                  {isLandlord && !replyingTo && (
                     <div>
                       <Label>Message Type</Label>
                       <Select
@@ -329,15 +276,12 @@ function CommunityContent() {
                     </div>
                   )}
 
-                  {!isTenant && !replyingTo && newMessage.message_type !== 'announcement' && (
+                  {isLandlord && !replyingTo && newMessage.message_type !== 'announcement' && (
                     <div>
                       <Label>Property *</Label>
                       <Select
                         value={selectedProperty}
-                        onValueChange={(value) => {
-                          setSelectedProperty(value);
-                          setNewMessage(prev => ({ ...prev, property_id: value }));
-                        }}
+                        onValueChange={(value) => setSelectedProperty(value)}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select property" />
@@ -373,7 +317,7 @@ function CommunityContent() {
                     />
                   </div>
 
-                  {!replyingTo && !isTenant && (
+                  {isLandlord && !replyingTo && (
                     <div>
                       <Label>Priority</Label>
                       <Select
@@ -393,7 +337,7 @@ function CommunityContent() {
 
                   <Button
                     type="submit"
-                    disabled={!newMessage.content || createMessageMutation.isPending}
+                    disabled={createMessageMutation.isPending}
                     className="w-full bg-gradient-to-r from-purple-600 to-pink-600"
                   >
                     <Send className="w-4 h-4 mr-2" />
@@ -405,6 +349,28 @@ function CommunityContent() {
           </div>
 
           <div className="lg:col-span-2 space-y-4">
+            {isLandlord && properties.length > 1 && (
+              <div className="flex gap-2 flex-wrap">
+                <Button
+                  variant={selectedProperty === "" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedProperty("")}
+                >
+                  All
+                </Button>
+                {properties.map(property => (
+                  <Button
+                    key={property.id}
+                    variant={selectedProperty === property.id ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedProperty(property.id)}
+                  >
+                    {property.name}
+                  </Button>
+                ))}
+              </div>
+            )}
+
             {loadingMessages ? (
               <Card className="text-center py-12">
                 <CardContent>
