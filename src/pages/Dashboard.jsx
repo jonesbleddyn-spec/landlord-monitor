@@ -107,12 +107,9 @@ function DashboardContent() {
   };
 
   const getSubtitle = () => {
-    if (isAdmin) return 'System Administrator Dashboard';
-    if (isLandlord) return user?.company_name || 'Your Property Management Dashboard';
-    if (isTenant) {
-      const property = properties[0];
-      return property ? `Tenant at ${property.name}` : 'Your Tenant Dashboard';
-    }
+    if (isAdmin) return 'Admin';
+    if (isLandlord) return 'Landlord';
+    if (isTenant) return 'Tenant';
     return 'Your Dashboard';
   };
 
