@@ -1,14 +1,16 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Building2, MapPin, AlertCircle, CheckCircle, Clock, Users, Eye, Mail, QrCode, Home, Trash2 } from "lucide-react";
+import { Building2, MapPin, AlertCircle, CheckCircle, Clock, Users, Eye, Mail, QrCode, Home, Trash2, FileText } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import PropertyFaults from "../components/properties/PropertyFaults";
 import PropertyDetails from "../components/properties/PropertyDetails";
+import PropertyReport from "../components/properties/PropertyReport";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -26,6 +28,7 @@ import {
 function PropertiesContent() {
   const [selectedPropertyForFaults, setSelectedPropertyForFaults] = useState(null);
   const [selectedPropertyForDetails, setSelectedPropertyForDetails] = useState(null);
+  const [selectedPropertyForReport, setSelectedPropertyForReport] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [propertyToDelete, setPropertyToDelete] = useState(null);
   const queryClient = useQueryClient();
@@ -47,18 +50,15 @@ function PropertiesContent() {
       if (isLandlord) {
         return allProperties.filter(p => p.landlord_id === user.id);
       } else if (isTenant) {
-        // Tenant sees ONLY their assigned property
-        // Filter by property_id if set, otherwise by landlord_id and limit to 1
         if (user?.property_id) {
           return allProperties.filter(p => p.id === user.property_id);
         } else if (user?.landlord_id) {
-          // Fallback: get properties from their landlord (shouldn't show multiple)
           const landlordProps = allProperties.filter(p => p.landlord_id === user.landlord_id);
-          return landlordProps.slice(0, 1); // Only return first one
+          return landlordProps.slice(0, 1);
         }
         return [];
       }
-      return allProperties; // Admin sees all
+      return allProperties;
     },
     enabled: !!user,
   });
@@ -71,13 +71,12 @@ function PropertiesContent() {
       if (isLandlord) {
         return faults.filter(f => f.landlord_id === user.id);
       } else if (isTenant) {
-        // Tenant sees only faults for their property
         if (properties.length > 0) {
           return faults.filter(f => f.property_id === properties[0].id);
         }
         return [];
       }
-      return faults; // Admin sees all
+      return faults;
     },
     enabled: !!user && properties.length > 0,
   });
@@ -100,6 +99,11 @@ function PropertiesContent() {
     e.stopPropagation();
     setPropertyToDelete(property);
     setDeleteDialogOpen(true);
+  };
+
+  const handleReportClick = (e, property) => {
+    e.stopPropagation();
+    setSelectedPropertyForReport(property);
   };
 
   const confirmDelete = () => {
@@ -152,7 +156,6 @@ function PropertiesContent() {
     const stats = getPropertyStats(property.id);
     const propertyFaults = allFaults.filter(f => f.property_id === property.id);
 
-    // Group faults by status
     const faultsByStatus = {
       urgent: propertyFaults.filter(f => f.priority === 'urgent' && !['completed', 'closed'].includes(f.status)),
       open: propertyFaults.filter(f => f.priority !== 'urgent' && !['completed', 'closed'].includes(f.status)),
@@ -163,7 +166,6 @@ function PropertiesContent() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
-          {/* Header */}
           <div className="flex justify-between items-center mb-8">
             <div>
               <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
@@ -179,7 +181,6 @@ function PropertiesContent() {
             </Link>
           </div>
 
-          {/* Property Card */}
           <Card className="border-none shadow-2xl mb-8 overflow-hidden">
             <div className="relative h-64">
               <img
@@ -232,7 +233,6 @@ function PropertiesContent() {
                 )}
               </div>
 
-              {/* Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 p-6 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl">
                 <div className="text-center">
                   <p className="text-3xl font-bold text-gray-900">{stats.total}</p>
@@ -272,11 +272,9 @@ function PropertiesContent() {
             </CardContent>
           </Card>
 
-          {/* Faults Section */}
           <div className="space-y-6">
             <h2 className="text-2xl font-bold text-gray-900">My Reported Faults</h2>
 
-            {/* Urgent Faults */}
             {faultsByStatus.urgent.length > 0 && (
               <div>
                 <div className="flex items-center gap-2 mb-4">
@@ -312,7 +310,6 @@ function PropertiesContent() {
               </div>
             )}
 
-            {/* Open Faults */}
             {faultsByStatus.open.length > 0 && (
               <div>
                 <div className="flex items-center gap-2 mb-4">
@@ -348,7 +345,6 @@ function PropertiesContent() {
               </div>
             )}
 
-            {/* Completed Faults */}
             {faultsByStatus.completed.length > 0 && (
               <div>
                 <div className="flex items-center gap-2 mb-4">
@@ -525,6 +521,15 @@ function PropertiesContent() {
                       >
                         View Faults
                       </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={(e) => handleReportClick(e, property)}
+                        className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                        title="Generate Report"
+                      >
+                        <FileText className="w-4 h-4" />
+                      </Button>
                       {isLandlord && (
                         <Button
                           variant="outline"
@@ -569,9 +574,17 @@ function PropertiesContent() {
             onClose={() => setSelectedPropertyForFaults(null)}
           />
         )}
+
+        {selectedPropertyForReport && (
+          <PropertyReport
+            property={selectedPropertyForReport}
+            faults={allFaults.filter(f => f.property_id === selectedPropertyForReport.id)}
+            open={!!selectedPropertyForReport}
+            onClose={() => setSelectedPropertyForReport(null)}
+          />
+        )}
       </div>
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
