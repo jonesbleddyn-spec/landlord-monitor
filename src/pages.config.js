@@ -11,7 +11,7 @@ import Subscription from './pages/Subscription';
 import PublicReportFault from './pages/PublicReportFault';
 import Admin from './pages/Admin';
 import Dashboard from './pages/Dashboard';
-import Layout from './Layout.jsx';
+import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
@@ -33,5 +33,5 @@ export const PAGES = {
 export const pagesConfig = {
     mainPage: "Home",
     Pages: PAGES,
-    Layout: Layout,
+    Layout: __Layout,
 };

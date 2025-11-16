@@ -1,20 +1,34 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Building2, MapPin, AlertCircle, CheckCircle, Clock, Users, Eye, Mail, QrCode, Home } from "lucide-react";
+import { Building2, MapPin, AlertCircle, CheckCircle, Clock, Users, Eye, Mail, QrCode, Home, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import PropertyFaults from "../components/properties/PropertyFaults";
 import PropertyDetails from "../components/properties/PropertyDetails";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
 import { format } from "date-fns";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 function PropertiesContent() {
   const [selectedPropertyForFaults, setSelectedPropertyForFaults] = useState(null);
   const [selectedPropertyForDetails, setSelectedPropertyForDetails] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [propertyToDelete, setPropertyToDelete] = useState(null);
+  const queryClient = useQueryClient();
 
   const { data: user } = useQuery({
     queryKey: ['user'],
@@ -67,6 +81,32 @@ function PropertiesContent() {
     },
     enabled: !!user && properties.length > 0,
   });
+
+  const deletePropertyMutation = useMutation({
+    mutationFn: (propertyId) => base44.entities.Property.delete(propertyId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-properties'] });
+      queryClient.invalidateQueries({ queryKey: ['user-faults'] });
+      toast.success("Property deleted successfully");
+      setDeleteDialogOpen(false);
+      setPropertyToDelete(null);
+    },
+    onError: () => {
+      toast.error("Failed to delete property");
+    }
+  });
+
+  const handleDeleteClick = (e, property) => {
+    e.stopPropagation();
+    setPropertyToDelete(property);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (propertyToDelete) {
+      deletePropertyMutation.mutate(propertyToDelete.id);
+    }
+  };
 
   const getPropertyStats = (propertyId) => {
     const propertyFaults = allFaults.filter(f => f.property_id === propertyId);
@@ -475,15 +515,27 @@ function PropertiesContent() {
                       </Badge>
                     </div>
 
-                    <Button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedPropertyForFaults(property);
-                      }}
-                      className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                    >
-                      View Faults
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedPropertyForFaults(property);
+                        }}
+                        className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                      >
+                        View Faults
+                      </Button>
+                      {isLandlord && (
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={(e) => handleDeleteClick(e, property)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               );
@@ -518,6 +570,27 @@ function PropertiesContent() {
           />
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Property</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{propertyToDelete?.name}"? This action cannot be undone and will delete all associated data including faults and messages.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete Property
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
