@@ -108,7 +108,7 @@ function DashboardContent() {
 
   const getSubtitle = () => {
     if (isAdmin) return 'Admin';
-    if (isLandlord) return 'Landlord';
+    if (isLandlord) return user?.company_name ? `${user.company_name} - Landlord` : 'Landlord';
     if (isTenant) return 'Tenant';
     return 'Your Dashboard';
   };
