@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Building2, Upload, Loader2, ArrowLeft } from "lucide-react";
+import { Building2, Upload, Loader2, ArrowLeft, Shield, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import UpgradePrompt from "../components/subscription/UpgradePrompt";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
 
@@ -24,7 +25,10 @@ function AddPropertyContent() {
     type: "apartment",
     units: 1,
     manager_email: "",
-    image_url: ""
+    image_url: "",
+    gas_certificate_expiry: "",
+    electrical_certificate_expiry: "",
+    epc_expiry: ""
   });
   const [uploadingImage, setUploadingImage] = useState(false);
 
@@ -46,7 +50,7 @@ function AddPropertyContent() {
         }
       } catch (error) {
         console.error('Error checking limits:', error);
-        setCanAddProperty(true); // Allow if check fails
+        setCanAddProperty(true);
       }
     };
 
@@ -193,6 +197,53 @@ function AddPropertyContent() {
                   onChange={(e) => setFormData(prev => ({ ...prev, manager_email: e.target.value }))}
                   placeholder="manager@example.com"
                 />
+              </div>
+
+              {/* Compliance Section */}
+              <div className="border-t pt-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Shield className="w-5 h-5 text-orange-600" />
+                  <h3 className="text-lg font-semibold text-gray-900">Compliance Certificates</h3>
+                </div>
+                
+                <Alert className="mb-4 bg-orange-50 border-orange-200">
+                  <AlertCircle className="w-4 h-4 text-orange-600" />
+                  <AlertDescription className="text-orange-900 text-sm">
+                    You'll receive email reminders 3 months before certificate expiry dates.
+                  </AlertDescription>
+                </Alert>
+
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="gas_certificate_expiry">Gas Safety Certificate</Label>
+                    <Input
+                      id="gas_certificate_expiry"
+                      type="date"
+                      value={formData.gas_certificate_expiry}
+                      onChange={(e) => setFormData(prev => ({ ...prev, gas_certificate_expiry: e.target.value }))}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="electrical_certificate_expiry">Electrical Certificate</Label>
+                    <Input
+                      id="electrical_certificate_expiry"
+                      type="date"
+                      value={formData.electrical_certificate_expiry}
+                      onChange={(e) => setFormData(prev => ({ ...prev, electrical_certificate_expiry: e.target.value }))}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="epc_expiry">EPC Certificate</Label>
+                    <Input
+                      id="epc_expiry"
+                      type="date"
+                      value={formData.epc_expiry}
+                      onChange={(e) => setFormData(prev => ({ ...prev, epc_expiry: e.target.value }))}
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Image Upload */}
