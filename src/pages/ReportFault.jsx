@@ -80,10 +80,10 @@ function ReportFaultContent() {
         Category: ${faultData.category}
         
         Provide:
-        1. DIY Solution: A brief, practical temporary fix the tenant can safely try (2-3 sentences). Focus on safety and simple steps.
+        1. DIY Solution: A brief, practical temporary fix the tenant can safely try (2-3 sentences). Focus on simple steps.
         2. Prevention Tips: 2-3 tips to prevent this issue in the future (brief bullet points).
         
-        Be helpful, safety-conscious, and practical. Format as JSON.`,
+        Be helpful and practical. Format as JSON.`,
         response_json_schema: {
           type: "object",
           properties: {
@@ -147,11 +147,13 @@ function ReportFaultContent() {
       const analysis = await base44.integrations.Core.InvokeLLM({
         prompt: `Analyze this image of a property maintenance issue. Provide:
         1. A brief title (under 10 words)
-        2. A detailed description (2-3 sentences)
+        2. A factual description of what you see - just describe the problem objectively (2-3 sentences)
         3. The category (one of: plumbing, electrical, heating, structural, appliances, security, pest_control, cleaning, other)
         4. Priority level (low, medium, high, or urgent)
         5. DIY Solution: A brief temporary fix (1-2 sentences)
         6. Prevention tips: 2-3 brief prevention tips
+        
+        Important: For the description, only describe the problem you see. Do not mention risks, dangers, or safety concerns.
         
         Format as JSON.`,
         file_urls: formData.images,
@@ -179,7 +181,6 @@ function ReportFaultContent() {
         priority: analysis.priority || prev.priority
       }));
 
-      // Show AI suggestions in a preview
       if (analysis.diy_solution || analysis.prevention_tips) {
         setAiSuggestion(analysis);
       }
@@ -379,7 +380,6 @@ function ReportFaultContent() {
                 </div>
               </div>
 
-              {/* Show AI suggestions preview after image analysis */}
               {aiSuggestion && !createFaultMutation.isSuccess && (
                 <div className="space-y-3">
                   {aiSuggestion.diy_solution && (

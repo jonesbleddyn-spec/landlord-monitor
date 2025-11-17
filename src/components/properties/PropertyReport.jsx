@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -8,11 +8,57 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { AlertCircle, Clock, User, FileText, Download } from "lucide-react";
+import { AlertCircle, Clock, User, FileText, Download, Loader2, Wrench, Shield } from "lucide-react";
 import { format } from "date-fns";
+import { base44 } from "@/api/base44Client";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function PropertyReport({ property, faults, open, onClose }) {
+  const [loadingTips, setLoadingTips] = useState(false);
+  const [faultTips, setFaultTips] = useState({});
   const openFaults = faults.filter(f => !['completed', 'closed'].includes(f.status));
+
+  useEffect(() => {
+    if (open && openFaults.length > 0) {
+      generateTipsForFaults();
+    }
+  }, [open]);
+
+  const generateTipsForFaults = async () => {
+    setLoadingTips(true);
+    const tips = {};
+    
+    for (const fault of openFaults.slice(0, 5)) {
+      try {
+        const result = await base44.integrations.Core.InvokeLLM({
+          prompt: `For this maintenance issue: "${fault.title}" (Category: ${fault.category})
+          ${fault.description ? `Description: ${fault.description}` : ''}
+          
+          Provide:
+          1. DIY Solution: A brief temporary fix (1-2 sentences)
+          2. Prevention: 2 brief prevention tips
+          
+          Format as JSON.`,
+          response_json_schema: {
+            type: "object",
+            properties: {
+              diy_solution: { type: "string" },
+              prevention_tips: {
+                type: "array",
+                items: { type: "string" }
+              }
+            }
+          }
+        });
+        tips[fault.id] = result;
+      } catch (error) {
+        console.error("Error generating tips for fault:", fault.id, error);
+      }
+    }
+    
+    setFaultTips(tips);
+    setLoadingTips(false);
+  };
 
   const getStatusColor = (status) => {
     const colors = {
@@ -39,8 +85,7 @@ export default function PropertyReport({ property, faults, open, onClose }) {
   };
 
   const handleDownload = () => {
-    // Create CSV content
-    const headers = ["Fault ID", "Title", "Description", "Category", "Priority", "Status", "Location", "Unit", "Reported By", "Reported Date", "Contractor", "Estimated Completion"];
+    const headers = ["Fault ID", "Title", "Description", "Category", "Priority", "Status", "Location", "Unit", "Reported By", "Reported Date", "Contractor", "Estimated Completion", "DIY Solution", "Prevention Tips"];
     const rows = openFaults.map(fault => [
       fault.id,
       fault.title,
@@ -53,7 +98,9 @@ export default function PropertyReport({ property, faults, open, onClose }) {
       fault.created_by || "",
       format(new Date(fault.created_date), "yyyy-MM-dd"),
       fault.contractor_name || "",
-      fault.estimated_completion || ""
+      fault.estimated_completion || "",
+      faultTips[fault.id]?.diy_solution || "",
+      faultTips[fault.id]?.prevention_tips?.join("; ") || ""
     ]);
 
     const csvContent = [
@@ -83,7 +130,6 @@ export default function PropertyReport({ property, faults, open, onClose }) {
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Report Header */}
           <Card className="border-2 border-blue-200 bg-blue-50">
             <CardContent className="p-4">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -107,7 +153,6 @@ export default function PropertyReport({ property, faults, open, onClose }) {
             </CardContent>
           </Card>
 
-          {/* Action Buttons */}
           <div className="flex gap-3 print:hidden">
             <Button onClick={handleDownload} variant="outline" className="flex-1">
               <Download className="w-4 h-4 mr-2" />
@@ -119,7 +164,15 @@ export default function PropertyReport({ property, faults, open, onClose }) {
             </Button>
           </div>
 
-          {/* Faults List */}
+          {loadingTips && (
+            <Alert className="bg-blue-50 border-blue-200">
+              <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+              <AlertDescription className="text-blue-900">
+                Generating DIY solutions and prevention tips...
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900">Open Faults Details</h3>
             
@@ -154,7 +207,7 @@ export default function PropertyReport({ property, faults, open, onClose }) {
                       <p className="text-sm text-gray-600 mb-3">{fault.description}</p>
                     )}
 
-                    <div className="grid md:grid-cols-2 gap-4 text-sm">
+                    <div className="grid md:grid-cols-2 gap-4 text-sm mb-4">
                       <div className="space-y-2">
                         {fault.location && (
                           <div className="flex items-start gap-2">
@@ -205,13 +258,39 @@ export default function PropertyReport({ property, faults, open, onClose }) {
                         )}
                       </div>
                     </div>
+
+                    {faultTips[fault.id] && (
+                      <div className="space-y-2 border-t pt-3">
+                        {faultTips[fault.id].diy_solution && (
+                          <Alert className="bg-blue-50 border-blue-200">
+                            <Wrench className="w-4 h-4 text-blue-600" />
+                            <AlertDescription className="text-blue-900 text-sm">
+                              <p className="font-semibold mb-1">DIY Solution:</p>
+                              <p>{faultTips[fault.id].diy_solution}</p>
+                            </AlertDescription>
+                          </Alert>
+                        )}
+                        {faultTips[fault.id].prevention_tips && faultTips[fault.id].prevention_tips.length > 0 && (
+                          <Alert className="bg-purple-50 border-purple-200">
+                            <Shield className="w-4 h-4 text-purple-600" />
+                            <AlertDescription className="text-purple-900 text-sm">
+                              <p className="font-semibold mb-1">Prevention Tips:</p>
+                              <ul className="list-disc list-inside space-y-1">
+                                {faultTips[fault.id].prevention_tips.map((tip, idx) => (
+                                  <li key={idx}>{tip}</li>
+                                ))}
+                              </ul>
+                            </AlertDescription>
+                          </Alert>
+                        )}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               ))
             )}
           </div>
 
-          {/* Summary Stats */}
           {openFaults.length > 0 && (
             <Card className="border-2 border-gray-200">
               <CardContent className="p-4">
