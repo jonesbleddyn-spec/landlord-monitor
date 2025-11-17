@@ -34,20 +34,36 @@ export default function Layout({ children, currentPageName }) {
   });
 
   const isLandlord = user?.user_type === 'landlord';
+  const isAdmin = user?.role === 'admin';
 
-  // Universal navigation for all logged-in users
-  const commonNav = [
-    { title: "Dashboard", url: createPageUrl("Dashboard"), icon: LayoutDashboard },
-    { title: "Properties", url: createPageUrl("Properties"), icon: Building2 },
-    { title: "Community", url: createPageUrl("Community"), icon: MessageSquare },
-    { title: "Documents", url: createPageUrl("Documents"), icon: FileText },
-  ];
+  // Build navigation based on user type
+  const getNavigationItems = () => {
+    const baseNav = [
+      { title: "Dashboard", url: createPageUrl("Dashboard"), icon: LayoutDashboard },
+      { title: "Properties", url: createPageUrl("Properties"), icon: Building2 },
+    ];
 
-  // Add subscription for landlords only
-  const navigationItems = isLandlord ? [
-    ...commonNav,
-    { title: "Subscription", url: createPageUrl("Subscription"), icon: CreditCard },
-  ] : commonNav;
+    // Admin only gets Dashboard and Properties
+    if (isAdmin) {
+      return baseNav;
+    }
+
+    // Landlords and Tenants get Community and Documents
+    const fullNav = [
+      ...baseNav,
+      { title: "Community", url: createPageUrl("Community"), icon: MessageSquare },
+      { title: "Documents", url: createPageUrl("Documents"), icon: FileText },
+    ];
+
+    // Add subscription for landlords only
+    if (isLandlord) {
+      return [...fullNav, { title: "Subscription", url: createPageUrl("Subscription"), icon: CreditCard }];
+    }
+
+    return fullNav;
+  };
+
+  const navigationItems = getNavigationItems();
 
   const isActive = (url) => location.pathname === url;
 
