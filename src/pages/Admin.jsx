@@ -1,11 +1,12 @@
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, BarChart3, Key, Settings, FileText, Megaphone } from "lucide-react";
+import { Shield, BarChart3, Key, Settings, FileText, Megaphone, Database } from "lucide-react";
 import AdminStats from "../components/admin/AdminStats";
 import ApiKeyManager from "../components/admin/ApiKeyManager";
 import SiteSettings from "../components/admin/SiteSettings";
 import AdminReports from "../components/admin/AdminReports";
 import AdminBroadcast from "../components/admin/AdminBroadcast";
+import Base44Dashboard from "../components/admin/Base44Dashboard";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
 
 function AdminContent() {
@@ -40,6 +41,10 @@ function AdminContent() {
               <FileText className="w-4 h-4 mr-2" />
               Reports
             </TabsTrigger>
+            <TabsTrigger value="base44" className="data-[state=active]:bg-indigo-600">
+              <Database className="w-4 h-4 mr-2" />
+              Base44 Dashboard
+            </TabsTrigger>
             <TabsTrigger value="api-keys" className="data-[state=active]:bg-purple-600">
               <Key className="w-4 h-4 mr-2" />
               API Keys
@@ -60,6 +65,10 @@ function AdminContent() {
 
           <TabsContent value="reports">
             <AdminReports />
+          </TabsContent>
+
+          <TabsContent value="base44">
+            <Base44Dashboard />
           </TabsContent>
 
           <TabsContent value="api-keys">
