@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { 
@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
   Wrench, 
   Zap, 
@@ -28,13 +29,17 @@ import {
   Edit2,
   Trash2,
   Save,
-  X
+  X,
+  Lightbulb,
+  Loader2
 } from "lucide-react";
 
 export default function PropertyFaults({ property, faults, onClose }) {
   const queryClient = useQueryClient();
   const [editingFault, setEditingFault] = useState(null);
   const [editData, setEditData] = useState({});
+  const [loadingTips, setLoadingTips] = useState(false);
+  const [faultTips, setFaultTips] = useState({});
 
   const { data: user } = useQuery({
     queryKey: ['user'],
@@ -42,6 +47,48 @@ export default function PropertyFaults({ property, faults, onClose }) {
   });
 
   const isLandlord = user?.user_type === 'landlord';
+
+  useEffect(() => {
+    if (faults.length > 0) {
+      generateTipsForFaults();
+    }
+  }, [faults]);
+
+  const generateTipsForFaults = async () => {
+    setLoadingTips(true);
+    const tips = {};
+    
+    for (const fault of faults.slice(0, 5)) {
+      try {
+        const result = await base44.integrations.Core.InvokeLLM({
+          prompt: `For this maintenance issue: "${fault.title}" (Category: ${fault.category})
+          ${fault.description ? `Description: ${fault.description}` : ''}
+          
+          Provide:
+          1. DIY Solution: A brief temporary fix (1-2 sentences)
+          2. Prevention: 2 brief prevention tips
+          
+          Format as JSON.`,
+          response_json_schema: {
+            type: "object",
+            properties: {
+              diy_solution: { type: "string" },
+              prevention_tips: {
+                type: "array",
+                items: { type: "string" }
+              }
+            }
+          }
+        });
+        tips[fault.id] = result;
+      } catch (error) {
+        console.error("Error generating tips for fault:", fault.id, error);
+      }
+    }
+    
+    setFaultTips(tips);
+    setLoadingTips(false);
+  };
 
   const statusStyles = {
     reported: "bg-yellow-100 text-yellow-800",
@@ -137,6 +184,15 @@ export default function PropertyFaults({ property, faults, onClose }) {
             {property.name} - Fault History
           </DialogTitle>
         </DialogHeader>
+
+        {loadingTips && (
+          <Alert className="bg-blue-50 border-blue-200">
+            <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+            <AlertDescription className="text-blue-900">
+              Generating DIY solutions and prevention tips...
+            </AlertDescription>
+          </Alert>
+        )}
 
         <div className="space-y-4 mt-4">
           {faults.length === 0 ? (
@@ -262,6 +318,33 @@ export default function PropertyFaults({ property, faults, onClose }) {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <p className="text-gray-700">{fault.description}</p>
+
+                    {faultTips[fault.id] && (
+                      <div className="space-y-2">
+                        {faultTips[fault.id].diy_solution && (
+                          <Alert className="bg-blue-50 border-blue-200">
+                            <Lightbulb className="w-4 h-4 text-blue-600" />
+                            <AlertDescription className="text-blue-900 text-sm">
+                              <p className="font-semibold mb-1">💡 DIY Solution:</p>
+                              <p>{faultTips[fault.id].diy_solution}</p>
+                            </AlertDescription>
+                          </Alert>
+                        )}
+                        {faultTips[fault.id].prevention_tips && faultTips[fault.id].prevention_tips.length > 0 && (
+                          <Alert className="bg-purple-50 border-purple-200">
+                            <Shield className="w-4 h-4 text-purple-600" />
+                            <AlertDescription className="text-purple-900 text-sm">
+                              <p className="font-semibold mb-1">🛡️ Prevention Tips:</p>
+                              <ul className="list-disc list-inside space-y-1">
+                                {faultTips[fault.id].prevention_tips.map((tip, idx) => (
+                                  <li key={idx}>{tip}</li>
+                                ))}
+                              </ul>
+                            </AlertDescription>
+                          </Alert>
+                        )}
+                      </div>
+                    )}
 
                     {isEditing && (
                       <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
