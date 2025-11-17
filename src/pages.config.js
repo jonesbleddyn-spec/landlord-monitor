@@ -14,6 +14,7 @@ import Dashboard from './pages/Dashboard';
 import EditProperty from './pages/EditProperty';
 import Help from './pages/Help';
 import WhiteLabelSettings from './pages/WhiteLabelSettings';
+import Reminders from './pages/Reminders';
 import __Layout from './Layout.jsx';
 
 
@@ -34,6 +35,7 @@ export const PAGES = {
     "EditProperty": EditProperty,
     "Help": Help,
     "WhiteLabelSettings": WhiteLabelSettings,
+    "Reminders": Reminders,
 }
 
 export const pagesConfig = {

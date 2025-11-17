@@ -1,4 +1,3 @@
-
 import React from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -19,7 +18,8 @@ import {
   Shield,
   Home,
   Megaphone,
-  Palette
+  Palette,
+  Bell
 } from "lucide-react";
 import InviteTenantModal from "../components/landlord/InviteTenantModal";
 import AllPropertiesReport from "../components/properties/AllPropertiesReport";
@@ -301,6 +301,15 @@ function DashboardContent() {
                   <CardContent className="p-6 text-center">
                     <Plus className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                     <p className="font-medium text-gray-700">Add Property</p>
+                  </CardContent>
+                </Card>
+              </Link>
+              
+              <Link to={createPageUrl("Reminders")} className="block">
+                <Card className="border-2 border-dashed border-gray-300 hover:border-orange-500 hover:bg-orange-50 transition-all cursor-pointer">
+                  <CardContent className="p-6 text-center">
+                    <Bell className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="font-medium text-gray-700">Reminders</p>
                   </CardContent>
                 </Card>
               </Link>
