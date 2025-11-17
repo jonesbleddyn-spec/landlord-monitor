@@ -12,9 +12,11 @@ import {
   ExternalLink,
   CheckCircle,
   QrCode,
-  AlertCircle
+  AlertCircle,
+  Shield
 } from "lucide-react";
 import { toast } from "sonner";
+import { format, differenceInMonths, isPast } from "date-fns";
 
 export default function PropertyDetails({ property, open, onClose, faults = [] }) {
   const [copiedCode, setCopiedCode] = useState(false);
@@ -43,6 +45,43 @@ export default function PropertyDetails({ property, open, onClose, faults = [] }
     }
     toast.success('Copied to clipboard!');
   };
+
+  const getCertificateStatus = (expiryDate) => {
+    if (!expiryDate) return null;
+    
+    const expiry = new Date(expiryDate);
+    const now = new Date();
+    
+    if (isPast(expiry)) {
+      return { status: 'expired', color: 'bg-red-100 text-red-800', text: 'Expired' };
+    }
+    
+    const monthsUntilExpiry = differenceInMonths(expiry, now);
+    
+    if (monthsUntilExpiry <= 3) {
+      return { status: 'due-soon', color: 'bg-amber-100 text-amber-800', text: 'Due Soon' };
+    }
+    
+    return { status: 'valid', color: 'bg-green-100 text-green-800', text: 'Valid' };
+  };
+
+  const certificates = [
+    {
+      name: 'Gas Safety',
+      date: property.gas_certificate_expiry,
+      icon: Shield
+    },
+    {
+      name: 'Electrical',
+      date: property.electrical_certificate_expiry,
+      icon: Shield
+    },
+    {
+      name: 'EPC',
+      date: property.epc_expiry,
+      icon: Shield
+    }
+  ].filter(cert => cert.date);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -228,6 +267,36 @@ export default function PropertyDetails({ property, open, onClose, faults = [] }
                   <p className="text-sm text-gray-600">Completed</p>
                 </div>
               </div>
+
+              {/* Compliance Certificates */}
+              {certificates.length > 0 && (
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                    <Shield className="w-4 h-4" />
+                    Compliance Certificates
+                  </h4>
+                  <div className="grid md:grid-cols-3 gap-3">
+                    {certificates.map((cert) => {
+                      const status = getCertificateStatus(cert.date);
+                      return (
+                        <div key={cert.name} className="bg-gray-50 rounded-lg p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="text-sm font-medium text-gray-700">{cert.name}</p>
+                            {status && (
+                              <Badge className={`text-xs ${status.color}`}>
+                                {status.text}
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-600">
+                            {cert.date ? format(new Date(cert.date), 'MMM d, yyyy') : 'Not set'}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
