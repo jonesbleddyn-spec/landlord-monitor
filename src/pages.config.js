@@ -11,6 +11,7 @@ import Subscription from './pages/Subscription';
 import PublicReportFault from './pages/PublicReportFault';
 import Admin from './pages/Admin';
 import Dashboard from './pages/Dashboard';
+import EditProperty from './pages/EditProperty';
 import __Layout from './Layout.jsx';
 
 
@@ -28,6 +29,7 @@ export const PAGES = {
     "PublicReportFault": PublicReportFault,
     "Admin": Admin,
     "Dashboard": Dashboard,
+    "EditProperty": EditProperty,
 }
 
 export const pagesConfig = {
