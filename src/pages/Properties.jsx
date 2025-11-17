@@ -1,11 +1,10 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Building2, MapPin, AlertCircle, CheckCircle, Clock, Users, Eye, Mail, QrCode, Home, Trash2, FileText } from "lucide-react";
+import { Building2, MapPin, AlertCircle, CheckCircle, Clock, Users, Eye, Mail, QrCode, Home, Trash2, FileText, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import PropertyFaults from "../components/properties/PropertyFaults";
@@ -437,6 +436,14 @@ function PropertiesContent() {
               {isLandlord ? 'Manage your properties and track maintenance' : 'View all properties in the system'}
             </p>
           </div>
+          {isLandlord && (
+            <Link to={createPageUrl("AddProperty")}>
+              <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Property
+              </Button>
+            </Link>
+          )}
         </div>
 
         {loadingProperties ? (
@@ -553,7 +560,15 @@ function PropertiesContent() {
             <CardContent>
               <Building2 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-900 mb-2">No Properties Yet</h3>
-              <p className="text-gray-600">Properties will appear here once added to the system.</p>
+              <p className="text-gray-600 mb-4">Get started by adding your first property.</p>
+              {isLandlord && (
+                <Link to={createPageUrl("AddProperty")}>
+                  <Button className="bg-gradient-to-r from-blue-600 to-purple-600">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Property
+                  </Button>
+                </Link>
+              )}
             </CardContent>
           </Card>
         )}
