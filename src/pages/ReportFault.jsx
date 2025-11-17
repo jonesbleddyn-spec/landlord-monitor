@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertCircle, Upload, Sparkles, Loader2, CheckCircle, Lightbulb, Home } from "lucide-react";
+import { AlertCircle, Upload, Sparkles, Loader2, CheckCircle, Lightbulb, Home, Shield, Wrench } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
 
@@ -43,7 +43,6 @@ function ReportFaultContent() {
       const allProperties = await base44.entities.Property.list();
       
       if (isTenant) {
-        // Tenant sees ONLY their assigned property
         if (user?.property_id) {
           return allProperties.filter(p => p.id === user.property_id);
         } else if (user?.landlord_id) {
@@ -59,7 +58,6 @@ function ReportFaultContent() {
     enabled: !!user,
   });
 
-  // Auto-select property for tenants
   useEffect(() => {
     if (isTenant && properties.length === 1 && !formData.property_id) {
       setFormData(prev => ({ ...prev, property_id: properties[0].id }));
@@ -70,20 +68,32 @@ function ReportFaultContent() {
     mutationFn: async (faultData) => {
       const property = properties.find(p => p.id === faultData.property_id);
       
-      // Create the fault
       const fault = await base44.entities.Fault.create({
         ...faultData,
         landlord_id: property?.landlord_id || user?.landlord_id || user?.id,
         status: "reported"
       });
 
-      // Get AI suggestion for quick fix
       const suggestion = await base44.integrations.Core.InvokeLLM({
         prompt: `A fault has been reported: "${faultData.title}". 
         Description: ${faultData.description}
         Category: ${faultData.category}
         
-        Provide a brief, practical suggestion (2-3 sentences) for a quick temporary fix the tenant can try while waiting for professional repair. Be helpful and safety-conscious.`,
+        Provide:
+        1. DIY Solution: A brief, practical temporary fix the tenant can safely try (2-3 sentences). Focus on safety and simple steps.
+        2. Prevention Tips: 2-3 tips to prevent this issue in the future (brief bullet points).
+        
+        Be helpful, safety-conscious, and practical. Format as JSON.`,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            diy_solution: { type: "string" },
+            prevention_tips: {
+              type: "array",
+              items: { type: "string" }
+            }
+          }
+        }
       });
 
       return { fault, suggestion };
@@ -92,10 +102,9 @@ function ReportFaultContent() {
       setAiSuggestion(suggestion);
       queryClient.invalidateQueries({ queryKey: ['user-faults'] });
       
-      // Navigate after showing suggestion
       setTimeout(() => {
         navigate(createPageUrl("Properties"));
-      }, 8000);
+      }, 10000);
     },
   });
 
@@ -141,6 +150,8 @@ function ReportFaultContent() {
         2. A detailed description (2-3 sentences)
         3. The category (one of: plumbing, electrical, heating, structural, appliances, security, pest_control, cleaning, other)
         4. Priority level (low, medium, high, or urgent)
+        5. DIY Solution: A brief temporary fix (1-2 sentences)
+        6. Prevention tips: 2-3 brief prevention tips
         
         Format as JSON.`,
         file_urls: formData.images,
@@ -150,7 +161,12 @@ function ReportFaultContent() {
             title: { type: "string" },
             description: { type: "string" },
             category: { type: "string" },
-            priority: { type: "string" }
+            priority: { type: "string" },
+            diy_solution: { type: "string" },
+            prevention_tips: {
+              type: "array",
+              items: { type: "string" }
+            }
           }
         }
       });
@@ -162,6 +178,11 @@ function ReportFaultContent() {
         category: analysis.category || prev.category,
         priority: analysis.priority || prev.priority
       }));
+
+      // Show AI suggestions in a preview
+      if (analysis.diy_solution || analysis.prevention_tips) {
+        setAiSuggestion(analysis);
+      }
     } catch (error) {
       console.error("AI analysis error:", error);
     }
@@ -192,13 +213,29 @@ function ReportFaultContent() {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-8 space-y-6">
-              <Alert className="bg-blue-50 border-blue-200">
-                <Lightbulb className="w-5 h-5 text-blue-600" />
-                <AlertDescription className="text-blue-900">
-                  <p className="font-semibold mb-2">Quick Fix Suggestion:</p>
-                  <p>{aiSuggestion}</p>
-                </AlertDescription>
-              </Alert>
+              {aiSuggestion.diy_solution && (
+                <Alert className="bg-blue-50 border-blue-200">
+                  <Wrench className="w-5 h-5 text-blue-600" />
+                  <AlertDescription className="text-blue-900">
+                    <p className="font-semibold mb-2">💡 DIY Solution (Temporary Fix):</p>
+                    <p>{aiSuggestion.diy_solution}</p>
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {aiSuggestion.prevention_tips && aiSuggestion.prevention_tips.length > 0 && (
+                <Alert className="bg-purple-50 border-purple-200">
+                  <Shield className="w-5 h-5 text-purple-600" />
+                  <AlertDescription className="text-purple-900">
+                    <p className="font-semibold mb-2">🛡️ Prevention Tips:</p>
+                    <ul className="list-disc list-inside space-y-1">
+                      {aiSuggestion.prevention_tips.map((tip, idx) => (
+                        <li key={idx}>{tip}</li>
+                      ))}
+                    </ul>
+                  </AlertDescription>
+                </Alert>
+              )}
 
               <div className="space-y-4 text-gray-700">
                 <p className="text-lg">
@@ -244,7 +281,6 @@ function ReportFaultContent() {
           </CardHeader>
           <CardContent className="p-8">
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Property Selection - Different for Tenant vs Landlord */}
               {isTenant ? (
                 <div>
                   <Label>Property</Label>
@@ -285,7 +321,6 @@ function ReportFaultContent() {
                 </div>
               )}
 
-              {/* Image Upload with AI Analysis */}
               <div>
                 <Label>Upload Images</Label>
                 <div className="mt-2 space-y-3">
@@ -335,7 +370,7 @@ function ReportFaultContent() {
                         ) : (
                           <>
                             <Sparkles className="w-4 h-4 mr-2" />
-                            Analyze with AI
+                            Analyze with AI & Get Tips
                           </>
                         )}
                       </Button>
@@ -343,6 +378,34 @@ function ReportFaultContent() {
                   )}
                 </div>
               </div>
+
+              {/* Show AI suggestions preview after image analysis */}
+              {aiSuggestion && !createFaultMutation.isSuccess && (
+                <div className="space-y-3">
+                  {aiSuggestion.diy_solution && (
+                    <Alert className="bg-blue-50 border-blue-200">
+                      <Lightbulb className="w-4 h-4 text-blue-600" />
+                      <AlertDescription className="text-blue-900 text-sm">
+                        <p className="font-semibold mb-1">Quick DIY Tip:</p>
+                        <p>{aiSuggestion.diy_solution}</p>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  {aiSuggestion.prevention_tips && aiSuggestion.prevention_tips.length > 0 && (
+                    <Alert className="bg-purple-50 border-purple-200">
+                      <Shield className="w-4 h-4 text-purple-600" />
+                      <AlertDescription className="text-purple-900 text-sm">
+                        <p className="font-semibold mb-1">Prevention Tips:</p>
+                        <ul className="list-disc list-inside space-y-1 text-xs">
+                          {aiSuggestion.prevention_tips.slice(0, 2).map((tip, idx) => (
+                            <li key={idx}>{tip}</li>
+                          ))}
+                        </ul>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </div>
+              )}
 
               <div>
                 <Label>Fault Title *</Label>
