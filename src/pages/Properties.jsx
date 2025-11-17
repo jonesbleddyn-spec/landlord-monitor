@@ -1,10 +1,11 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Building2, MapPin, AlertCircle, CheckCircle, Clock, Users, Eye, Mail, QrCode, Home, Trash2, FileText, Plus } from "lucide-react";
+import { Building2, MapPin, AlertCircle, CheckCircle, Clock, Users, Eye, Mail, QrCode, Home, Trash2, FileText, Plus, Upload, Download, FileSpreadsheet } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import PropertyFaults from "../components/properties/PropertyFaults";
@@ -23,6 +24,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 function PropertiesContent() {
   const [selectedPropertyForFaults, setSelectedPropertyForFaults] = useState(null);
@@ -30,6 +37,7 @@ function PropertiesContent() {
   const [selectedPropertyForReport, setSelectedPropertyForReport] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [propertyToDelete, setPropertyToDelete] = useState(null);
+  const [uploadingCSV, setUploadingCSV] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: user } = useQuery({
@@ -109,6 +117,84 @@ function PropertiesContent() {
     if (propertyToDelete) {
       deletePropertyMutation.mutate(propertyToDelete.id);
     }
+  };
+
+  const downloadTemplate = () => {
+    const template = [
+      ["name", "address", "type", "units", "manager_email", "image_url"],
+      ["Sample Building", "123 Main St, City, State, ZIP", "apartment", "10", "manager@example.com", "https://example.com/image.jpg"],
+      ["Another Property", "456 Oak Ave, City, State, ZIP", "house", "1", "contact@example.com", ""]
+    ];
+
+    const csvContent = template.map(row => row.map(cell => `"${cell}"`).join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'properties_template.csv';
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    a.remove();
+    toast.success("Template downloaded");
+  };
+
+  const exportProperties = () => {
+    if (properties.length === 0) {
+      toast.error("No properties to export");
+      return;
+    }
+
+    const headers = ["name", "address", "type", "units", "manager_email", "property_code"];
+    const rows = properties.map(p => [
+      p.name,
+      p.address,
+      p.type || "",
+      p.units || "",
+      p.manager_email || "",
+      p.property_code || ""
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `properties_export_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    a.remove();
+    toast.success(`Exported ${properties.length} properties`);
+  };
+
+  const handleCSVUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploadingCSV(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const result = await base44.functions.invoke('bulkImportProperties', {
+        csv_file_url: file_url
+      });
+
+      if (result.data.status === 'success') {
+        toast.success(`Successfully imported ${result.data.imported_count} properties`);
+        queryClient.invalidateQueries({ queryKey: ['user-properties'] });
+      } else {
+        toast.error(result.data.message || "Failed to import properties");
+      }
+    } catch (error) {
+      console.error("CSV upload error:", error);
+      toast.error("Failed to upload CSV file");
+    }
+    setUploadingCSV(false);
+    e.target.value = ''; // Clear the input so same file can be selected again
   };
 
   const getPropertyStats = (propertyId) => {
@@ -437,12 +523,46 @@ function PropertiesContent() {
             </p>
           </div>
           {isLandlord && (
-            <Link to={createPageUrl("AddProperty")}>
-              <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Property
-              </Button>
-            </Link>
+            <div className="flex gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="border-purple-600 text-purple-600 hover:bg-purple-50">
+                    <FileSpreadsheet className="w-4 h-4 mr-2" />
+                    Bulk Actions
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem onClick={downloadTemplate}>
+                    <Download className="w-4 h-4 mr-2" />
+                    Download CSV Template
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportProperties} disabled={properties.length === 0}>
+                    <Download className="w-4 h-4 mr-2" />
+                    Export Properties ({properties.length})
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <label className="flex items-center w-full px-2 py-1.5 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground rounded-sm">
+                      <Upload className="w-4 h-4 mr-2" />
+                      {uploadingCSV ? "Uploading..." : "Upload CSV"}
+                      <input
+                        type="file"
+                        accept=".csv"
+                        onChange={handleCSVUpload}
+                        disabled={uploadingCSV}
+                        className="hidden"
+                      />
+                    </label>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <Link to={createPageUrl("AddProperty")}>
+                <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Property
+                </Button>
+              </Link>
+            </div>
           )}
         </div>
 
@@ -562,12 +682,18 @@ function PropertiesContent() {
               <h3 className="text-xl font-semibold text-gray-900 mb-2">No Properties Yet</h3>
               <p className="text-gray-600 mb-4">Get started by adding your first property.</p>
               {isLandlord && (
-                <Link to={createPageUrl("AddProperty")}>
-                  <Button className="bg-gradient-to-r from-blue-600 to-purple-600">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Property
+                <div className="flex gap-3 justify-center">
+                  <Link to={createPageUrl("AddProperty")}>
+                    <Button className="bg-gradient-to-r from-blue-600 to-purple-600">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Property
+                    </Button>
+                  </Link>
+                  <Button variant="outline" onClick={downloadTemplate}>
+                    <Download className="w-4 h-4 mr-2" />
+                    Get CSV Template
                   </Button>
-                </Link>
+                </div>
               )}
             </CardContent>
           </Card>
