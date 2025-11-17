@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { Building2, MessageSquare, FileText, Menu, X, LayoutDashboard, LogOut, LogIn, CreditCard } from "lucide-react";
+import { Building2, MessageSquare, FileText, Menu, X, LayoutDashboard, LogOut, LogIn, CreditCard, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function Layout({ children, currentPageName }) {
@@ -217,6 +217,12 @@ export default function Layout({ children, currentPageName }) {
                 {user && (
                   <li><Link to={createPageUrl("Dashboard")} className="hover:text-white transition-colors">Dashboard</Link></li>
                 )}
+                <li>
+                  <Link to={createPageUrl("Help")} className="hover:text-white transition-colors flex items-center gap-2">
+                    <HelpCircle className="w-4 h-4" />
+                    Help & User Guide
+                  </Link>
+                </li>
               </ul>
             </div>
             <div>

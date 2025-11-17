@@ -12,6 +12,7 @@ import PublicReportFault from './pages/PublicReportFault';
 import Admin from './pages/Admin';
 import Dashboard from './pages/Dashboard';
 import EditProperty from './pages/EditProperty';
+import Help from './pages/Help';
 import __Layout from './Layout.jsx';
 
 
@@ -30,6 +31,7 @@ export const PAGES = {
     "Admin": Admin,
     "Dashboard": Dashboard,
     "EditProperty": EditProperty,
+    "Help": Help,
 }
 
 export const pagesConfig = {
