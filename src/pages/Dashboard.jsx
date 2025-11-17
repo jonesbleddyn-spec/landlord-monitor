@@ -270,22 +270,24 @@ function DashboardContent() {
             </CardContent>
           </Card>
 
-          <Card className="border-none shadow-lg hover:shadow-xl transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Messages</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">{stats.totalMessages}</p>
+          {!isAdmin && (
+            <Card className="border-none shadow-lg hover:shadow-xl transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Messages</p>
+                    <p className="text-3xl font-bold text-gray-900 mt-2">{stats.totalMessages}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                    <MessageSquare className="w-6 h-6 text-purple-600" />
+                  </div>
                 </div>
-                <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                  <MessageSquare className="w-6 h-6 text-purple-600" />
-                </div>
-              </div>
-              <Link to={createPageUrl("Community")}>
-                <Button variant="link" className="p-0 h-auto text-purple-600">View community →</Button>
-              </Link>
-            </CardContent>
-          </Card>
+                <Link to={createPageUrl("Community")}>
+                  <Button variant="link" className="p-0 h-auto text-purple-600">View community →</Button>
+                </Link>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Quick Actions */}
@@ -323,23 +325,27 @@ function DashboardContent() {
             </Link>
           )}
 
-          <Link to={createPageUrl("Documents")} className="block">
-            <Card className="border-2 border-dashed border-gray-300 hover:border-green-500 hover:bg-green-50 transition-all cursor-pointer">
-              <CardContent className="p-6 text-center">
-                <FileText className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                <p className="font-medium text-gray-700">Documents</p>
-              </CardContent>
-            </Card>
-          </Link>
+          {!isAdmin && (
+            <>
+              <Link to={createPageUrl("Documents")} className="block">
+                <Card className="border-2 border-dashed border-gray-300 hover:border-green-500 hover:bg-green-50 transition-all cursor-pointer">
+                  <CardContent className="p-6 text-center">
+                    <FileText className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="font-medium text-gray-700">Documents</p>
+                  </CardContent>
+                </Card>
+              </Link>
 
-          <Link to={createPageUrl("Community")} className="block">
-            <Card className="border-2 border-dashed border-gray-300 hover:border-orange-500 hover:bg-orange-50 transition-all cursor-pointer">
-              <CardContent className="p-6 text-center">
-                <MessageSquare className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                <p className="font-medium text-gray-700">Community</p>
-              </CardContent>
-            </Card>
-          </Link>
+              <Link to={createPageUrl("Community")} className="block">
+                <Card className="border-2 border-dashed border-gray-300 hover:border-orange-500 hover:bg-orange-50 transition-all cursor-pointer">
+                  <CardContent className="p-6 text-center">
+                    <MessageSquare className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="font-medium text-gray-700">Community</p>
+                  </CardContent>
+                </Card>
+              </Link>
+            </>
+          )}
         </div>
 
         {/* Recent Faults */}
