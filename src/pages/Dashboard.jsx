@@ -20,10 +20,12 @@ import {
   Megaphone
 } from "lucide-react";
 import InviteTenantModal from "../components/landlord/InviteTenantModal";
+import AllPropertiesReport from "../components/properties/AllPropertiesReport";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
 
 function DashboardContent() {
   const [showInviteModal, setShowInviteModal] = React.useState(false);
+  const [showAllPropertiesReport, setShowAllPropertiesReport] = React.useState(false);
 
   const { data: user } = useQuery({
     queryKey: ['user'],
@@ -43,7 +45,7 @@ function DashboardContent() {
       } else if (isTenant && user?.property_id) {
         return allProperties.filter(p => p.id === user.property_id);
       }
-      return allProperties; // Admin sees all
+      return allProperties;
     },
     enabled: !!user,
   });
@@ -57,7 +59,7 @@ function DashboardContent() {
       } else if (isTenant && user?.property_id) {
         return allFaults.filter(f => f.property_id === user.property_id);
       }
-      return allFaults; // Admin sees all
+      return allFaults;
     },
     enabled: !!user,
   });
@@ -71,12 +73,11 @@ function DashboardContent() {
       } else if (isTenant && user?.property_id) {
         return allMessages.filter(m => m.property_id === user.property_id);
       }
-      return allMessages; // Admin sees all
+      return allMessages;
     },
     enabled: !!user,
   });
 
-  // Admin broadcasts count for landlords
   const { data: adminBroadcasts = [] } = useQuery({
     queryKey: ['admin-broadcasts-count'],
     queryFn: async () => {
@@ -346,11 +347,24 @@ function DashboardContent() {
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span>{isTenant ? "My Recent Faults" : "Recent Faults"}</span>
-              {!isTenant && (
-                <Link to={createPageUrl("Properties")}>
-                  <Button variant="outline" size="sm">View All</Button>
-                </Link>
-              )}
+              <div className="flex gap-2">
+                {isLandlord && stats.openFaults > 0 && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setShowAllPropertiesReport(true)}
+                    className="border-green-600 text-green-600 hover:bg-green-50"
+                  >
+                    <FileText className="w-4 h-4 mr-2" />
+                    All Properties Report
+                  </Button>
+                )}
+                {!isTenant && (
+                  <Link to={createPageUrl("Properties")}>
+                    <Button variant="outline" size="sm">View All</Button>
+                  </Link>
+                )}
+              </div>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -389,10 +403,18 @@ function DashboardContent() {
         </Card>
 
         {isLandlord && (
-          <InviteTenantModal 
-            open={showInviteModal} 
-            onClose={() => setShowInviteModal(false)} 
-          />
+          <>
+            <InviteTenantModal 
+              open={showInviteModal} 
+              onClose={() => setShowInviteModal(false)} 
+            />
+            <AllPropertiesReport
+              properties={properties}
+              faults={faults}
+              open={showAllPropertiesReport}
+              onClose={() => setShowAllPropertiesReport(false)}
+            />
+          </>
         )}
       </div>
     </div>
