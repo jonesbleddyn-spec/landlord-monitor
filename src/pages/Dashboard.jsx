@@ -1,3 +1,4 @@
+
 import React from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -17,7 +18,8 @@ import {
   UserPlus,
   Shield,
   Home,
-  Megaphone
+  Megaphone,
+  Palette
 } from "lucide-react";
 import InviteTenantModal from "../components/landlord/InviteTenantModal";
 import AllPropertiesReport from "../components/properties/AllPropertiesReport";
@@ -293,14 +295,25 @@ function DashboardContent() {
         {/* Quick Actions */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {isLandlord && (
-            <Link to={createPageUrl("AddProperty")} className="block">
-              <Card className="border-2 border-dashed border-gray-300 hover:border-blue-500 hover:bg-blue-50 transition-all cursor-pointer">
-                <CardContent className="p-6 text-center">
-                  <Plus className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                  <p className="font-medium text-gray-700">Add Property</p>
-                </CardContent>
-              </Card>
-            </Link>
+            <>
+              <Link to={createPageUrl("AddProperty")} className="block">
+                <Card className="border-2 border-dashed border-gray-300 hover:border-blue-500 hover:bg-blue-50 transition-all cursor-pointer">
+                  <CardContent className="p-6 text-center">
+                    <Plus className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="font-medium text-gray-700">Add Property</p>
+                  </CardContent>
+                </Card>
+              </Link>
+              
+              <Link to={createPageUrl("WhiteLabelSettings")} className="block">
+                <Card className="border-2 border-dashed border-gray-300 hover:border-purple-500 hover:bg-purple-50 transition-all cursor-pointer">
+                  <CardContent className="p-6 text-center">
+                    <Palette className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="font-medium text-gray-700">White Label Settings</p>
+                  </CardContent>
+                </Card>
+              </Link>
+            </>
           )}
 
           {isTenant && (
