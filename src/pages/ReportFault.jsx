@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -36,6 +37,17 @@ function ReportFaultContent() {
   });
 
   const isTenant = user?.user_type === 'tenant';
+
+  // Fetch landlord details for white label branding
+  const { data: landlordBranding } = useQuery({
+    queryKey: ['landlord-branding', user?.landlord_id],
+    queryFn: async () => {
+      if (!user?.landlord_id) return null;
+      const users = await base44.entities.User.list();
+      return users.find(u => u.id === user.landlord_id);
+    },
+    enabled: !!user?.landlord_id && isTenant,
+  });
 
   const { data: properties = [] } = useQuery({
     queryKey: ['user-properties'],
@@ -209,12 +221,21 @@ function ReportFaultContent() {
     { value: "other", label: "Other" }
   ];
 
+  // Get branding colors
+  const primaryColor = landlordBranding?.brand_color_primary || "#3B82F6"; // Default blue-500
+  const secondaryColor = landlordBranding?.brand_color_secondary || "#8B5CF6"; // Default purple-500
+  const companyName = landlordBranding?.company_name || "Property Management";
+  const companyLogo = landlordBranding?.company_logo;
+
   if (createFaultMutation.isSuccess && aiSuggestion) {
     return (
       <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl mx-auto">
           <Card className="border-none shadow-2xl">
-            <CardHeader className="bg-gradient-to-r from-green-600 to-emerald-600 text-white">
+            <CardHeader 
+              className="text-white"
+              style={{ background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})` }}
+            >
               <CardTitle className="flex items-center gap-2">
                 <CheckCircle className="w-6 h-6" />
                 Fault Reported Successfully
@@ -259,7 +280,8 @@ function ReportFaultContent() {
 
               <Button
                 onClick={() => navigate(createPageUrl("Properties"))}
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600"
+                className="w-full text-white"
+                style={{ background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})` }}
               >
                 View Properties
               </Button>
@@ -273,6 +295,28 @@ function ReportFaultContent() {
   return (
     <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
+        {/* White Label Header for Tenants */}
+        {isTenant && landlordBranding && (
+          <div 
+            className="rounded-xl p-6 mb-8 text-white"
+            style={{ background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})` }}
+          >
+            <div className="flex items-center gap-4">
+              {companyLogo && (
+                <img
+                  src={companyLogo}
+                  alt={companyName}
+                  className="h-12 bg-white p-2 rounded"
+                />
+              )}
+              <div>
+                <h2 className="text-2xl font-bold">{companyName}</h2>
+                <p className="text-sm opacity-90">Property Management Services</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">Report a Fault</h1>
           <p className="text-lg text-gray-600">
@@ -281,7 +325,10 @@ function ReportFaultContent() {
         </div>
 
         <Card className="shadow-2xl border-none">
-          <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+          <CardHeader 
+            className="text-white"
+            style={{ background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})` }}
+          >
             <CardTitle className="text-2xl flex items-center gap-2">
               <AlertCircle className="w-6 h-6" />
               Fault Details
@@ -376,7 +423,8 @@ function ReportFaultContent() {
                         type="button"
                         onClick={analyzeWithAI}
                         disabled={analyzingImage}
-                        className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                        className="w-full text-white"
+                        style={{ background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})` }}
                       >
                         {analyzingImage ? (
                           <>
@@ -505,7 +553,8 @@ function ReportFaultContent() {
               <Button
                 type="submit"
                 disabled={createFaultMutation.isPending || !formData.property_id || !formData.title || !formData.description || !formData.category}
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg py-6"
+                className="w-full text-white text-lg py-6"
+                style={{ background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})` }}
               >
                 {createFaultMutation.isPending ? (
                   <>

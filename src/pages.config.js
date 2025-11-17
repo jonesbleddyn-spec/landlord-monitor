@@ -13,6 +13,7 @@ import Admin from './pages/Admin';
 import Dashboard from './pages/Dashboard';
 import EditProperty from './pages/EditProperty';
 import Help from './pages/Help';
+import WhiteLabelSettings from './pages/WhiteLabelSettings';
 import __Layout from './Layout.jsx';
 
 
@@ -32,6 +33,7 @@ export const PAGES = {
     "Dashboard": Dashboard,
     "EditProperty": EditProperty,
     "Help": Help,
+    "WhiteLabelSettings": WhiteLabelSettings,
 }
 
 export const pagesConfig = {
