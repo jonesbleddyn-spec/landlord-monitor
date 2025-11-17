@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
@@ -16,8 +17,9 @@ import {
   BookOpen,
   ChevronRight
 } from "lucide-react";
+import ProtectedRoute from "../components/auth/ProtectedRoute";
 
-export default function Help() {
+function HelpContent() {
   const scrollToSection = (id) => {
     const element = document.getElementById(id);
     if (element) {
@@ -643,6 +645,7 @@ export default function Help() {
                         <li>All features unlocked</li>
                         <li>Priority email support</li>
                         <li>Advanced reporting tools</li>
+                        <li>Discounted annual billing (coming soon)</li>
                       </ul>
                     </li>
                     <li><strong>Pro - £79/month:</strong>
@@ -652,6 +655,7 @@ export default function Help() {
                         <li>Priority support with faster response</li>
                         <li>Dedicated account manager (optional)</li>
                         <li>Custom branding options</li>
+                        <li>Discounted annual billing (coming soon)</li>
                       </ul>
                     </li>
                   </ul>
@@ -1129,5 +1133,13 @@ export default function Help() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function Help() {
+  return (
+    <ProtectedRoute>
+      <HelpContent />
+    </ProtectedRoute>
   );
 }
