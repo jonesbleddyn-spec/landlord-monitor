@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertCircle, Upload, Sparkles, Loader2, CheckCircle, Lightbulb, Home, Shield, Wrench } from "lucide-react";
+import { AlertCircle, Upload, Sparkles, Loader2, CheckCircle, Lightbulb, Home, Shield, Wrench, X } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
 
@@ -137,6 +137,13 @@ function ReportFaultContent() {
       console.error("Error uploading images:", error);
     }
     setUploadingImage(false);
+  };
+
+  const handleRemoveImage = (indexToRemove) => {
+    setFormData(prev => ({
+      ...prev,
+      images: prev.images.filter((_, index) => index !== indexToRemove)
+    }));
   };
 
   const analyzeWithAI = async () => {
@@ -348,12 +355,20 @@ function ReportFaultContent() {
                     <>
                       <div className="grid grid-cols-3 gap-3">
                         {formData.images.map((url, idx) => (
-                          <img
-                            key={idx}
-                            src={url}
-                            alt={`Fault ${idx + 1}`}
-                            className="w-full h-32 object-cover rounded-lg"
-                          />
+                          <div key={idx} className="relative group">
+                            <img
+                              src={url}
+                              alt={`Fault ${idx + 1}`}
+                              className="w-full h-32 object-cover rounded-lg"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveImage(idx)}
+                              className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
                         ))}
                       </div>
                       
