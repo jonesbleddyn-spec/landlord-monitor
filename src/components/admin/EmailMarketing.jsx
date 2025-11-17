@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Mail, Sparkles, Users, Link as LinkIcon, Plus, X, Loader2, Send } from "lucide-react";
+import { Mail, Sparkles, Users, Link as LinkIcon, Plus, X, Loader2, Send, User, AtSign } from "lucide-react";
 import { toast } from "sonner";
 
 export default function EmailMarketing() {
@@ -16,6 +16,7 @@ export default function EmailMarketing() {
   const [subscriptionFilter, setSubscriptionFilter] = useState("all");
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
+  const [emailSignature, setEmailSignature] = useState("");
   const [aiPrompt, setAiPrompt] = useState("");
   const [affiliateLinks, setAffiliateLinks] = useState([]);
   const [newLinkName, setNewLinkName] = useState("");
@@ -29,13 +30,24 @@ export default function EmailMarketing() {
 
   const sendEmailMutation = useMutation({
     mutationFn: async (emailData) => {
-      const promises = emailData.recipients.map(recipient =>
-        base44.integrations.Core.SendEmail({
+      const promises = emailData.recipients.map(recipient => {
+        // Personalize email for each recipient
+        let personalizedBody = emailData.body
+          .replace(/\{\{name\}\}/g, recipient.full_name || 'there')
+          .replace(/\{\{email\}\}/g, recipient.email || '')
+          .replace(/\{\{first_name\}\}/g, (recipient.full_name || '').split(' ')[0] || 'there');
+
+        // Add signature if provided
+        if (emailData.signature) {
+          personalizedBody += `<br><br>${emailData.signature}`;
+        }
+
+        return base44.integrations.Core.SendEmail({
           to: recipient.email,
           subject: emailData.subject,
-          body: emailData.body
-        })
-      );
+          body: personalizedBody
+        });
+      });
       await Promise.all(promises);
     },
     onSuccess: (_, variables) => {
@@ -73,6 +85,10 @@ export default function EmailMarketing() {
     setAffiliateLinks(affiliateLinks.filter((_, i) => i !== index));
   };
 
+  const insertToken = (token) => {
+    setEmailBody(emailBody + token);
+  };
+
   const generateEmailWithAI = async () => {
     if (!aiPrompt) {
       toast.error("Please enter a prompt");
@@ -96,9 +112,11 @@ Task: ${aiPrompt}${affiliateContext}
 Generate a professional email with:
 1. An engaging subject line (max 60 characters)
 2. A well-structured email body with proper formatting
-3. If affiliate links are provided, incorporate them naturally into the content where they add value
-4. Keep the tone professional yet friendly
-5. Include a clear call-to-action
+3. Use personalization tokens: {{name}} for full name, {{first_name}} for first name only, {{email}} for email address
+4. If affiliate links are provided, incorporate them naturally into the content where they add value
+5. Keep the tone professional yet friendly
+6. Include a clear call-to-action
+7. Do NOT include a signature - this will be added separately
 
 Return the result as JSON with "subject" and "body" fields. For the body, use HTML formatting with <p>, <br>, <strong>, <a> tags.`,
         response_json_schema: {
@@ -133,7 +151,8 @@ Return the result as JSON with "subject" and "body" fields. For the body, use HT
     sendEmailMutation.mutate({
       recipients,
       subject: emailSubject,
-      body: emailBody
+      body: emailBody,
+      signature: emailSignature
     });
   };
 
@@ -320,6 +339,44 @@ Return the result as JSON with "subject" and "body" fields. For the body, use HT
             />
           </div>
 
+          {/* Personalization Tokens */}
+          <div>
+            <Label className="text-gray-300 mb-2 block">Personalization Tokens</Label>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => insertToken('{{name}}')}
+                className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
+              >
+                <User className="w-3 h-3 mr-1" />
+                {'{{name}}'} - Full Name
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => insertToken('{{first_name}}')}
+                className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
+              >
+                <User className="w-3 h-3 mr-1" />
+                {'{{first_name}}'} - First Name
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => insertToken('{{email}}')}
+                className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
+              >
+                <AtSign className="w-3 h-3 mr-1" />
+                {'{{email}}'} - Email
+              </Button>
+            </div>
+            <p className="text-xs text-gray-400 mt-1">Click to insert tokens into your email body</p>
+          </div>
+
           <div>
             <Label className="text-gray-300">Email Body</Label>
             <Textarea
@@ -331,11 +388,28 @@ Return the result as JSON with "subject" and "body" fields. For the body, use HT
             />
           </div>
 
+          <div>
+            <Label className="text-gray-300">Email Signature (Optional)</Label>
+            <Textarea
+              value={emailSignature}
+              onChange={(e) => setEmailSignature(e.target.value)}
+              placeholder="Enter your signature (HTML supported)&#10;&#10;e.g.,&#10;Best regards,&#10;John Smith&#10;Platform Administrator"
+              rows={4}
+              className="bg-gray-700 border-gray-600 text-white"
+            />
+          </div>
+
           {emailBody && (
             <div>
-              <Label className="text-gray-300 mb-2 block">Preview</Label>
+              <Label className="text-gray-300 mb-2 block">Preview (with sample data)</Label>
               <div className="bg-white p-6 rounded-lg">
-                <div dangerouslySetInnerHTML={{ __html: emailBody }} />
+                <div dangerouslySetInnerHTML={{ 
+                  __html: emailBody
+                    .replace(/\{\{name\}\}/g, 'John Doe')
+                    .replace(/\{\{first_name\}\}/g, 'John')
+                    .replace(/\{\{email\}\}/g, 'john.doe@example.com') +
+                    (emailSignature ? `<br><br>${emailSignature}` : '')
+                }} />
               </div>
             </div>
           )}
