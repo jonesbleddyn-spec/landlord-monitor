@@ -3,6 +3,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
 import { 
   Building2, 
   MapPin, 
@@ -21,6 +23,14 @@ import { format, differenceInMonths, isPast } from "date-fns";
 export default function PropertyDetails({ property, open, onClose, faults = [] }) {
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState(false);
+
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  const isTenant = user?.user_type === 'tenant';
+  const showComplianceToTenants = property?.show_compliance_to_tenants !== false;
 
   if (!property) return null;
 
@@ -82,6 +92,9 @@ export default function PropertyDetails({ property, open, onClose, faults = [] }
       icon: Shield
     }
   ].filter(cert => cert.date);
+
+  // Determine if compliance section should be shown
+  const shouldShowCompliance = isTenant ? showComplianceToTenants : true;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -268,8 +281,8 @@ export default function PropertyDetails({ property, open, onClose, faults = [] }
                 </div>
               </div>
 
-              {/* Compliance Certificates */}
-              {certificates.length > 0 && (
+              {/* Compliance Certificates - Conditionally shown */}
+              {shouldShowCompliance && certificates.length > 0 && (
                 <div className="mt-6 pt-6 border-t border-gray-200">
                   <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
                     <Shield className="w-4 h-4" />
