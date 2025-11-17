@@ -1,11 +1,12 @@
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, BarChart3, Key, Settings, FileText, Megaphone } from "lucide-react";
+import { Shield, BarChart3, Key, Settings, FileText, Megaphone, Mail } from "lucide-react";
 import AdminStats from "../components/admin/AdminStats";
 import ApiKeyManager from "../components/admin/ApiKeyManager";
 import SiteSettings from "../components/admin/SiteSettings";
 import AdminReports from "../components/admin/AdminReports";
 import AdminBroadcast from "../components/admin/AdminBroadcast";
+import EmailMarketing from "../components/admin/EmailMarketing";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
 
 function AdminContent() {
@@ -36,6 +37,10 @@ function AdminContent() {
               <Megaphone className="w-4 h-4 mr-2" />
               Broadcasts
             </TabsTrigger>
+            <TabsTrigger value="email" className="data-[state=active]:bg-cyan-600">
+              <Mail className="w-4 h-4 mr-2" />
+              Email Marketing
+            </TabsTrigger>
             <TabsTrigger value="reports" className="data-[state=active]:bg-orange-600">
               <FileText className="w-4 h-4 mr-2" />
               Reports
@@ -56,6 +61,10 @@ function AdminContent() {
 
           <TabsContent value="broadcasts">
             <AdminBroadcast />
+          </TabsContent>
+
+          <TabsContent value="email">
+            <EmailMarketing />
           </TabsContent>
 
           <TabsContent value="reports">
