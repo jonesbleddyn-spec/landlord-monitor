@@ -300,8 +300,8 @@ export default function Layout({ children, currentPageName }) {
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-12 mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="col-span-1">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div className="col-span-1 md:col-span-2">
               <div className="flex items-center gap-2 mb-4">
                 {displayLogo ? (
                   <img
@@ -319,15 +319,33 @@ export default function Layout({ children, currentPageName }) {
                 )}
                 <span className="text-xl font-bold">{displayName}</span>
               </div>
-              <p className="text-gray-400 max-w-md">
-                SaaS property management platform for landlords and letting businesses. 
-                Streamline operations and improve tenant satisfaction.
+              <p className="text-gray-400 max-w-md mb-4">
+                Professional property management platform for landlords and letting agencies. 
+                Streamline operations, improve tenant communication, and manage properties efficiently.
               </p>
+              <div className="space-y-2 text-gray-400">
+                <p className="flex items-center gap-2">
+                  <span className="font-semibold">Email:</span> 
+                  <a href={`mailto:${supportEmail}`} className="hover:text-white transition-colors">
+                    {supportEmail}
+                  </a>
+                </p>
+                <p className="flex items-center gap-2">
+                  <span className="font-semibold">Phone:</span> 
+                  <span>+44 (0) 20 1234 5678</span>
+                </p>
+                <p className="flex items-start gap-2">
+                  <span className="font-semibold">Address:</span> 
+                  <span>123 Property Lane, London, UK, SW1A 1AA</span>
+                </p>
+              </div>
             </div>
             <div>
               <h3 className="font-semibold mb-4">Quick Links</h3>
               <ul className="space-y-2 text-gray-400">
                 <li><Link to={createPageUrl("Home")} className="hover:text-white transition-colors">Home</Link></li>
+                <li><Link to={createPageUrl("Features")} className="hover:text-white transition-colors">Features</Link></li>
+                <li><Link to={createPageUrl("Subscription")} className="hover:text-white transition-colors">Pricing</Link></li>
                 {user && (
                   <li><Link to={createPageUrl("Dashboard")} className="hover:text-white transition-colors">Dashboard</Link></li>
                 )}
