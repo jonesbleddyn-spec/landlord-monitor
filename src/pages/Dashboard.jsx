@@ -19,7 +19,8 @@ import {
   Home,
   Megaphone,
   Palette,
-  Bell
+  Bell,
+  Smartphone
 } from "lucide-react";
 import InviteTenantModal from "../components/landlord/InviteTenantModal";
 import AllPropertiesReport from "../components/properties/AllPropertiesReport";
@@ -364,6 +365,16 @@ function DashboardContent() {
                   <CardContent className="p-6 text-center">
                     <Palette className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                     <p className="font-medium text-gray-700">White Label Settings</p>
+                  </CardContent>
+                </Card>
+              </Link>
+              
+              <Link to={createPageUrl("WhiteLabelSettings")} className="block">
+                <Card className="border-2 border-dashed border-gray-300 hover:border-green-500 hover:bg-green-50 transition-all cursor-pointer">
+                  <CardContent className="p-6 text-center">
+                    <Smartphone className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="font-medium text-gray-700">SMS Notifications</p>
+                    <p className="text-xs text-gray-500 mt-1">Configure Twilio</p>
                   </CardContent>
                 </Card>
               </Link>
