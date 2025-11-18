@@ -18,6 +18,7 @@ import Reminders from './pages/Reminders';
 import TermsOfService from './pages/TermsOfService';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import CookiePolicy from './pages/CookiePolicy';
+import DebugBranding from './pages/DebugBranding';
 import __Layout from './Layout.jsx';
 
 
@@ -42,6 +43,7 @@ export const PAGES = {
     "TermsOfService": TermsOfService,
     "PrivacyPolicy": PrivacyPolicy,
     "CookiePolicy": CookiePolicy,
+    "DebugBranding": DebugBranding,
 }
 
 export const pagesConfig = {

@@ -61,13 +61,20 @@ function WhiteLabelSettingsContent() {
   }, [user]);
 
   const updateSettingsMutation = useMutation({
-    mutationFn: (data) => base44.auth.updateMe(data),
+    mutationFn: async (data) => {
+      console.log('Saving white label settings:', data);
+      const result = await base44.auth.updateMe(data);
+      console.log('Save result:', result);
+      return result;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user'] });
       queryClient.invalidateQueries({ queryKey: ['landlord-branding'] });
-      toast.success("White label settings updated successfully!");
+      queryClient.refetchQueries({ queryKey: ['user'] });
+      toast.success("White label settings updated successfully! Refresh the page if needed.");
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Failed to save white label settings:', error);
       toast.error("Failed to update settings");
     }
   });
