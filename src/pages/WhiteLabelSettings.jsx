@@ -5,13 +5,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Palette, Upload, Loader2, CheckCircle } from "lucide-react";
+import { Palette, Upload, Loader2, CheckCircle, Mail, Eye, EyeOff } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
 
 function WhiteLabelSettingsContent() {
   const queryClient = useQueryClient();
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const { data: user } = useQuery({
     queryKey: ['user'],
@@ -22,7 +24,14 @@ function WhiteLabelSettingsContent() {
     company_name: user?.company_name || "",
     company_logo: user?.company_logo || "",
     brand_color_primary: user?.brand_color_primary || "#3B82F6",
-    brand_color_secondary: user?.brand_color_secondary || "#8B5CF6"
+    brand_color_secondary: user?.brand_color_secondary || "#8B5CF6",
+    use_custom_smtp: user?.use_custom_smtp || false,
+    smtp_host: user?.smtp_host || "",
+    smtp_port: user?.smtp_port || 587,
+    smtp_username: user?.smtp_username || "",
+    smtp_password: user?.smtp_password || "",
+    smtp_from_email: user?.smtp_from_email || "",
+    smtp_from_name: user?.smtp_from_name || ""
   });
 
   React.useEffect(() => {
@@ -31,7 +40,14 @@ function WhiteLabelSettingsContent() {
         company_name: user.company_name || "",
         company_logo: user.company_logo || "",
         brand_color_primary: user.brand_color_primary || "#3B82F6",
-        brand_color_secondary: user.brand_color_secondary || "#8B5CF6"
+        brand_color_secondary: user.brand_color_secondary || "#8B5CF6",
+        use_custom_smtp: user.use_custom_smtp || false,
+        smtp_host: user.smtp_host || "",
+        smtp_port: user.smtp_port || 587,
+        smtp_username: user.smtp_username || "",
+        smtp_password: user.smtp_password || "",
+        smtp_from_email: user.smtp_from_email || "",
+        smtp_from_name: user.smtp_from_name || ""
       });
     }
   }, [user]);
@@ -208,6 +224,119 @@ function WhiteLabelSettingsContent() {
                 </div>
               </div>
 
+              {/* Custom Email Provider Section */}
+              <div className="border-t pt-6 mt-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Mail className="w-5 h-5 text-blue-600" />
+                  <h3 className="text-lg font-semibold text-gray-900">Custom Email Provider</h3>
+                </div>
+                <p className="text-sm text-gray-600 mb-4">
+                  Configure your own SMTP server so emails to tenants appear to come from your domain
+                </p>
+
+                <div className="flex items-center space-x-2 mb-4">
+                  <Checkbox
+                    id="use_custom_smtp"
+                    checked={formData.use_custom_smtp}
+                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, use_custom_smtp: checked }))}
+                  />
+                  <label
+                    htmlFor="use_custom_smtp"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Use custom email provider
+                  </label>
+                </div>
+
+                {formData.use_custom_smtp && (
+                  <div className="space-y-4 bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <Label>SMTP Host *</Label>
+                        <Input
+                          value={formData.smtp_host}
+                          onChange={(e) => setFormData(prev => ({ ...prev, smtp_host: e.target.value }))}
+                          placeholder="smtp.gmail.com"
+                        />
+                      </div>
+                      <div>
+                        <Label>SMTP Port *</Label>
+                        <Input
+                          type="number"
+                          value={formData.smtp_port}
+                          onChange={(e) => setFormData(prev => ({ ...prev, smtp_port: parseInt(e.target.value) }))}
+                          placeholder="587"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label>SMTP Username *</Label>
+                      <Input
+                        value={formData.smtp_username}
+                        onChange={(e) => setFormData(prev => ({ ...prev, smtp_username: e.target.value }))}
+                        placeholder="your-email@domain.com"
+                      />
+                    </div>
+
+                    <div>
+                      <Label>SMTP Password *</Label>
+                      <div className="relative">
+                        <Input
+                          type={showPassword ? "text" : "password"}
+                          value={formData.smtp_password}
+                          onChange={(e) => setFormData(prev => ({ ...prev, smtp_password: e.target.value }))}
+                          placeholder="Your SMTP password"
+                          className="pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+                        >
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <Label>From Email *</Label>
+                        <Input
+                          type="email"
+                          value={formData.smtp_from_email}
+                          onChange={(e) => setFormData(prev => ({ ...prev, smtp_from_email: e.target.value }))}
+                          placeholder="noreply@yourdomain.com"
+                        />
+                        <p className="text-xs text-gray-600 mt-1">
+                          Emails will appear from this address
+                        </p>
+                      </div>
+                      <div>
+                        <Label>From Name *</Label>
+                        <Input
+                          value={formData.smtp_from_name}
+                          onChange={(e) => setFormData(prev => ({ ...prev, smtp_from_name: e.target.value }))}
+                          placeholder="Your Company Name"
+                        />
+                        <p className="text-xs text-gray-600 mt-1">
+                          Display name for sender
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800">
+                      <strong>Note:</strong> Common SMTP providers:
+                      <ul className="list-disc list-inside mt-1 space-y-1">
+                        <li><strong>Gmail:</strong> smtp.gmail.com:587 (use app password)</li>
+                        <li><strong>Outlook:</strong> smtp.office365.com:587</li>
+                        <li><strong>SendGrid:</strong> smtp.sendgrid.net:587</li>
+                      </ul>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <Button
                 type="submit"
                 disabled={updateSettingsMutation.isPending}
@@ -235,8 +364,9 @@ function WhiteLabelSettingsContent() {
             <ul className="list-disc list-inside space-y-1 text-blue-800 text-sm">
               <li>Fault reporting forms when tenants report issues</li>
               <li>All pages visible to your tenants</li>
-              <li>Email notifications sent to tenants (coming soon)</li>
+              <li>Email notifications sent to tenants (using your email provider if configured)</li>
               <li>Tenant dashboard header</li>
+              <li>Fault update notifications to tenants</li>
             </ul>
           </CardContent>
         </Card>
