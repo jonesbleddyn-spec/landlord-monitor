@@ -46,9 +46,10 @@ Deno.serve(async (req) => {
             }, { status: 403 });
         }
 
-        // Update user with landlord_id
+        // Update user with landlord_id and property_id
         await base44.auth.updateMe({
             landlord_id: invitation.landlord_id,
+            property_id: invitation.property_id,
             user_type: 'tenant'
         });
 

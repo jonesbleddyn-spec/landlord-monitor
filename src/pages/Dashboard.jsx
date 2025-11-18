@@ -40,12 +40,18 @@ function DashboardContent() {
   const isTenant = user?.user_type === 'tenant';
 
   // Fetch landlord branding for tenants
-  const { data: landlordBranding } = useQuery({
+  const { data: landlordBranding, isLoading: loadingBranding } = useQuery({
     queryKey: ['landlord-branding', user?.landlord_id],
     queryFn: async () => {
-      if (!user?.landlord_id) return null;
+      if (!user?.landlord_id) {
+        console.log('No landlord_id on user:', user);
+        return null;
+      }
+      console.log('Fetching landlord branding for landlord_id:', user.landlord_id);
       const users = await base44.entities.User.list();
-      return users.find(u => u.id === user.landlord_id);
+      const landlord = users.find(u => u.id === user.landlord_id);
+      console.log('Found landlord:', landlord);
+      return landlord;
     },
     enabled: !!user?.landlord_id && isTenant,
     staleTime: 0,
