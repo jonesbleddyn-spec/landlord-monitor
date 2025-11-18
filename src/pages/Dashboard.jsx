@@ -184,6 +184,12 @@ function DashboardContent() {
                     <UserPlus className="w-4 h-4 mr-2" />
                     Invite Tenant
                   </Button>
+                  <Link to={createPageUrl("ReportFault")}>
+                    <Button variant="outline" className="border-orange-600 text-orange-600 hover:bg-orange-50">
+                      <AlertCircle className="w-4 h-4 mr-2" />
+                      Report Fault
+                    </Button>
+                  </Link>
                   <Link to={createPageUrl("AddProperty")}>
                     <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
                       <Plus className="w-4 h-4 mr-2" />
