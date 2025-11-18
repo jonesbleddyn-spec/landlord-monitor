@@ -130,9 +130,30 @@ export default function TermsOfService() {
                 <li>We are not responsible for the accuracy of property information entered by users</li>
                 <li>We do not verify or validate fault reports or maintenance requests</li>
                 <li>We do not guarantee response times for reported issues</li>
-                <li>Users are responsible for ensuring compliance with all safety regulations</li>
-                <li>Emergency situations should be handled through appropriate emergency services, not the Platform</li>
-                <li>AI-generated suggestions are for informational purposes only and do not constitute professional advice</li>
+                <li>Users are responsible for ensuring compliance with all safety regulations and certificate requirements</li>
+                <li>Emergency situations should be handled through appropriate emergency services (999/911), not the Platform</li>
+                <li>AI-generated suggestions, analysis, and recommendations are for informational purposes only and do not constitute professional advice</li>
+                <li>Users must verify AI-generated content before relying on it for any decisions</li>
+                <li>Reminder and notification features are provided as a convenience and do not guarantee timely delivery</li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>5A. White Label and Communication Features</CardTitle>
+            </CardHeader>
+            <CardContent className="text-gray-700 space-y-3">
+              <p>
+                The Platform allows customization of branding and communication settings:
+              </p>
+              <ul className="list-disc list-inside space-y-2 ml-4">
+                <li>White label branding (logos, colors, company names) are user-controlled and we are not responsible for their appropriateness or trademark compliance</li>
+                <li>Custom SMTP email settings are configured and maintained by users - we are not responsible for email delivery failures or misconfigurations</li>
+                <li>Twilio SMS integration requires users to maintain their own Twilio accounts - we are not responsible for SMS delivery, costs, or service interruptions</li>
+                <li>Users are responsible for compliance with email and SMS marketing laws (CAN-SPAM, GDPR, etc.)</li>
+                <li>Users must obtain proper consent before sending communications to tenants</li>
+                <li>We do not monitor or filter user communications and are not responsible for their content</li>
               </ul>
             </CardContent>
           </Card>

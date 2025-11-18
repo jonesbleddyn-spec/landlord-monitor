@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
@@ -15,7 +14,9 @@ import {
   Users,
   CheckCircle,
   BookOpen,
-  ChevronRight
+  ChevronRight,
+  Palette,
+  Bell
 } from "lucide-react";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
 
@@ -123,6 +124,24 @@ function HelpContent() {
                     >
                       <ChevronRight className="w-3 h-3" />
                       Subscription
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      onClick={() => scrollToSection('landlord-white-label')}
+                      className="text-blue-700 hover:text-blue-900 hover:underline text-left flex items-center gap-2"
+                    >
+                      <ChevronRight className="w-3 h-3" />
+                      White Label & Branding
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      onClick={() => scrollToSection('landlord-reminders')}
+                      className="text-blue-700 hover:text-blue-900 hover:underline text-left flex items-center gap-2"
+                    >
+                      <ChevronRight className="w-3 h-3" />
+                      Reminders
                     </button>
                   </li>
                 </ul>
@@ -696,6 +715,135 @@ function HelpContent() {
                 </div>
                 <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
                   <p className="text-sm text-yellow-900"><strong>💰 Money Saving Tip:</strong> Annual billing (coming soon) will offer 2 months free compared to monthly payments. Perfect for long-term landlords looking to save.</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* White Label Settings */}
+            <Card id="landlord-white-label" className="scroll-mt-24">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Palette className="w-5 h-5 text-pink-600" />
+                  White Label & Branding
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <h4 className="font-semibold mb-2">Customizing Your Brand</h4>
+                  <p className="text-gray-700 ml-4 mb-2">
+                    Make the platform your own with white-label branding:
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 text-gray-700 ml-4">
+                    <li>Navigate to "White Label Settings" from your dashboard</li>
+                    <li><strong>Company Name:</strong> Set your company or business name displayed to tenants</li>
+                    <li><strong>Company Logo:</strong> Upload your logo (PNG/JPG, 200x60px recommended)</li>
+                    <li><strong>Brand Colors:</strong> Choose primary and secondary colors for buttons, headers, and accents</li>
+                    <li>Preview your branding before saving</li>
+                    <li>Changes apply immediately to all tenant-facing pages</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-semibold mb-2">Custom Email Provider (SMTP)</h4>
+                  <p className="text-gray-700 ml-4 mb-2">
+                    Send emails from your own domain:
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 text-gray-700 ml-4">
+                    <li>Enable "Use custom email provider" in White Label Settings</li>
+                    <li>Enter your SMTP server details (host, port, username, password)</li>
+                    <li>Set "From Email" and "From Name" for outgoing emails</li>
+                    <li>Supports Gmail, Outlook, SendGrid, and other SMTP providers</li>
+                    <li>All tenant notifications will appear to come from your domain</li>
+                    <li>Builds trust and maintains professional communication</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-semibold mb-2">SMS Notifications (Twilio)</h4>
+                  <p className="text-gray-700 ml-4 mb-2">
+                    Send SMS notifications to tenants using your Twilio account:
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 text-gray-700 ml-4">
+                    <li>Enable "SMS notifications via Twilio" in White Label Settings</li>
+                    <li>Enter your Twilio Account SID, Auth Token, and Phone Number</li>
+                    <li>Get credentials from <a href="https://www.twilio.com/console" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Twilio Console</a></li>
+                    <li>SMS notifications sent for urgent fault updates</li>
+                    <li>Your Twilio number appears as sender</li>
+                    <li>Pay-as-you-go pricing through your Twilio account</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-semibold mb-2">Where White Label Applies</h4>
+                  <ul className="list-disc list-inside space-y-1 text-gray-700 ml-4">
+                    <li>Tenant dashboard and all pages they see</li>
+                    <li>Fault reporting forms</li>
+                    <li>Email notifications (if custom SMTP enabled)</li>
+                    <li>SMS notifications (if Twilio enabled)</li>
+                    <li>Document headers and footers</li>
+                    <li>Public property codes and QR code pages</li>
+                  </ul>
+                </div>
+                <div className="bg-pink-50 p-4 rounded-lg border border-pink-200">
+                  <p className="text-sm text-pink-900"><strong>🎨 Branding Impact:</strong> Professional branding increases tenant trust and makes your business stand out. Tenants see YOUR brand, not a generic platform.</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Reminders */}
+            <Card id="landlord-reminders" className="scroll-mt-24">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Bell className="w-5 h-5 text-orange-600" />
+                  Reminders & Task Management
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <h4 className="font-semibold mb-2">Creating Reminders</h4>
+                  <p className="text-gray-700 ml-4 mb-2">
+                    Never miss important dates with the reminder system:
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 text-gray-700 ml-4">
+                    <li>Navigate to "Reminders" from the main menu</li>
+                    <li>Click "Create Reminder" button</li>
+                    <li>Enter title and detailed description</li>
+                    <li>Set the reminder date</li>
+                    <li>Choose category: Maintenance, Inspection, Certificate, Insurance, Payment, Other</li>
+                    <li>Optionally link to a specific property</li>
+                    <li>Configure email reminder schedule (e.g., 7 days and 1 day before)</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-semibold mb-2">Email Reminders</h4>
+                  <ul className="list-disc list-inside space-y-1 text-gray-700 ml-4">
+                    <li>Set first reminder (default: 7 days before due date)</li>
+                    <li>Set second reminder (default: 1 day before due date)</li>
+                    <li>Receive automatic emails at scheduled times</li>
+                    <li>Mark reminders as complete to stop further emails</li>
+                    <li>System tracks which reminders have been sent</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-semibold mb-2">Managing Reminders</h4>
+                  <ul className="list-disc list-inside space-y-1 text-gray-700 ml-4">
+                    <li>View active, overdue, and completed reminders</li>
+                    <li>Filter by status and category</li>
+                    <li>Mark as complete when task is done</li>
+                    <li>Delete reminders no longer needed</li>
+                    <li>Edit reminder details anytime</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-semibold mb-2">Common Use Cases</h4>
+                  <ul className="list-disc list-inside space-y-1 text-gray-700 ml-4">
+                    <li>Certificate renewal dates (gas, electrical, EPC)</li>
+                    <li>Insurance policy renewals</li>
+                    <li>Scheduled property inspections</li>
+                    <li>Annual maintenance tasks (boiler service, gutter cleaning)</li>
+                    <li>Lease renewal dates</li>
+                    <li>Payment due dates from contractors</li>
+                  </ul>
+                </div>
+                <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                  <p className="text-sm text-orange-900"><strong>⏰ Stay Organized:</strong> Set reminders for ALL compliance dates as soon as you add properties. This prevents last-minute rushes and potential legal issues.</p>
                 </div>
               </CardContent>
             </Card>

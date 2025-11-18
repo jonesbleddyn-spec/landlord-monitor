@@ -44,9 +44,12 @@ export default function PrivacyPolicy() {
                 <ul className="list-disc list-inside space-y-1 ml-4">
                   <li><strong>Account Information:</strong> Name, email address, password, user type (landlord/tenant)</li>
                   <li><strong>Profile Information:</strong> Company name, logo, contact details, subscription preferences</li>
-                  <li><strong>Property Information:</strong> Property details, addresses, unit numbers, images, compliance certificates</li>
-                  <li><strong>Fault Reports:</strong> Maintenance issues, descriptions, photos, location details</li>
-                  <li><strong>Communications:</strong> Messages, comments, feedback sent through the Platform</li>
+                  <li><strong>White Label Settings:</strong> Custom branding (logos, colors, company names), SMTP credentials, Twilio API credentials</li>
+                  <li><strong>Property Information:</strong> Property details, addresses, unit numbers, images, compliance certificates, property codes</li>
+                  <li><strong>Fault Reports:</strong> Maintenance issues, descriptions, photos, location details, AI analysis data</li>
+                  <li><strong>Communications:</strong> Messages, comments, feedback, community board posts sent through the Platform</li>
+                  <li><strong>Documents:</strong> Uploaded files, certificates, leases, inspection reports</li>
+                  <li><strong>Reminders:</strong> Task details, due dates, reminder preferences</li>
                   <li><strong>Payment Information:</strong> Billing details, transaction history (processed by third-party payment providers)</li>
                 </ul>
               </div>
@@ -64,8 +67,11 @@ export default function PrivacyPolicy() {
               <div>
                 <h4 className="font-semibold mb-2">2.3 Third-Party Data</h4>
                 <ul className="list-disc list-inside space-y-1 ml-4">
-                  <li>Information from integrated services (AI providers, email services, payment processors)</li>
+                  <li>Information from integrated services (AI providers like OpenAI, email services, SMS services like Twilio, payment processors)</li>
                   <li>Data from authentication providers</li>
+                  <li>Image analysis data from AI services</li>
+                  <li>Email delivery status from SMTP providers</li>
+                  <li>SMS delivery status from Twilio</li>
                 </ul>
               </div>
             </CardContent>
@@ -82,9 +88,13 @@ export default function PrivacyPolicy() {
                 <li>To create and manage user accounts</li>
                 <li>To facilitate communication between landlords and tenants</li>
                 <li>To process fault reports and maintenance requests</li>
-                <li>To send notifications, reminders, and updates</li>
+                <li>To send email and SMS notifications, reminders, and updates (using your custom SMTP or Twilio if configured)</li>
                 <li>To process payments and manage subscriptions</li>
-                <li>To generate AI-powered suggestions and insights</li>
+                <li>To generate AI-powered suggestions, fault analysis, DIY tips, and maintenance insights</li>
+                <li>To apply white label branding and customize the tenant experience</li>
+                <li>To manage document uploads and compliance tracking</li>
+                <li>To schedule and send reminder notifications</li>
+                <li>To analyze uploaded images for fault categorization and priority assessment</li>
                 <li>To analyze usage patterns and improve user experience</li>
                 <li>To comply with legal obligations</li>
                 <li>To detect, prevent, and address technical issues or fraudulent activity</li>
@@ -115,11 +125,16 @@ export default function PrivacyPolicy() {
                 <h4 className="font-semibold mb-2">4.2 Service Providers</h4>
                 <ul className="list-disc list-inside space-y-1 ml-4">
                   <li>Cloud hosting providers (for data storage and processing)</li>
-                  <li>Payment processors (for subscription and transaction handling)</li>
-                  <li>Email service providers (for notifications and communications)</li>
-                  <li>AI service providers (for generating insights and suggestions)</li>
+                  <li>Payment processors (Stripe for subscription and transaction handling)</li>
+                  <li>Email service providers (your custom SMTP or our default provider for notifications)</li>
+                  <li>SMS service providers (Twilio if configured by landlords)</li>
+                  <li>AI service providers (OpenAI for generating insights, image analysis, fault categorization, and suggestions)</li>
+                  <li>File storage providers (for uploaded images and documents)</li>
                   <li>Analytics providers (for usage analysis)</li>
                 </ul>
+                <p className="mt-3 text-sm">
+                  <strong>Note:</strong> When landlords configure custom SMTP or Twilio, communications are sent through their accounts and subject to those providers' privacy policies.
+                </p>
               </div>
 
               <div>
@@ -284,6 +299,16 @@ export default function PrivacyPolicy() {
                 You acknowledge that we are not liable for any damages resulting from unauthorized access to your account, 
                 your disclosure of information, or your misuse of the Platform.
               </p>
+              <p className="mt-3">
+                <strong>Landlord-Specific Responsibilities:</strong> If you are a landlord configuring white label settings, custom SMTP, or Twilio integration, you are responsible for:
+              </p>
+              <ul className="list-disc list-inside space-y-1 ml-4 mt-2">
+                <li>Securing your third-party service credentials (SMTP passwords, Twilio tokens)</li>
+                <li>Ensuring you have the right to use logos and branding elements</li>
+                <li>Complying with email and SMS communication laws in your jurisdiction</li>
+                <li>Costs incurred through your Twilio or SMTP accounts</li>
+                <li>Obtaining tenant consent for SMS and email communications</li>
+              </ul>
             </CardContent>
           </Card>
 
