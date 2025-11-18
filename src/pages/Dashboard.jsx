@@ -13,24 +13,21 @@ import {
   Clock, 
   Plus,
   FileText,
-  MessageSquare as MessageSquareIcon,
+  MessageSquare,
   UserPlus,
   Shield,
   Home,
   Megaphone,
   Palette,
-  Bell,
-  Settings
+  Bell
 } from "lucide-react";
 import InviteTenantModal from "../components/landlord/InviteTenantModal";
 import AllPropertiesReport from "../components/properties/AllPropertiesReport";
-import SMSSettings from "../components/landlord/SMSSettings";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
 
 function DashboardContent() {
   const [showInviteModal, setShowInviteModal] = React.useState(false);
   const [showAllPropertiesReport, setShowAllPropertiesReport] = React.useState(false);
-  const [showSMSSettings, setShowSMSSettings] = React.useState(false);
 
   const { data: user } = useQuery({
     queryKey: ['user'],
@@ -284,7 +281,7 @@ function DashboardContent() {
                     <p className="text-3xl font-bold text-gray-900 mt-2">{stats.totalMessages}</p>
                   </div>
                   <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                    <MessageSquareIcon className="w-6 h-6 text-purple-600" />
+                    <MessageSquare className="w-6 h-6 text-purple-600" />
                   </div>
                 </div>
                 <Link to={createPageUrl("Community")}>
@@ -325,15 +322,6 @@ function DashboardContent() {
                   </CardContent>
                 </Card>
               </Link>
-
-              <div onClick={() => setShowSMSSettings(true)} className="block cursor-pointer">
-                <Card className="border-2 border-dashed border-gray-300 hover:border-green-500 hover:bg-green-50 transition-all">
-                  <CardContent className="p-6 text-center">
-                    <Settings className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                    <p className="font-medium text-gray-700">SMS Settings</p>
-                  </CardContent>
-                </Card>
-              </div>
             </>
           )}
 
@@ -454,21 +442,6 @@ function DashboardContent() {
               open={showAllPropertiesReport}
               onClose={() => setShowAllPropertiesReport(false)}
             />
-            {showSMSSettings && (
-              <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
-                <div className="max-w-2xl w-full my-8">
-                  <div className="relative">
-                    <button
-                      onClick={() => setShowSMSSettings(false)}
-                      className="absolute -top-2 -right-2 z-10 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100"
-                    >
-                      ✕
-                    </button>
-                    <SMSSettings />
-                  </div>
-                </div>
-              </div>
-            )}
           </>
         )}
       </div>
