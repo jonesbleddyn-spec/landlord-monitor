@@ -31,44 +31,46 @@ function AdminContent() {
 
         {/* Tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="bg-gray-800 border border-gray-700">
-            <TabsTrigger value="overview" className="data-[state=active]:bg-blue-600">
-              <BarChart3 className="w-4 h-4 mr-2" />
-              Overview
-            </TabsTrigger>
-            <TabsTrigger value="broadcasts" className="data-[state=active]:bg-red-600">
-              <Megaphone className="w-4 h-4 mr-2" />
-              Broadcasts
-            </TabsTrigger>
-            <TabsTrigger value="email" className="data-[state=active]:bg-cyan-600">
-              <Mail className="w-4 h-4 mr-2" />
-              Email Marketing
-            </TabsTrigger>
-            <TabsTrigger value="reports" className="data-[state=active]:bg-orange-600">
-              <FileText className="w-4 h-4 mr-2" />
-              Reports
-            </TabsTrigger>
-            <TabsTrigger value="plans" className="data-[state=active]:bg-pink-600">
-              <CreditCard className="w-4 h-4 mr-2" />
-              Subscription Plans
-            </TabsTrigger>
-            <TabsTrigger value="stripe" className="data-[state=active]:bg-indigo-600">
-              <CreditCard className="w-4 h-4 mr-2" />
-              Stripe
-            </TabsTrigger>
-            <TabsTrigger value="api-keys" className="data-[state=active]:bg-purple-600">
-              <Key className="w-4 h-4 mr-2" />
-              API Keys
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="data-[state=active]:bg-green-600">
-              <Settings className="w-4 h-4 mr-2" />
-              Site Settings
-            </TabsTrigger>
-            <TabsTrigger value="services" className="data-[state=active]:bg-indigo-600">
-              <Activity className="w-4 h-4 mr-2" />
-              Services Status
-            </TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto">
+            <TabsList className="bg-gray-800 border border-gray-700 flex-wrap h-auto justify-start">
+              <TabsTrigger value="overview" className="data-[state=active]:bg-blue-600 whitespace-nowrap">
+                <BarChart3 className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Overview</span>
+              </TabsTrigger>
+              <TabsTrigger value="broadcasts" className="data-[state=active]:bg-red-600 whitespace-nowrap">
+                <Megaphone className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Broadcasts</span>
+              </TabsTrigger>
+              <TabsTrigger value="email" className="data-[state=active]:bg-cyan-600 whitespace-nowrap">
+                <Mail className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Email</span>
+              </TabsTrigger>
+              <TabsTrigger value="reports" className="data-[state=active]:bg-orange-600 whitespace-nowrap">
+                <FileText className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Reports</span>
+              </TabsTrigger>
+              <TabsTrigger value="plans" className="data-[state=active]:bg-pink-600 whitespace-nowrap">
+                <CreditCard className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Plans</span>
+              </TabsTrigger>
+              <TabsTrigger value="stripe" className="data-[state=active]:bg-indigo-600 whitespace-nowrap">
+                <CreditCard className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Stripe</span>
+              </TabsTrigger>
+              <TabsTrigger value="api-keys" className="data-[state=active]:bg-purple-600 whitespace-nowrap">
+                <Key className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">API Keys</span>
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="data-[state=active]:bg-green-600 whitespace-nowrap">
+                <Settings className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Settings</span>
+              </TabsTrigger>
+              <TabsTrigger value="services" className="data-[state=active]:bg-indigo-600 whitespace-nowrap">
+                <Activity className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Services</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="overview">
             <AdminStats />
