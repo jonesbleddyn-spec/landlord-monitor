@@ -223,10 +223,11 @@ function ReportFaultContent() {
   ];
 
   // Get branding colors
-  const primaryColor = landlordBranding?.brand_color_primary || "#3B82F6"; // Default blue-500
-  const secondaryColor = landlordBranding?.brand_color_secondary || "#8B5CF6"; // Default purple-500
-  const companyName = landlordBranding?.company_name || "Property Management";
-  const companyLogo = landlordBranding?.company_logo;
+  const useBranding = isTenant && landlordBranding;
+  const primaryColor = useBranding ? landlordBranding.brand_color_primary : "#3B82F6";
+  const secondaryColor = useBranding ? landlordBranding.brand_color_secondary : "#8B5CF6";
+  const companyName = useBranding ? landlordBranding.company_name : "Property Management";
+  const companyLogo = useBranding ? landlordBranding.company_logo : null;
 
   if (createFaultMutation.isSuccess && aiSuggestion) {
     return (

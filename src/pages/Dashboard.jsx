@@ -131,10 +131,11 @@ function DashboardContent() {
   };
 
   // Get branding colors for tenants
-  const primaryColor = landlordBranding?.brand_color_primary || "#3B82F6";
-  const secondaryColor = landlordBranding?.brand_color_secondary || "#8B5CF6";
-  const companyName = landlordBranding?.company_name || "Property Management";
-  const companyLogo = landlordBranding?.company_logo;
+  const useBranding = isTenant && landlordBranding;
+  const primaryColor = useBranding ? landlordBranding.brand_color_primary : "#3B82F6";
+  const secondaryColor = useBranding ? landlordBranding.brand_color_secondary : "#8B5CF6";
+  const companyName = useBranding ? landlordBranding.company_name : "Property Management";
+  const companyLogo = useBranding ? landlordBranding.company_logo : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 py-8 px-4 sm:px-6 lg:px-8">
@@ -176,7 +177,7 @@ function DashboardContent() {
               {isTenant && (
                 <Link to={createPageUrl("ReportFault")}>
                   <Button 
-                    className="text-white"
+                    className="text-white shadow-lg"
                     style={{ background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})` }}
                   >
                     <AlertCircle className="w-4 h-4 mr-2" />
@@ -241,7 +242,10 @@ function DashboardContent() {
           )}
 
           {isTenant && properties[0] && (
-            <Card className="border-none shadow-lg hover:shadow-xl transition-shadow">
+            <Card 
+              className="border-none shadow-lg hover:shadow-xl transition-shadow"
+              style={useBranding ? { borderTop: `4px solid ${primaryColor}` } : {}}
+            >
               <CardContent className="p-6">
                 <div className="flex justify-between items-start mb-4">
                   <div>
@@ -250,9 +254,9 @@ function DashboardContent() {
                   </div>
                   <div 
                     className="w-12 h-12 rounded-xl flex items-center justify-center"
-                    style={{ backgroundColor: `${primaryColor}20` }}
+                    style={{ background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})` }}
                   >
-                    <Home className="w-6 h-6" style={{ color: primaryColor }} />
+                    <Home className="w-6 h-6 text-white" />
                   </div>
                 </div>
                 <p className="text-sm text-gray-600">{properties[0].address}</p>
@@ -367,12 +371,17 @@ function DashboardContent() {
                 className="border-2 border-dashed transition-all cursor-pointer hover:shadow-lg"
                 style={{ 
                   borderColor: primaryColor,
-                  backgroundColor: `${primaryColor}10`
+                  background: `linear-gradient(135deg, ${primaryColor}10, ${secondaryColor}10)`
                 }}
               >
                 <CardContent className="p-6 text-center">
-                  <AlertCircle className="w-8 h-8 mx-auto mb-2" style={{ color: primaryColor }} />
-                  <p className="font-medium" style={{ color: primaryColor }}>Report Fault</p>
+                  <div 
+                    className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-2"
+                    style={{ background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})` }}
+                  >
+                    <AlertCircle className="w-6 h-6 text-white" />
+                  </div>
+                  <p className="font-medium text-gray-700">Report Fault</p>
                 </CardContent>
               </Card>
             </Link>
