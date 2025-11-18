@@ -16,7 +16,8 @@ import {
   Loader2,
   Database,
   Globe,
-  CheckCircle
+  CheckCircle,
+  MessageSquare
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -39,7 +40,10 @@ export default function SiteSettings() {
     session_timeout: "24",
     require_email_verification: true,
     max_file_size: "10",
-    allowed_file_types: "jpg,jpeg,png,pdf,doc,docx"
+    allowed_file_types: "jpg,jpeg,png,pdf,doc,docx",
+    twilio_account_sid: "",
+    twilio_auth_token: "",
+    twilio_phone_number: ""
   });
 
   const { data: loadedSettings, isLoading } = useQuery({
@@ -69,7 +73,10 @@ export default function SiteSettings() {
         session_timeout: String(loadedSettings.session_timeout || "24"),
         require_email_verification: loadedSettings.require_email_verification !== false,
         max_file_size: String(loadedSettings.max_file_size || "10"),
-        allowed_file_types: loadedSettings.allowed_file_types || "jpg,jpeg,png,pdf,doc,docx"
+        allowed_file_types: loadedSettings.allowed_file_types || "jpg,jpeg,png,pdf,doc,docx",
+        twilio_account_sid: loadedSettings.twilio_account_sid || "",
+        twilio_auth_token: loadedSettings.twilio_auth_token || "",
+        twilio_phone_number: loadedSettings.twilio_phone_number || ""
       });
     }
   }, [loadedSettings]);
@@ -340,6 +347,55 @@ export default function SiteSettings() {
               className="bg-gray-700/50 border-gray-600 text-white"
             />
             <p className="text-xs text-gray-500 mt-1">Comma-separated list of file extensions</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Twilio SMS Configuration */}
+      <Card className="border-gray-700 bg-gray-800/50 backdrop-blur">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center gap-2">
+            <MessageSquare className="w-5 h-5" />
+            Platform-Wide Twilio Configuration (Optional)
+          </CardTitle>
+          <p className="text-sm text-gray-400">Default Twilio settings for landlords who don't configure their own</p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label className="text-gray-300">Twilio Account SID</Label>
+            <Input
+              value={settings.twilio_account_sid}
+              onChange={(e) => updateSetting('twilio_account_sid', e.target.value)}
+              placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+              className="bg-gray-700/50 border-gray-600 text-white"
+            />
+          </div>
+
+          <div>
+            <Label className="text-gray-300">Twilio Auth Token</Label>
+            <Input
+              type="password"
+              value={settings.twilio_auth_token}
+              onChange={(e) => updateSetting('twilio_auth_token', e.target.value)}
+              placeholder="Your Twilio Auth Token"
+              className="bg-gray-700/50 border-gray-600 text-white"
+            />
+          </div>
+
+          <div>
+            <Label className="text-gray-300">Twilio Phone Number</Label>
+            <Input
+              type="tel"
+              value={settings.twilio_phone_number}
+              onChange={(e) => updateSetting('twilio_phone_number', e.target.value)}
+              placeholder="+1234567890"
+              className="bg-gray-700/50 border-gray-600 text-white"
+            />
+            <p className="text-xs text-gray-400 mt-1">Include country code (e.g., +1 for US, +44 for UK)</p>
+          </div>
+
+          <div className="bg-blue-900/30 border border-blue-700 rounded-lg p-3 text-sm text-blue-200">
+            <strong>Note:</strong> Landlords can configure their own Twilio accounts in their dashboard SMS settings. These platform-wide settings serve as a fallback.
           </div>
         </CardContent>
       </Card>
