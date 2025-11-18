@@ -15,6 +15,8 @@ import EditProperty from './pages/EditProperty';
 import Help from './pages/Help';
 import WhiteLabelSettings from './pages/WhiteLabelSettings';
 import Reminders from './pages/Reminders';
+import TermsOfService from './pages/TermsOfService';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 import __Layout from './Layout.jsx';
 
 
@@ -36,6 +38,8 @@ export const PAGES = {
     "Help": Help,
     "WhiteLabelSettings": WhiteLabelSettings,
     "Reminders": Reminders,
+    "TermsOfService": TermsOfService,
+    "PrivacyPolicy": PrivacyPolicy,
 }
 
 export const pagesConfig = {
