@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -17,7 +16,7 @@ export default function Onboarding() {
   const [formData, setFormData] = useState({
     user_type: "landlord",
     company_name: "",
-    phone: ""
+    phone_number: ""
   });
   const [invitationCode, setInvitationCode] = useState("");
   const [invitationError, setInvitationError] = useState("");
@@ -52,6 +51,7 @@ export default function Onboarding() {
       setTimeout(async () => {
         await updateUserMutation.mutateAsync({
           user_type: 'tenant',
+          phone_number: formData.phone_number,
           onboarding_completed: true
         });
       }, 1500);
@@ -81,6 +81,11 @@ export default function Onboarding() {
       // Tenant needs to use invitation code first
       if (!invitationCode) {
         setInvitationError("Please enter your invitation code");
+        return;
+      }
+      
+      if (!formData.phone_number) {
+        setInvitationError("Please provide your phone number for SMS notifications");
         return;
       }
       
@@ -176,14 +181,18 @@ export default function Onboarding() {
                     </div>
 
                     <div>
-                      <Label htmlFor="phone">Phone Number</Label>
+                      <Label htmlFor="phone_number">Phone Number (for SMS notifications) *</Label>
                       <Input
-                        id="phone"
+                        id="phone_number"
                         type="tel"
-                        value={formData.phone}
-                        onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                        value={formData.phone_number}
+                        onChange={(e) => setFormData(prev => ({ ...prev, phone_number: e.target.value }))}
                         placeholder="+44 20 1234 5678"
+                        required
                       />
+                      <p className="text-sm text-gray-600 mt-1">
+                        Required for receiving SMS notifications about faults
+                      </p>
                     </div>
 
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -203,6 +212,21 @@ export default function Onboarding() {
                 {/* Tenant-specific fields */}
                 {formData.user_type === "tenant" && (
                   <>
+                    <div>
+                      <Label htmlFor="tenant_phone">Phone Number (for SMS notifications) *</Label>
+                      <Input
+                        id="tenant_phone"
+                        type="tel"
+                        value={formData.phone_number}
+                        onChange={(e) => setFormData(prev => ({ ...prev, phone_number: e.target.value }))}
+                        placeholder="+44 20 1234 5678"
+                        required
+                      />
+                      <p className="text-sm text-gray-600 mt-1">
+                        Required for receiving SMS notifications about fault updates
+                      </p>
+                    </div>
+
                     <div>
                       <Label htmlFor="invitation_code" className="flex items-center gap-2">
                         <KeyRound className="w-4 h-4" />
@@ -258,8 +282,8 @@ export default function Onboarding() {
                   disabled={
                     updateUserMutation.isPending || 
                     redeemInvitationMutation.isPending ||
-                    (formData.user_type === 'landlord' && !formData.company_name) ||
-                    (formData.user_type === 'tenant' && !invitationCode)
+                    (formData.user_type === 'landlord' && (!formData.company_name || !formData.phone_number)) ||
+                    (formData.user_type === 'tenant' && (!invitationCode || !formData.phone_number))
                   }
                   className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg py-6"
                 >

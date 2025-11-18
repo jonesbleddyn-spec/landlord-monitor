@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
         if (fault.created_by) {
             const tenantUser = users.find(u => u.id === fault.created_by);
             
-            // Check if landlord has custom SMTP configured
+            // Send email notification
             if (landlord?.use_custom_smtp && landlord.smtp_host && tenantUser?.email) {
                 await base44.functions.invoke('sendEmailWithCustomSMTP', {
                     landlord_id: fault.landlord_id,
@@ -114,6 +114,21 @@ Deno.serve(async (req) => {
                     subject: emailSubject,
                     body: emailBody
                 });
+            }
+
+            // Send SMS notification to tenant
+            if (tenantUser?.phone_number && landlord?.use_custom_sms) {
+                const smsMessage = `${landlord?.company_name || 'Property Management'}: ${fault.title} - ${fault.status.replace(/_/g, ' ')}. ${notification_type === 'completed' ? 'Repair completed!' : notification_type === 'contractor_assigned' ? `Contractor: ${fault.contractor_name}` : 'Status updated'}`;
+                
+                try {
+                    await base44.functions.invoke('sendSMS', {
+                        landlord_id: fault.landlord_id,
+                        to: tenantUser.phone_number,
+                        message: smsMessage
+                    });
+                } catch (error) {
+                    console.error('SMS send failed:', error);
+                }
             }
         }
 
@@ -135,6 +150,21 @@ Deno.serve(async (req) => {
                     </ul>
                 `
             });
+        }
+
+        // Send SMS notification to landlord
+        if (landlord?.phone_number && landlord?.use_custom_sms) {
+            const landlordSMS = `Fault Update: ${fault.title} at ${property?.name || 'Property'} - Status: ${fault.status.replace(/_/g, ' ')}, Priority: ${fault.priority}`;
+            
+            try {
+                await base44.functions.invoke('sendSMS', {
+                    landlord_id: fault.landlord_id,
+                    to: landlord.phone_number,
+                    message: landlordSMS
+                });
+            } catch (error) {
+                console.error('Landlord SMS send failed:', error);
+            }
         }
 
         // Send to property manager if exists

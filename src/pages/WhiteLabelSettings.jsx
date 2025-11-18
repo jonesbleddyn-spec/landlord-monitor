@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Palette, Upload, Loader2, CheckCircle, Mail, Eye, EyeOff } from "lucide-react";
+import { Palette, Upload, Loader2, CheckCircle, Mail, Eye, EyeOff, MessageSquare } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
@@ -31,7 +31,11 @@ function WhiteLabelSettingsContent() {
     smtp_username: user?.smtp_username || "",
     smtp_password: user?.smtp_password || "",
     smtp_from_email: user?.smtp_from_email || "",
-    smtp_from_name: user?.smtp_from_name || ""
+    smtp_from_name: user?.smtp_from_name || "",
+    use_custom_sms: user?.use_custom_sms || false,
+    twilio_account_sid: user?.twilio_account_sid || "",
+    twilio_auth_token: user?.twilio_auth_token || "",
+    twilio_phone_number: user?.twilio_phone_number || ""
   });
 
   React.useEffect(() => {
@@ -47,7 +51,11 @@ function WhiteLabelSettingsContent() {
         smtp_username: user.smtp_username || "",
         smtp_password: user.smtp_password || "",
         smtp_from_email: user.smtp_from_email || "",
-        smtp_from_name: user.smtp_from_name || ""
+        smtp_from_name: user.smtp_from_name || "",
+        use_custom_sms: user.use_custom_sms || false,
+        twilio_account_sid: user.twilio_account_sid || "",
+        twilio_auth_token: user.twilio_auth_token || "",
+        twilio_phone_number: user.twilio_phone_number || ""
       });
     }
   }, [user]);
@@ -365,8 +373,9 @@ function WhiteLabelSettingsContent() {
               <li>Fault reporting forms when tenants report issues</li>
               <li>All pages visible to your tenants</li>
               <li>Email notifications sent to tenants (using your email provider if configured)</li>
+              <li>SMS notifications sent to tenants (using your Twilio account if configured)</li>
               <li>Tenant dashboard header</li>
-              <li>Fault update notifications to tenants</li>
+              <li>Fault update notifications to tenants and landlords</li>
             </ul>
           </CardContent>
         </Card>
