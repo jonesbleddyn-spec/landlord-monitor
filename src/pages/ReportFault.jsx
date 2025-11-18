@@ -41,15 +41,9 @@ function ReportFaultContent() {
   const { data: landlordBranding, isLoading: loadingBranding } = useQuery({
     queryKey: ['landlord-branding', user?.landlord_id],
     queryFn: async () => {
-      if (!user?.landlord_id) {
-        console.log('No landlord_id on user:', user);
-        return null;
-      }
-      console.log('Fetching landlord branding for landlord_id:', user.landlord_id);
-      const users = await base44.entities.User.list();
-      const landlord = users.find(u => u.id === user.landlord_id);
-      console.log('Found landlord:', landlord);
-      return landlord;
+      if (!user?.landlord_id) return null;
+      const response = await base44.functions.invoke('getLandlordBranding');
+      return response.data;
     },
     enabled: !!user?.landlord_id && isTenant,
     staleTime: 0,

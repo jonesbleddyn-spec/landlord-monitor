@@ -27,21 +27,9 @@ export default function Layout({ children, currentPageName }) {
   const { data: landlordBranding } = useQuery({
     queryKey: ['landlord-branding', user?.landlord_id],
     queryFn: async () => {
-      if (!user?.landlord_id) {
-        console.log('Layout: No landlord_id on user:', user);
-        return null;
-      }
-      console.log('Layout: Fetching branding for landlord_id:', user.landlord_id);
-      const users = await base44.entities.User.list();
-      const landlord = users.find(u => u.id === user.landlord_id);
-      console.log('Layout: Found landlord with branding:', {
-        id: landlord?.id,
-        company_name: landlord?.company_name,
-        company_logo: landlord?.company_logo,
-        brand_color_primary: landlord?.brand_color_primary,
-        brand_color_secondary: landlord?.brand_color_secondary
-      });
-      return landlord;
+      if (!user?.landlord_id) return null;
+      const response = await base44.functions.invoke('getLandlordBranding');
+      return response.data;
     },
     enabled: !!user?.landlord_id && isTenant,
     staleTime: 0,
