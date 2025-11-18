@@ -224,10 +224,22 @@ function ReportFaultContent() {
 
   // Get branding colors
   const useBranding = isTenant && landlordBranding;
-  const primaryColor = useBranding ? landlordBranding.brand_color_primary : "#3B82F6";
-  const secondaryColor = useBranding ? landlordBranding.brand_color_secondary : "#8B5CF6";
-  const companyName = useBranding ? landlordBranding.company_name : "Property Management";
-  const companyLogo = useBranding ? landlordBranding.company_logo : null;
+  const primaryColor = (useBranding && landlordBranding.brand_color_primary) ? landlordBranding.brand_color_primary : "#3B82F6";
+  const secondaryColor = (useBranding && landlordBranding.brand_color_secondary) ? landlordBranding.brand_color_secondary : "#8B5CF6";
+  const companyName = (useBranding && landlordBranding.company_name) ? landlordBranding.company_name : "Property Management";
+  const companyLogo = (useBranding && landlordBranding.company_logo) ? landlordBranding.company_logo : null;
+  
+  // Debug logging
+  console.log('ReportFault Branding Debug:', {
+    isTenant,
+    landlord_id: user?.landlord_id,
+    landlordBranding,
+    useBranding,
+    primaryColor,
+    secondaryColor,
+    companyName,
+    companyLogo
+  });
 
   if (createFaultMutation.isSuccess && aiSuggestion) {
     return (

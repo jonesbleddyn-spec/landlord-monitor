@@ -132,10 +132,22 @@ function DashboardContent() {
 
   // Get branding colors for tenants
   const useBranding = isTenant && landlordBranding;
-  const primaryColor = useBranding ? landlordBranding.brand_color_primary : "#3B82F6";
-  const secondaryColor = useBranding ? landlordBranding.brand_color_secondary : "#8B5CF6";
-  const companyName = useBranding ? landlordBranding.company_name : "Property Management";
-  const companyLogo = useBranding ? landlordBranding.company_logo : null;
+  const primaryColor = (useBranding && landlordBranding.brand_color_primary) ? landlordBranding.brand_color_primary : "#3B82F6";
+  const secondaryColor = (useBranding && landlordBranding.brand_color_secondary) ? landlordBranding.brand_color_secondary : "#8B5CF6";
+  const companyName = (useBranding && landlordBranding.company_name) ? landlordBranding.company_name : "Property Management";
+  const companyLogo = (useBranding && landlordBranding.company_logo) ? landlordBranding.company_logo : null;
+  
+  // Debug logging
+  console.log('Dashboard Branding Debug:', {
+    isTenant,
+    landlord_id: user?.landlord_id,
+    landlordBranding,
+    useBranding,
+    primaryColor,
+    secondaryColor,
+    companyName,
+    companyLogo
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 py-8 px-4 sm:px-6 lg:px-8">
