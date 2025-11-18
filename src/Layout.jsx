@@ -161,9 +161,12 @@ export default function Layout({ children, currentPageName }) {
                   to={item.url}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 ${
                     isActive(item.url)
-                      ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+                      ? "text-white"
                       : "text-gray-600 hover:bg-gray-100"
                   }`}
+                  style={isActive(item.url) ? {
+                    background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})`
+                  } : {}}
                 >
                   <item.icon className="w-4 h-4" />
                   <span className="font-medium">{item.title}</span>
