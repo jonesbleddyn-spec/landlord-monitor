@@ -64,6 +64,7 @@ function WhiteLabelSettingsContent() {
     mutationFn: (data) => base44.auth.updateMe(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user'] });
+      queryClient.invalidateQueries({ queryKey: ['landlord-branding'] });
       toast.success("White label settings updated successfully!");
     },
     onError: () => {
