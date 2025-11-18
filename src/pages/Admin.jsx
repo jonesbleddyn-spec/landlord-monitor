@@ -1,12 +1,13 @@
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, BarChart3, Key, Settings, FileText, Megaphone, Mail } from "lucide-react";
+import { Shield, BarChart3, Key, Settings, FileText, Megaphone, Mail, Activity } from "lucide-react";
 import AdminStats from "../components/admin/AdminStats";
 import ApiKeyManager from "../components/admin/ApiKeyManager";
 import SiteSettings from "../components/admin/SiteSettings";
 import AdminReports from "../components/admin/AdminReports";
 import AdminBroadcast from "../components/admin/AdminBroadcast";
 import EmailMarketing from "../components/admin/EmailMarketing";
+import ThirdPartyServices from "../components/admin/ThirdPartyServices";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
 
 function AdminContent() {
@@ -53,6 +54,10 @@ function AdminContent() {
               <Settings className="w-4 h-4 mr-2" />
               Site Settings
             </TabsTrigger>
+            <TabsTrigger value="services" className="data-[state=active]:bg-indigo-600">
+              <Activity className="w-4 h-4 mr-2" />
+              Services Status
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview">
@@ -77,6 +82,10 @@ function AdminContent() {
 
           <TabsContent value="settings">
             <SiteSettings />
+          </TabsContent>
+
+          <TabsContent value="services">
+            <ThirdPartyServices />
           </TabsContent>
         </Tabs>
       </div>
