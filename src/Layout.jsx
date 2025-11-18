@@ -27,9 +27,21 @@ export default function Layout({ children, currentPageName }) {
   const { data: landlordBranding } = useQuery({
     queryKey: ['landlord-branding', user?.landlord_id],
     queryFn: async () => {
-      if (!user?.landlord_id) return null;
+      if (!user?.landlord_id) {
+        console.log('Layout: No landlord_id on user:', user);
+        return null;
+      }
+      console.log('Layout: Fetching branding for landlord_id:', user.landlord_id);
       const users = await base44.entities.User.list();
-      return users.find(u => u.id === user.landlord_id);
+      const landlord = users.find(u => u.id === user.landlord_id);
+      console.log('Layout: Found landlord with branding:', {
+        id: landlord?.id,
+        company_name: landlord?.company_name,
+        company_logo: landlord?.company_logo,
+        brand_color_primary: landlord?.brand_color_primary,
+        brand_color_secondary: landlord?.brand_color_secondary
+      });
+      return landlord;
     },
     enabled: !!user?.landlord_id && isTenant,
     staleTime: 0,
@@ -52,21 +64,32 @@ export default function Layout({ children, currentPageName }) {
   const isAdmin = user?.role === 'admin';
 
   // Get branding - use landlord branding for tenants, otherwise use site settings
-  const displayName = isTenant && landlordBranding?.company_name 
+  const useBranding = isTenant && landlordBranding && landlordBranding.company_name;
+  
+  const displayName = useBranding
     ? landlordBranding.company_name 
     : (siteSettings?.site_name || 'Landlord Monitor');
   
-  const displayLogo = isTenant && landlordBranding?.company_logo 
+  const displayLogo = useBranding && landlordBranding.company_logo
     ? landlordBranding.company_logo 
     : null;
   
-  const primaryColor = isTenant && landlordBranding?.brand_color_primary 
+  const primaryColor = useBranding && landlordBranding.brand_color_primary
     ? landlordBranding.brand_color_primary 
     : '#3B82F6';
   
-  const secondaryColor = isTenant && landlordBranding?.brand_color_secondary 
+  const secondaryColor = useBranding && landlordBranding.brand_color_secondary
     ? landlordBranding.brand_color_secondary 
     : '#8B5CF6';
+  
+  console.log('Layout: Applied branding:', {
+    isTenant,
+    useBranding,
+    displayName,
+    displayLogo,
+    primaryColor,
+    secondaryColor
+  });
 
   // Build navigation based on user type
   const getNavigationItems = () => {
