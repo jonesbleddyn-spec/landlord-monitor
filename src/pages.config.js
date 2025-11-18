@@ -17,6 +17,7 @@ import WhiteLabelSettings from './pages/WhiteLabelSettings';
 import Reminders from './pages/Reminders';
 import TermsOfService from './pages/TermsOfService';
 import PrivacyPolicy from './pages/PrivacyPolicy';
+import CookiePolicy from './pages/CookiePolicy';
 import __Layout from './Layout.jsx';
 
 
@@ -40,6 +41,7 @@ export const PAGES = {
     "Reminders": Reminders,
     "TermsOfService": TermsOfService,
     "PrivacyPolicy": PrivacyPolicy,
+    "CookiePolicy": CookiePolicy,
 }
 
 export const pagesConfig = {

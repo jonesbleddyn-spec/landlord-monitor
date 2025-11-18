@@ -5,6 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Building2, MessageSquare, FileText, Menu, X, LayoutDashboard, LogOut, LogIn, CreditCard, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import CookieConsent from "../components/CookieConsent";
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
@@ -194,6 +195,9 @@ export default function Layout({ children, currentPageName }) {
         {children}
       </main>
 
+      {/* Cookie Consent */}
+      <CookieConsent />
+
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-12 mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -230,6 +234,7 @@ export default function Layout({ children, currentPageName }) {
               <ul className="space-y-2 text-gray-400">
                 <li><Link to={createPageUrl("TermsOfService")} className="hover:text-white transition-colors">Terms of Service</Link></li>
                 <li><Link to={createPageUrl("PrivacyPolicy")} className="hover:text-white transition-colors">Privacy Policy</Link></li>
+                <li><Link to={createPageUrl("CookiePolicy")} className="hover:text-white transition-colors">Cookie Policy</Link></li>
               </ul>
             </div>
           </div>
