@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -296,9 +295,9 @@ function ReportFaultContent() {
     <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
         {/* White Label Header for Tenants */}
-        {isTenant && landlordBranding && (
+        {isTenant && (landlordBranding || user?.landlord_id) && (
           <div 
-            className="rounded-xl p-6 mb-8 text-white"
+            className="rounded-xl p-6 mb-8 text-white shadow-xl"
             style={{ background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})` }}
           >
             <div className="flex items-center gap-4">
@@ -339,10 +338,19 @@ function ReportFaultContent() {
               {isTenant ? (
                 <div>
                   <Label>Property</Label>
-                  <div className="mt-2 p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
+                  <div 
+                    className="mt-2 p-4 rounded-lg border-2"
+                    style={{ 
+                      backgroundColor: `${primaryColor}10`,
+                      borderColor: `${primaryColor}40`
+                    }}
+                  >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <Home className="w-5 h-5 text-blue-600" />
+                      <div 
+                        className="w-10 h-10 rounded-lg flex items-center justify-center"
+                        style={{ backgroundColor: `${primaryColor}20` }}
+                      >
+                        <Home className="w-5 h-5" style={{ color: primaryColor }} />
                       </div>
                       <div>
                         <p className="font-semibold text-gray-900">

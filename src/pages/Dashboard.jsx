@@ -137,7 +137,7 @@ function DashboardContent() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* White Label Header for Tenants */}
-        {isTenant && landlordBranding && (
+        {isTenant && (landlordBranding || user?.landlord_id) && (
           <div 
             className="rounded-xl p-6 mb-8 text-white shadow-xl"
             style={{ background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})` }}
@@ -267,8 +267,11 @@ function DashboardContent() {
                     <p className="text-sm font-medium text-gray-500">My Property</p>
                     <p className="text-lg font-bold text-gray-900 mt-2">{properties[0].name}</p>
                   </div>
-                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                    <Home className="w-6 h-6 text-blue-600" />
+                  <div 
+                    className="w-12 h-12 rounded-xl flex items-center justify-center"
+                    style={{ backgroundColor: `${primaryColor}20` }}
+                  >
+                    <Home className="w-6 h-6" style={{ color: primaryColor }} />
                   </div>
                 </div>
                 <p className="text-sm text-gray-600">{properties[0].address}</p>
