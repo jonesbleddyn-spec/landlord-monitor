@@ -8,6 +8,8 @@ import AdminReports from "../components/admin/AdminReports";
 import AdminBroadcast from "../components/admin/AdminBroadcast";
 import EmailMarketing from "../components/admin/EmailMarketing";
 import ThirdPartyServices from "../components/admin/ThirdPartyServices";
+import SubscriptionPlans from "../components/admin/SubscriptionPlans";
+import StripeSettings from "../components/admin/StripeSettings";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
 
 function AdminContent() {

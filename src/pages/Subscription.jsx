@@ -15,75 +15,12 @@ import {
   Calendar,
   CreditCard,
   Download,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from "lucide-react";
 import { format } from "date-fns";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
-
-const PLANS = {
-  free: {
-    name: "Free Trial",
-    price: 0,
-    interval: "30 days",
-    icon: Building2,
-    color: "from-gray-500 to-gray-600",
-    features: [
-      "Up to 2 properties",
-      "Basic fault tracking",
-      "Community board",
-      "Document storage (50MB)",
-      "Email support"
-    ],
-    limits: {
-      properties: 2,
-      storage_mb: 50
-    }
-  },
-  basic: {
-    name: "Basic",
-    price: 29.99,
-    interval: "month",
-    icon: Zap,
-    color: "from-blue-500 to-blue-600",
-    features: [
-      "Up to 10 properties",
-      "Advanced fault tracking",
-      "Tenant invitations",
-      "AI-powered reports",
-      "Document storage (500MB)",
-      "Priority email support",
-      "Analytics dashboard"
-    ],
-    limits: {
-      properties: 10,
-      storage_mb: 500
-    }
-  },
-  pro: {
-    name: "Pro",
-    price: 79.99,
-    interval: "month",
-    icon: Crown,
-    color: "from-purple-500 to-pink-600",
-    popular: true,
-    features: [
-      "Unlimited properties",
-      "AI image analysis",
-      "Bulk import properties",
-      "Custom reporting",
-      "Document storage (5GB)",
-      "Priority support",
-      "API access",
-      "White-label options",
-      "Dedicated account manager"
-    ],
-    limits: {
-      properties: -1, // unlimited
-      storage_mb: 5120
-    }
-  }
-};
 
 function SubscriptionContent() {
   const queryClient = useQueryClient();
@@ -100,6 +37,14 @@ function SubscriptionContent() {
     },
   });
 
+  const { data: plans = [], isLoading: loadingPlans } = useQuery({
+    queryKey: ['subscription-plans'],
+    queryFn: async () => {
+      const allPlans = await base44.entities.SubscriptionPlan.list();
+      return allPlans.filter(p => p.is_active).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+    },
+  });
+
   const { data: payments = [] } = useQuery({
     queryKey: ['payments'],
     queryFn: async () => {
@@ -109,24 +54,52 @@ function SubscriptionContent() {
     enabled: !!user,
   });
 
-  const changePlanMutation = useMutation({
-    mutationFn: (plan) => base44.functions.invoke('changeSubscriptionPlan', { plan }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user'] });
-      setSelectedPlan(null);
+  const { data: stripeSettings } = useQuery({
+    queryKey: ['stripe-settings'],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getSiteSettings');
+      return response.data.settings || {};
     },
   });
 
-  const currentPlan = user?.subscription_plan || 'free';
-  const planDetails = PLANS[currentPlan];
+  const changePlanMutation = useMutation({
+    mutationFn: async (planId) => {
+      const plan = plans.find(p => p.id === planId);
+      if (stripeSettings?.stripe_enabled && plan?.stripe_price_id) {
+        return await base44.functions.invoke('createStripeCheckout', { 
+          plan_id: planId,
+          price_id: plan.stripe_price_id 
+        });
+      } else {
+        return await base44.functions.invoke('changeSubscriptionPlan', { plan_id: planId });
+      }
+    },
+    onSuccess: (data) => {
+      if (data.data?.checkout_url) {
+        window.location.href = data.data.checkout_url;
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['user'] });
+        setSelectedPlan(null);
+        toast.success("Subscription updated successfully");
+      }
+    },
+    onError: () => toast.error("Failed to update subscription")
+  });
+
+  const currentPlan = user?.subscription_plan_id;
+  const currentPlanDetails = plans.find(p => p.id === currentPlan);
   const isTrialActive = user?.subscription_status === 'trial';
   const trialDaysLeft = user?.trial_end_date 
     ? Math.max(0, Math.ceil((new Date(user.trial_end_date) - new Date()) / (1000 * 60 * 60 * 24)))
     : 0;
 
-  const handleSelectPlan = async (planKey) => {
-    if (planKey === currentPlan) return;
-    setSelectedPlan(planKey);
+  const handleSelectPlan = async (planId) => {
+    if (planId === currentPlan) return;
+    if (!user) {
+      base44.auth.redirectToLogin(window.location.pathname);
+      return;
+    }
+    setSelectedPlan(planId);
   };
 
   const handleConfirmPlan = async () => {
@@ -146,22 +119,22 @@ function SubscriptionContent() {
         </div>
 
         {/* Current Plan Status - Only show if logged in */}
-        {user && (
+        {user && currentPlanDetails && (
           <Card className="mb-12 shadow-xl border-none overflow-hidden">
-            <div className={`bg-gradient-to-r ${planDetails.color} p-8 text-white`}>
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-8 text-white">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className="w-16 h-16 bg-white/20 rounded-xl flex items-center justify-center">
-                    {React.createElement(planDetails.icon, { className: "w-8 h-8" })}
+                    <Crown className="w-8 h-8" />
                   </div>
                   <div>
-                    <h2 className="text-3xl font-bold">{planDetails.name}</h2>
+                    <h2 className="text-3xl font-bold">{currentPlanDetails.name}</h2>
                     <p className="text-white/90 mt-1">
                       {isTrialActive 
                         ? `${trialDaysLeft} days left in trial`
-                        : planDetails.price === 0 
+                        : currentPlanDetails.price === 0 
                           ? 'Free forever' 
-                          : `£${planDetails.price}/${planDetails.interval}`
+                          : `${currentPlanDetails.currency} ${currentPlanDetails.price}/${currentPlanDetails.interval}`
                       }
                     </p>
                   </div>
@@ -189,7 +162,7 @@ function SubscriptionContent() {
                   <div>
                     <p className="text-sm text-gray-600">Properties</p>
                     <p className="text-2xl font-bold">
-                      {planDetails.limits.properties === -1 ? '∞' : planDetails.limits.properties}
+                      {currentPlanDetails.max_properties === -1 ? '∞' : currentPlanDetails.max_properties}
                     </p>
                   </div>
                 </div>
@@ -197,7 +170,7 @@ function SubscriptionContent() {
                   <FileText className="w-8 h-8 text-blue-600" />
                   <div>
                     <p className="text-sm text-gray-600">Storage</p>
-                    <p className="text-2xl font-bold">{planDetails.limits.storage_mb}MB</p>
+                    <p className="text-2xl font-bold">{currentPlanDetails.storage_mb}MB</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -222,103 +195,118 @@ function SubscriptionContent() {
           <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">
             Choose Your Plan
           </h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            {Object.entries(PLANS).map(([key, plan]) => (
-              <Card 
-                key={key}
-                className={`relative overflow-hidden transition-all duration-300 ${
-                  key === currentPlan 
-                    ? 'ring-4 ring-purple-600 shadow-2xl' 
-                    : selectedPlan === key
-                      ? 'ring-4 ring-blue-400 shadow-xl'
-                      : 'hover:shadow-xl'
-                } ${plan.popular ? 'md:scale-105' : ''}`}
-              >
-                {plan.popular && (
-                  <div className="absolute top-4 right-4">
-                    <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white">
-                      Popular
-                    </Badge>
-                  </div>
-                )}
-                {key === currentPlan && (
-                  <div className="absolute top-4 left-4">
-                    <Badge className="bg-purple-600 text-white">
-                      Current Plan
-                    </Badge>
-                  </div>
-                )}
-                
-                <CardHeader className={`bg-gradient-to-r ${plan.color} text-white p-8`}>
-                  <div className="flex items-center justify-between mb-4">
-                    {React.createElement(plan.icon, { className: "w-12 h-12" })}
-                  </div>
-                  <CardTitle className="text-3xl font-bold mb-2">
-                    {plan.name}
-                  </CardTitle>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-bold">
-                      £{plan.price}
-                    </span>
-                    {plan.price > 0 && (
-                      <span className="text-white/80">/{plan.interval}</span>
-                    )}
-                  </div>
-                </CardHeader>
+          {loadingPlans ? (
+            <div className="text-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin mx-auto text-purple-600" />
+              <p className="text-gray-600 mt-4">Loading plans...</p>
+            </div>
+          ) : plans.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-600">No subscription plans available</p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-3 gap-8">
+              {plans.map((plan) => (
+                <Card 
+                  key={plan.id}
+                  className={`relative overflow-hidden transition-all duration-300 ${
+                    plan.id === currentPlan 
+                      ? 'ring-4 ring-purple-600 shadow-2xl' 
+                      : selectedPlan === plan.id
+                        ? 'ring-4 ring-blue-400 shadow-xl'
+                        : 'hover:shadow-xl'
+                  } ${plan.is_popular ? 'md:scale-105' : ''}`}
+                >
+                  {plan.is_popular && (
+                    <div className="absolute top-4 right-4">
+                      <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white">
+                        Popular
+                      </Badge>
+                    </div>
+                  )}
+                  {plan.id === currentPlan && (
+                    <div className="absolute top-4 left-4">
+                      <Badge className="bg-purple-600 text-white">
+                        Current Plan
+                      </Badge>
+                    </div>
+                  )}
+                  
+                  <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-8">
+                    <div className="flex items-center justify-between mb-4">
+                      <Crown className="w-12 h-12" />
+                    </div>
+                    <CardTitle className="text-3xl font-bold mb-2">
+                      {plan.name}
+                    </CardTitle>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-4xl font-bold">
+                        {plan.currency} {plan.price}
+                      </span>
+                      {plan.price > 0 && (
+                        <span className="text-white/80">/{plan.interval}</span>
+                      )}
+                    </div>
+                  </CardHeader>
 
-                <CardContent className="p-8">
-                  <ul className="space-y-3 mb-8">
-                    {plan.features.map((feature, idx) => (
-                      <li key={idx} className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                        <span className="text-gray-700">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <CardContent className="p-8">
+                    <ul className="space-y-3 mb-8">
+                      {plan.features?.map((feature, idx) => (
+                        <li key={idx} className="flex items-start gap-2">
+                          <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                          <span className="text-gray-700">{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
 
-                  <Button
-                    onClick={() => user ? handleSelectPlan(key) : base44.auth.redirectToLogin(window.location.pathname)}
-                    disabled={key === currentPlan || changePlanMutation.isPending}
-                    className={`w-full ${
-                      key === currentPlan
-                        ? 'bg-gray-300 cursor-not-allowed'
-                        : `bg-gradient-to-r ${plan.color} hover:opacity-90`
-                    }`}
-                  >
-                    {!user 
-                      ? 'Sign Up'
-                      : key === currentPlan 
-                        ? 'Current Plan' 
-                        : key === selectedPlan
-                          ? 'Selected'
-                          : key === 'free'
-                            ? 'Downgrade'
-                            : PLANS[currentPlan].price < plan.price
-                              ? 'Upgrade'
-                              : 'Change Plan'
-                    }
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                    <Button
+                      onClick={() => handleSelectPlan(plan.id)}
+                      disabled={plan.id === currentPlan || changePlanMutation.isPending}
+                      className={`w-full ${
+                        plan.id === currentPlan
+                          ? 'bg-gray-300 cursor-not-allowed'
+                          : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90'
+                      }`}
+                    >
+                      {changePlanMutation.isPending ? (
+                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Processing...</>
+                      ) : !user ? (
+                        'Sign Up'
+                      ) : plan.id === currentPlan ? (
+                        'Current Plan'
+                      ) : selectedPlan === plan.id ? (
+                        'Selected'
+                      ) : currentPlanDetails && currentPlanDetails.price < plan.price ? (
+                        'Upgrade'
+                      ) : (
+                        'Change Plan'
+                      )}
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Confirmation */}
-        {selectedPlan && selectedPlan !== currentPlan && (
+        {selectedPlan && selectedPlan !== currentPlan && user && (
           <Alert className="mb-12 bg-blue-50 border-blue-200">
             <AlertDescription className="flex items-center justify-between">
               <span className="text-blue-900">
-                {PLANS[selectedPlan].price > PLANS[currentPlan].price 
-                  ? `Upgrade to ${PLANS[selectedPlan].name} for £${PLANS[selectedPlan].price}/${PLANS[selectedPlan].interval}?`
-                  : `Switch to ${PLANS[selectedPlan].name}?`
-                }
+                {(() => {
+                  const selectedPlanDetails = plans.find(p => p.id === selectedPlan);
+                  return selectedPlanDetails && currentPlanDetails && selectedPlanDetails.price > currentPlanDetails.price
+                    ? `Upgrade to ${selectedPlanDetails.name} for ${selectedPlanDetails.currency} ${selectedPlanDetails.price}/${selectedPlanDetails.interval}?`
+                    : `Switch to ${selectedPlanDetails?.name}?`;
+                })()}
               </span>
               <div className="flex gap-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setSelectedPlan(null)}
+                  disabled={changePlanMutation.isPending}
                 >
                   Cancel
                 </Button>
@@ -328,7 +316,11 @@ function SubscriptionContent() {
                   disabled={changePlanMutation.isPending}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
-                  {changePlanMutation.isPending ? 'Processing...' : 'Confirm'}
+                  {changePlanMutation.isPending ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Processing...</>
+                  ) : (
+                    'Confirm'
+                  )}
                 </Button>
               </div>
             </AlertDescription>
@@ -371,7 +363,7 @@ function SubscriptionContent() {
                         </div>
                         <div>
                           <p className="font-semibold text-gray-900">
-                            {PLANS[payment.subscription_plan]?.name || payment.subscription_plan}
+                            {plans.find(p => p.id === payment.subscription_plan)?.name || payment.subscription_plan}
                           </p>
                           <p className="text-sm text-gray-600">
                             {format(new Date(payment.created_date), 'MMM d, yyyy')}
