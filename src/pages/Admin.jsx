@@ -1,6 +1,6 @@
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, BarChart3, Key, Settings, FileText, Megaphone, Mail, Activity } from "lucide-react";
+import { Shield, BarChart3, Key, Settings, FileText, Megaphone, Mail, Activity, CreditCard } from "lucide-react";
 import AdminStats from "../components/admin/AdminStats";
 import ApiKeyManager from "../components/admin/ApiKeyManager";
 import SiteSettings from "../components/admin/SiteSettings";
@@ -48,6 +48,14 @@ function AdminContent() {
               <FileText className="w-4 h-4 mr-2" />
               Reports
             </TabsTrigger>
+            <TabsTrigger value="plans" className="data-[state=active]:bg-pink-600">
+              <CreditCard className="w-4 h-4 mr-2" />
+              Subscription Plans
+            </TabsTrigger>
+            <TabsTrigger value="stripe" className="data-[state=active]:bg-indigo-600">
+              <CreditCard className="w-4 h-4 mr-2" />
+              Stripe
+            </TabsTrigger>
             <TabsTrigger value="api-keys" className="data-[state=active]:bg-purple-600">
               <Key className="w-4 h-4 mr-2" />
               API Keys
@@ -76,6 +84,14 @@ function AdminContent() {
 
           <TabsContent value="reports">
             <AdminReports />
+          </TabsContent>
+
+          <TabsContent value="plans">
+            <SubscriptionPlans />
+          </TabsContent>
+
+          <TabsContent value="stripe">
+            <StripeSettings />
           </TabsContent>
 
           <TabsContent value="api-keys">
