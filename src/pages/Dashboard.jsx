@@ -376,7 +376,6 @@ function DashboardContent() {
                   <CardContent className="p-6 text-center">
                     <Smartphone className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                     <p className="font-medium text-gray-700">SMS Notifications</p>
-                    <p className="text-xs text-gray-500 mt-1">Configure Twilio</p>
                   </CardContent>
                 </Card>
               </Link>
