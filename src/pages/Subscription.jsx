@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -92,7 +91,13 @@ function SubscriptionContent() {
 
   const { data: user } = useQuery({
     queryKey: ['user'],
-    queryFn: () => base44.auth.me(),
+    queryFn: async () => {
+      try {
+        return await base44.auth.me();
+      } catch {
+        return null;
+      }
+    },
   });
 
   const { data: payments = [] } = useQuery({
@@ -140,75 +145,77 @@ function SubscriptionContent() {
           </p>
         </div>
 
-        {/* Current Plan Status */}
-        <Card className="mb-12 shadow-xl border-none overflow-hidden">
-          <div className={`bg-gradient-to-r ${planDetails.color} p-8 text-white`}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-white/20 rounded-xl flex items-center justify-center">
-                  {React.createElement(planDetails.icon, { className: "w-8 h-8" })}
+        {/* Current Plan Status - Only show if logged in */}
+        {user && (
+          <Card className="mb-12 shadow-xl border-none overflow-hidden">
+            <div className={`bg-gradient-to-r ${planDetails.color} p-8 text-white`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 bg-white/20 rounded-xl flex items-center justify-center">
+                    {React.createElement(planDetails.icon, { className: "w-8 h-8" })}
+                  </div>
+                  <div>
+                    <h2 className="text-3xl font-bold">{planDetails.name}</h2>
+                    <p className="text-white/90 mt-1">
+                      {isTrialActive 
+                        ? `${trialDaysLeft} days left in trial`
+                        : planDetails.price === 0 
+                          ? 'Free forever' 
+                          : `£${planDetails.price}/${planDetails.interval}`
+                      }
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-3xl font-bold">{planDetails.name}</h2>
-                  <p className="text-white/90 mt-1">
-                    {isTrialActive 
-                      ? `${trialDaysLeft} days left in trial`
-                      : planDetails.price === 0 
-                        ? 'Free forever' 
-                        : `£${planDetails.price}/${planDetails.interval}`
-                    }
-                  </p>
-                </div>
-              </div>
-              <div className="text-right">
-                {user?.subscription_status === 'active' && (
-                  <Badge className="bg-white/20 text-white text-sm">
-                    <Check className="w-4 h-4 mr-1" />
-                    Active
-                  </Badge>
-                )}
-                {isTrialActive && (
-                  <Badge className="bg-yellow-500 text-white text-sm">
-                    <AlertCircle className="w-4 h-4 mr-1" />
-                    Trial
-                  </Badge>
-                )}
-              </div>
-            </div>
-          </div>
-          <CardContent className="p-8">
-            <div className="grid md:grid-cols-3 gap-6">
-              <div className="flex items-center gap-3">
-                <Building2 className="w-8 h-8 text-purple-600" />
-                <div>
-                  <p className="text-sm text-gray-600">Properties</p>
-                  <p className="text-2xl font-bold">
-                    {planDetails.limits.properties === -1 ? '∞' : planDetails.limits.properties}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <FileText className="w-8 h-8 text-blue-600" />
-                <div>
-                  <p className="text-sm text-gray-600">Storage</p>
-                  <p className="text-2xl font-bold">{planDetails.limits.storage_mb}MB</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <Calendar className="w-8 h-8 text-green-600" />
-                <div>
-                  <p className="text-sm text-gray-600">Next Billing</p>
-                  <p className="text-lg font-semibold">
-                    {user?.next_billing_date 
-                      ? format(new Date(user.next_billing_date), 'MMM d, yyyy')
-                      : 'N/A'
-                    }
-                  </p>
+                <div className="text-right">
+                  {user?.subscription_status === 'active' && (
+                    <Badge className="bg-white/20 text-white text-sm">
+                      <Check className="w-4 h-4 mr-1" />
+                      Active
+                    </Badge>
+                  )}
+                  {isTrialActive && (
+                    <Badge className="bg-yellow-500 text-white text-sm">
+                      <AlertCircle className="w-4 h-4 mr-1" />
+                      Trial
+                    </Badge>
+                  )}
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
+            <CardContent className="p-8">
+              <div className="grid md:grid-cols-3 gap-6">
+                <div className="flex items-center gap-3">
+                  <Building2 className="w-8 h-8 text-purple-600" />
+                  <div>
+                    <p className="text-sm text-gray-600">Properties</p>
+                    <p className="text-2xl font-bold">
+                      {planDetails.limits.properties === -1 ? '∞' : planDetails.limits.properties}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <FileText className="w-8 h-8 text-blue-600" />
+                  <div>
+                    <p className="text-sm text-gray-600">Storage</p>
+                    <p className="text-2xl font-bold">{planDetails.limits.storage_mb}MB</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Calendar className="w-8 h-8 text-green-600" />
+                  <div>
+                    <p className="text-sm text-gray-600">Next Billing</p>
+                    <p className="text-lg font-semibold">
+                      {user?.next_billing_date 
+                        ? format(new Date(user.next_billing_date), 'MMM d, yyyy')
+                        : 'N/A'
+                      }
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Available Plans */}
         <div className="mb-12">
@@ -270,7 +277,7 @@ function SubscriptionContent() {
                   </ul>
 
                   <Button
-                    onClick={() => handleSelectPlan(key)}
+                    onClick={() => user ? handleSelectPlan(key) : base44.auth.redirectToLogin(window.location.pathname)}
                     disabled={key === currentPlan || changePlanMutation.isPending}
                     className={`w-full ${
                       key === currentPlan
@@ -278,15 +285,17 @@ function SubscriptionContent() {
                         : `bg-gradient-to-r ${plan.color} hover:opacity-90`
                     }`}
                   >
-                    {key === currentPlan 
-                      ? 'Current Plan' 
-                      : key === selectedPlan
-                        ? 'Selected'
-                        : key === 'free'
-                          ? 'Downgrade'
-                          : PLANS[currentPlan].price < plan.price
-                            ? 'Upgrade'
-                            : 'Change Plan'
+                    {!user 
+                      ? 'Sign Up'
+                      : key === currentPlan 
+                        ? 'Current Plan' 
+                        : key === selectedPlan
+                          ? 'Selected'
+                          : key === 'free'
+                            ? 'Downgrade'
+                            : PLANS[currentPlan].price < plan.price
+                              ? 'Upgrade'
+                              : 'Change Plan'
                     }
                   </Button>
                 </CardContent>
@@ -326,82 +335,80 @@ function SubscriptionContent() {
           </Alert>
         )}
 
-        {/* Payment History */}
-        <Card className="shadow-xl border-none">
-          <CardHeader className="bg-gradient-to-r from-green-600 to-emerald-600 text-white">
-            <CardTitle className="flex items-center gap-2">
-              <CreditCard className="w-6 h-6" />
-              Payment History
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6">
-            {payments.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
-                <CreditCard className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                <p>No payment history yet</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {payments.map((payment) => (
-                  <div 
-                    key={payment.id}
-                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                        payment.status === 'completed' ? 'bg-green-100' :
-                        payment.status === 'pending' ? 'bg-yellow-100' :
-                        'bg-red-100'
-                      }`}>
-                        {payment.status === 'completed' ? (
-                          <Check className="w-6 h-6 text-green-600" />
-                        ) : (
-                          <AlertCircle className="w-6 h-6 text-yellow-600" />
+        {/* Payment History - Only show if logged in */}
+        {user && (
+          <Card className="shadow-xl border-none">
+            <CardHeader className="bg-gradient-to-r from-green-600 to-emerald-600 text-white">
+              <CardTitle className="flex items-center gap-2">
+                <CreditCard className="w-6 h-6" />
+                Payment History
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              {payments.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <CreditCard className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                  <p>No payment history yet</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {payments.map((payment) => (
+                    <div 
+                      key={payment.id}
+                      className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                          payment.status === 'completed' ? 'bg-green-100' :
+                          payment.status === 'pending' ? 'bg-yellow-100' :
+                          'bg-red-100'
+                        }`}>
+                          {payment.status === 'completed' ? (
+                            <Check className="w-6 h-6 text-green-600" />
+                          ) : (
+                            <AlertCircle className="w-6 h-6 text-yellow-600" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-900">
+                            {PLANS[payment.subscription_plan]?.name || payment.subscription_plan}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            {format(new Date(payment.created_date), 'MMM d, yyyy')}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <p className="font-bold text-gray-900">
+                            £{payment.amount.toFixed(2)}
+                          </p>
+                          <Badge variant={payment.status === 'completed' ? 'default' : 'outline'}>
+                            {payment.status}
+                          </Badge>
+                        </div>
+                        {payment.invoice_url && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open(payment.invoice_url, '_blank')}
+                          >
+                            <Download className="w-4 h-4" />
+                          </Button>
                         )}
                       </div>
-                      <div>
-                        <p className="font-semibold text-gray-900">
-                          {PLANS[payment.subscription_plan]?.name || payment.subscription_plan}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          {format(new Date(payment.created_date), 'MMM d, yyyy')}
-                        </p>
-                      </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
-                        <p className="font-bold text-gray-900">
-                          £{payment.amount.toFixed(2)}
-                        </p>
-                        <Badge variant={payment.status === 'completed' ? 'default' : 'outline'}>
-                          {payment.status}
-                        </Badge>
-                      </div>
-                      {payment.invoice_url && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => window.open(payment.invoice_url, '_blank')}
-                        >
-                          <Download className="w-4 h-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
 }
 
 export default function Subscription() {
-  return (
-    <ProtectedRoute requiredUserType="landlord">
-      <SubscriptionContent />
-    </ProtectedRoute>
-  );
+  return <SubscriptionContent />;
 }
