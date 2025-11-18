@@ -353,6 +353,88 @@ function WhiteLabelSettingsContent() {
                 )}
               </div>
 
+              {/* Twilio SMS Configuration Section */}
+              <div className="border-t pt-6 mt-6" id="twilio">
+                <div className="flex items-center gap-2 mb-4">
+                  <MessageSquare className="w-5 h-5 text-green-600" />
+                  <h3 className="text-lg font-semibold text-gray-900">SMS Notifications (Twilio)</h3>
+                </div>
+                <p className="text-sm text-gray-600 mb-4">
+                  Configure Twilio to send SMS notifications to your tenants
+                </p>
+
+                <div className="flex items-center space-x-2 mb-4">
+                  <Checkbox
+                    id="use_custom_sms"
+                    checked={formData.use_custom_sms}
+                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, use_custom_sms: checked }))}
+                  />
+                  <label
+                    htmlFor="use_custom_sms"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Enable SMS notifications via Twilio
+                  </label>
+                </div>
+
+                {formData.use_custom_sms && (
+                  <div className="space-y-4 bg-green-50 p-4 rounded-lg border border-green-200">
+                    <div>
+                      <Label>Twilio Account SID *</Label>
+                      <Input
+                        value={formData.twilio_account_sid}
+                        onChange={(e) => setFormData(prev => ({ ...prev, twilio_account_sid: e.target.value }))}
+                        placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                      />
+                    </div>
+
+                    <div>
+                      <Label>Twilio Auth Token *</Label>
+                      <div className="relative">
+                        <Input
+                          type={showPassword ? "text" : "password"}
+                          value={formData.twilio_auth_token}
+                          onChange={(e) => setFormData(prev => ({ ...prev, twilio_auth_token: e.target.value }))}
+                          placeholder="Your Twilio Auth Token"
+                          className="pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+                        >
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label>Twilio Phone Number *</Label>
+                      <Input
+                        value={formData.twilio_phone_number}
+                        onChange={(e) => setFormData(prev => ({ ...prev, twilio_phone_number: e.target.value }))}
+                        placeholder="+1234567890"
+                      />
+                      <p className="text-xs text-gray-600 mt-1">
+                        Include country code (e.g., +44 for UK)
+                      </p>
+                    </div>
+
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800">
+                      <strong>Note:</strong> You can get your Twilio credentials from{" "}
+                      <a 
+                        href="https://www.twilio.com/console" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="underline"
+                      >
+                        Twilio Console
+                      </a>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <Button
                 type="submit"
                 disabled={updateSettingsMutation.isPending}
