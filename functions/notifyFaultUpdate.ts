@@ -97,12 +97,24 @@ Deno.serve(async (req) => {
 
         // Send email to tenant (fault reporter)
         if (fault.created_by) {
-            await base44.integrations.Core.SendEmail({
-                from_name: landlord?.company_name || 'Landlord Monitor',
-                to: fault.created_by,
-                subject: emailSubject,
-                body: emailBody
-            });
+            const tenantUser = users.find(u => u.id === fault.created_by);
+            
+            // Check if landlord has custom SMTP configured
+            if (landlord?.use_custom_smtp && landlord.smtp_host && tenantUser?.email) {
+                await base44.functions.invoke('sendEmailWithCustomSMTP', {
+                    landlord_id: fault.landlord_id,
+                    to: tenantUser.email,
+                    subject: emailSubject,
+                    body: emailBody
+                });
+            } else if (tenantUser?.email) {
+                await base44.integrations.Core.SendEmail({
+                    from_name: landlord?.company_name || 'Landlord Monitor',
+                    to: tenantUser.email,
+                    subject: emailSubject,
+                    body: emailBody
+                });
+            }
         }
 
         // Send notification to landlord
