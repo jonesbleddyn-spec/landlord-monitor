@@ -48,6 +48,8 @@ function DashboardContent() {
       return users.find(u => u.id === user.landlord_id);
     },
     enabled: !!user?.landlord_id && isTenant,
+    staleTime: 0,
+    cacheTime: 0,
   });
 
   const { data: properties = [] } = useQuery({

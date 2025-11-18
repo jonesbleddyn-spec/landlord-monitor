@@ -22,6 +22,20 @@ export default function Layout({ children, currentPageName }) {
     },
   });
 
+  const isTenant = user?.user_type === 'tenant';
+
+  const { data: landlordBranding } = useQuery({
+    queryKey: ['landlord-branding', user?.landlord_id],
+    queryFn: async () => {
+      if (!user?.landlord_id) return null;
+      const users = await base44.entities.User.list();
+      return users.find(u => u.id === user.landlord_id);
+    },
+    enabled: !!user?.landlord_id && isTenant,
+    staleTime: 0,
+    cacheTime: 0,
+  });
+
   const { data: siteSettings } = useQuery({
     queryKey: ['siteSettings'],
     queryFn: async () => {
@@ -36,6 +50,23 @@ export default function Layout({ children, currentPageName }) {
 
   const isLandlord = user?.user_type === 'landlord';
   const isAdmin = user?.role === 'admin';
+
+  // Get branding - use landlord branding for tenants, otherwise use site settings
+  const displayName = isTenant && landlordBranding?.company_name 
+    ? landlordBranding.company_name 
+    : (siteSettings?.site_name || 'Landlord Monitor');
+  
+  const displayLogo = isTenant && landlordBranding?.company_logo 
+    ? landlordBranding.company_logo 
+    : null;
+  
+  const primaryColor = isTenant && landlordBranding?.brand_color_primary 
+    ? landlordBranding.brand_color_primary 
+    : '#3B82F6';
+  
+  const secondaryColor = isTenant && landlordBranding?.brand_color_secondary 
+    ? landlordBranding.brand_color_secondary 
+    : '#8B5CF6';
 
   // Build navigation based on user type
   const getNavigationItems = () => {
@@ -86,12 +117,40 @@ export default function Layout({ children, currentPageName }) {
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
             <Link to={user ? createPageUrl("Dashboard") : createPageUrl("Home")} className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
-                <Building2 className="w-6 h-6 text-white" />
-              </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                {siteSettings?.site_name || 'Landlord Monitor'}
-              </span>
+              {displayLogo ? (
+                <>
+                  <img
+                    src={displayLogo}
+                    alt={displayName}
+                    className="h-10 object-contain"
+                  />
+                  <span className="text-xl font-bold" style={{ 
+                    background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})`,
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text'
+                  }}>
+                    {displayName}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <div 
+                    className="w-10 h-10 rounded-xl flex items-center justify-center"
+                    style={{ background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})` }}
+                  >
+                    <Building2 className="w-6 h-6 text-white" />
+                  </div>
+                  <span className="text-xl font-bold" style={{ 
+                    background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})`,
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text'
+                  }}>
+                    {displayName}
+                  </span>
+                </>
+              )}
             </Link>
 
             {/* Desktop Navigation */}
@@ -157,10 +216,13 @@ export default function Layout({ children, currentPageName }) {
                   onClick={() => setMobileMenuOpen(false)}
                   className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
                     isActive(item.url)
-                      ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+                      ? "text-white"
                       : "text-gray-600 hover:bg-gray-100"
                   }`}
-                >
+                  style={isActive(item.url) ? {
+                    background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})`
+                  } : {}}
+                  >
                   <item.icon className="w-5 h-5" />
                   <span className="font-medium">{item.title}</span>
                 </Link>
@@ -204,10 +266,21 @@ export default function Layout({ children, currentPageName }) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="col-span-1">
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
-                  <Building2 className="w-6 h-6 text-white" />
-                </div>
-                <span className="text-xl font-bold">{siteSettings?.site_name || 'Landlord Monitor'}</span>
+                {displayLogo ? (
+                  <img
+                    src={displayLogo}
+                    alt={displayName}
+                    className="h-10 object-contain bg-white p-1 rounded"
+                  />
+                ) : (
+                  <div 
+                    className="w-10 h-10 rounded-xl flex items-center justify-center"
+                    style={{ background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})` }}
+                  >
+                    <Building2 className="w-6 h-6 text-white" />
+                  </div>
+                )}
+                <span className="text-xl font-bold">{displayName}</span>
               </div>
               <p className="text-gray-400 max-w-md">
                 SaaS property management platform for landlords and letting businesses. 
@@ -239,7 +312,7 @@ export default function Layout({ children, currentPageName }) {
             </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2025 {siteSettings?.site_name || 'Landlord Monitor'}. All rights reserved.</p>
+            <p>&copy; 2025 {displayName}. All rights reserved.</p>
           </div>
         </div>
       </footer>
