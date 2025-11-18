@@ -44,50 +44,50 @@ export default function Home() {
 
   const features = [
     {
-      icon: Zap,
-      title: "Maintenance Automation",
-      description: "Automates maintenance workflow with transparent fault history from report to fix.",
+      icon: Building2,
+      title: "Property Management",
+      description: "Manage unlimited properties with detailed profiles, tracking, and organization tools.",
+      color: "from-blue-500 to-cyan-500"
+    },
+    {
+      icon: MessageSquare,
+      title: "Tenant Communication",
+      description: "Direct messaging and community boards keep you connected with all your tenants.",
+      color: "from-indigo-500 to-blue-500"
+    },
+    {
+      icon: AlertCircle,
+      title: "Maintenance Tracking",
+      description: "Track every maintenance request from report to resolution with full transparency.",
       color: "from-yellow-500 to-orange-500"
     },
     {
       icon: Sparkles,
-      title: "AI Fault Analysis",
-      description: "AI assistant analyzes uploaded images to recognize and create editable fault reports instantly.",
+      title: "AI-Powered Tools",
+      description: "Smart image analysis and automatic categorization speeds up fault reporting.",
       color: "from-purple-500 to-pink-500"
     },
     {
-      icon: TrendingUp,
-      title: "Smart Reporting",
-      description: "Create custom reports and identify patterns in faults to address systemic issues.",
-      color: "from-blue-500 to-cyan-500"
-    },
-    {
       icon: FileText,
-      title: "Document Management",
-      description: "Online repository for storing contracts and property-related documents securely.",
+      title: "Document Storage",
+      description: "Secure storage for contracts, certificates, and all property-related documents.",
       color: "from-green-500 to-emerald-500"
     },
     {
-      icon: MessageSquare,
-      title: "Build Community",
-      description: "Exclusive messaging groups and community notice boards for each building.",
-      color: "from-indigo-500 to-blue-500"
-    },
-    {
-      icon: Shield,
-      title: "Multi-Tenant SaaS",
-      description: "Complete data isolation. Each landlord manages their own properties independently.",
+      icon: TrendingUp,
+      title: "Analytics & Reports",
+      description: "Comprehensive insights and custom reports to track property performance.",
       color: "from-red-500 to-pink-500"
     }
   ];
 
   const benefits = [
-    "Reduce maintenance response time by 50%",
-    "Complete data isolation for each landlord",
-    "AI-powered image recognition for faster reporting",
-    "Scalable SaaS platform for letting businesses",
-    "Mobile-friendly for landlords and tenants",
-    "Comprehensive analytics and insights"
+    "Save time with automated workflows and notifications",
+    "Improve tenant satisfaction through better communication",
+    "Reduce maintenance costs with faster issue resolution",
+    "Stay compliant with certificate and inspection tracking",
+    "Access everything from mobile or desktop",
+    "Scale effortlessly as your portfolio grows"
   ];
 
   const handleGetStarted = () => {
@@ -125,10 +125,10 @@ export default function Home() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="text-white relative z-10">
               <h1 className="text-5xl md:text-6xl font-bold leading-tight mb-6">
-                Property Management for Modern Landlords
+                Complete Property Management Solution
               </h1>
               <p className="text-xl md:text-2xl mb-8 text-blue-100">
-                Monitor properties, track maintenance, and manage tenants effortlessly with AI-powered tools.
+                Connect with tenants, track maintenance, and manage all your properties from one comprehensive platform.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button 
@@ -136,7 +136,7 @@ export default function Home() {
                   onClick={handleGetStarted}
                   className="bg-white text-purple-600 hover:bg-gray-100 text-lg px-8 py-6"
                 >
-                  {user ? "Go to Dashboard" : "Start Free Trial"}
+                  {user ? "Go to Dashboard" : "Get Started Today"}
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
                 {!user && (
@@ -189,10 +189,10 @@ export default function Home() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Everything You Need to Monitor Properties
+              Powerful Features for Property Management
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              A complete SaaS platform designed for letting businesses and landlords to streamline operations.
+              Everything you need to manage properties efficiently and maintain excellent tenant relationships.
             </p>
           </div>
 
@@ -222,10 +222,10 @@ export default function Home() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="text-4xl font-bold text-gray-900 mb-6">
-                Built for Letting Businesses
+                Built for Professional Landlords
               </h2>
               <p className="text-lg text-gray-600 mb-8">
-                Our SaaS platform provides complete data isolation, ensuring each landlord's information remains private and secure.
+                A complete property management solution designed to save you time, reduce costs, and improve tenant satisfaction.
               </p>
               <div className="space-y-4">
                 {benefits.map((benefit, index) => (
@@ -255,10 +255,10 @@ export default function Home() {
         <div className="max-w-4xl mx-auto text-center">
           <Building2 className="w-16 h-16 text-white mx-auto mb-6" />
           <h2 className="text-4xl font-bold text-white mb-6">
-            Start Your Free 30-Day Trial
+            Ready to Transform Your Property Management?
           </h2>
           <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-            Join letting businesses and landlords who trust Landlord Monitor. No credit card required.
+            Join landlords and letting agencies using our platform to streamline operations and improve tenant relationships.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
@@ -266,17 +266,18 @@ export default function Home() {
               onClick={handleGetStarted}
               className="bg-white text-purple-600 hover:bg-gray-100 text-lg px-8 py-6"
             >
-              {user ? "Go to Dashboard" : "Get Started Free"}
+              {user ? "Go to Dashboard" : "Get Started Today"}
               <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
-            <Button 
-              size="lg" 
-              variant="outline" 
-              className="border-white text-white hover:bg-white/10 text-lg px-8 py-6"
-              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            >
-              Learn More
-            </Button>
+            <Link to={createPageUrl("Subscription")}>
+              <Button 
+                size="lg" 
+                variant="outline" 
+                className="border-white text-white hover:bg-white/10 text-lg px-8 py-6"
+              >
+                View Pricing
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
