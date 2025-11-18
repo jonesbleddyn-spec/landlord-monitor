@@ -140,24 +140,13 @@ export default function Home() {
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
                 {!user && (
-                  <>
-                    <Link to={createPageUrl("Subscription")}>
-                      <Button 
-                        size="lg" 
-                        variant="outline"
-                        className="border-2 border-white text-white hover:bg-white/10 text-lg px-8 py-6"
-                      >
-                        View Pricing
-                      </Button>
-                    </Link>
-                    <Button 
-                      size="lg" 
-                      onClick={handleSignIn}
-                      className="bg-white text-purple-600 hover:bg-gray-100 text-lg px-8 py-6"
-                    >
-                      Sign In
-                    </Button>
-                  </>
+                  <Button 
+                    size="lg" 
+                    onClick={handleSignIn}
+                    className="bg-white text-purple-600 hover:bg-gray-100 text-lg px-8 py-6"
+                  >
+                    Sign In
+                  </Button>
                 )}
                 <Link to={createPageUrl("PublicReportFault")}>
                   <Button 

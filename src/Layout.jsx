@@ -195,15 +195,27 @@ export default function Layout({ children, currentPageName }) {
                   Logout
                 </Button>
               ) : (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleLogin}
-                  className="ml-2 text-gray-600 hover:text-blue-600"
-                >
-                  <LogIn className="w-4 h-4 mr-2" />
-                  Login
-                </Button>
+                <>
+                  <Link to={createPageUrl("Subscription")}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="ml-2 text-gray-600 hover:text-blue-600"
+                    >
+                      <CreditCard className="w-4 h-4 mr-2" />
+                      Pricing
+                    </Button>
+                  </Link>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleLogin}
+                    className="ml-2 text-gray-600 hover:text-blue-600"
+                  >
+                    <LogIn className="w-4 h-4 mr-2" />
+                    Login
+                  </Button>
+                </>
               )}
             </nav>
 
@@ -252,14 +264,25 @@ export default function Layout({ children, currentPageName }) {
                   Logout
                 </Button>
               ) : (
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start text-gray-600 hover:text-blue-600"
-                  onClick={handleLogin}
-                >
-                  <LogIn className="w-5 h-5 mr-3" />
-                  Login
-                </Button>
+                <>
+                  <Link to={createPageUrl("Subscription")} onClick={() => setMobileMenuOpen(false)}>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start text-gray-600 hover:text-blue-600"
+                    >
+                      <CreditCard className="w-5 h-5 mr-3" />
+                      Pricing
+                    </Button>
+                  </Link>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start text-gray-600 hover:text-blue-600"
+                    onClick={handleLogin}
+                  >
+                    <LogIn className="w-5 h-5 mr-3" />
+                    Login
+                  </Button>
+                </>
               )}
             </nav>
           </div>
