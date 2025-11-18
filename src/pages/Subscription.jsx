@@ -41,7 +41,19 @@ function SubscriptionContent() {
     queryKey: ['subscription-plans'],
     queryFn: async () => {
       const allPlans = await base44.entities.SubscriptionPlan.list();
-      return allPlans.filter(p => p.is_active).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+      const activePlans = allPlans.filter(p => p.is_active).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+      
+      // If more than 2 plans, put popular one in the middle
+      if (activePlans.length > 2) {
+        const popularIndex = activePlans.findIndex(p => p.is_popular);
+        if (popularIndex !== -1) {
+          const popularPlan = activePlans.splice(popularIndex, 1)[0];
+          const middleIndex = Math.floor(activePlans.length / 2);
+          activePlans.splice(middleIndex, 0, popularPlan);
+        }
+      }
+      
+      return activePlans;
     },
   });
 
@@ -205,7 +217,7 @@ function SubscriptionContent() {
               <p className="text-gray-600">No subscription plans available</p>
             </div>
           ) : (
-            <div className="grid md:grid-cols-3 gap-8">
+            <div className={`grid gap-8 ${plans.length === 1 ? 'md:grid-cols-1 max-w-md mx-auto' : plans.length === 2 ? 'md:grid-cols-2 max-w-4xl mx-auto' : 'md:grid-cols-3'}`}>
               {plans.map((plan) => (
                 <Card 
                   key={plan.id}
