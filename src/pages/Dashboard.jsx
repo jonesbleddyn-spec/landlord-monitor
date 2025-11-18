@@ -38,6 +38,17 @@ function DashboardContent() {
   const isAdmin = user?.role === 'admin';
   const isTenant = user?.user_type === 'tenant';
 
+  // Fetch landlord branding for tenants
+  const { data: landlordBranding } = useQuery({
+    queryKey: ['landlord-branding', user?.landlord_id],
+    queryFn: async () => {
+      if (!user?.landlord_id) return null;
+      const users = await base44.entities.User.list();
+      return users.find(u => u.id === user.landlord_id);
+    },
+    enabled: !!user?.landlord_id && isTenant,
+  });
+
   const { data: properties = [] } = useQuery({
     queryKey: ['user-properties'],
     queryFn: async () => {
@@ -116,9 +127,37 @@ function DashboardContent() {
     return 'Your Dashboard';
   };
 
+  // Get branding colors for tenants
+  const primaryColor = landlordBranding?.brand_color_primary || "#3B82F6";
+  const secondaryColor = landlordBranding?.brand_color_secondary || "#8B5CF6";
+  const companyName = landlordBranding?.company_name || "Property Management";
+  const companyLogo = landlordBranding?.company_logo;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
+        {/* White Label Header for Tenants */}
+        {isTenant && landlordBranding && (
+          <div 
+            className="rounded-xl p-6 mb-8 text-white shadow-xl"
+            style={{ background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})` }}
+          >
+            <div className="flex items-center gap-4">
+              {companyLogo && (
+                <img
+                  src={companyLogo}
+                  alt={companyName}
+                  className="h-16 bg-white p-2 rounded"
+                />
+              )}
+              <div>
+                <h2 className="text-3xl font-bold">{companyName}</h2>
+                <p className="text-sm opacity-90">Property Management Dashboard</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="mb-8">
           <div className="flex justify-between items-start mb-2">
@@ -155,7 +194,10 @@ function DashboardContent() {
               )}
               {isTenant && (
                 <Link to={createPageUrl("ReportFault")}>
-                  <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                  <Button 
+                    className="text-white"
+                    style={{ background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})` }}
+                  >
                     <AlertCircle className="w-4 h-4 mr-2" />
                     Report Fault
                   </Button>
@@ -327,10 +369,16 @@ function DashboardContent() {
 
           {isTenant && (
             <Link to={createPageUrl("ReportFault")} className="block">
-              <Card className="border-2 border-dashed border-gray-300 hover:border-red-500 hover:bg-red-50 transition-all cursor-pointer">
+              <Card 
+                className="border-2 border-dashed transition-all cursor-pointer hover:shadow-lg"
+                style={{ 
+                  borderColor: primaryColor,
+                  backgroundColor: `${primaryColor}10`
+                }}
+              >
                 <CardContent className="p-6 text-center">
-                  <AlertCircle className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                  <p className="font-medium text-gray-700">Report Fault</p>
+                  <AlertCircle className="w-8 h-8 mx-auto mb-2" style={{ color: primaryColor }} />
+                  <p className="font-medium" style={{ color: primaryColor }}>Report Fault</p>
                 </CardContent>
               </Card>
             </Link>
