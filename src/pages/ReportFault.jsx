@@ -296,28 +296,6 @@ function ReportFaultContent() {
   return (
     <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
-        {/* White Label Header for Tenants */}
-        {isTenant && (landlordBranding || user?.landlord_id) && (
-          <div 
-            className="rounded-xl p-6 mb-8 text-white shadow-xl"
-            style={{ background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})` }}
-          >
-            <div className="flex items-center gap-4">
-              {companyLogo && (
-                <img
-                  src={companyLogo}
-                  alt={companyName}
-                  className="h-12 bg-white p-2 rounded"
-                />
-              )}
-              <div>
-                <h2 className="text-2xl font-bold">{companyName}</h2>
-                <p className="text-sm opacity-90">Property Management Services</p>
-              </div>
-            </div>
-          </div>
-        )}
-
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">Report a Fault</h1>
           <p className="text-lg text-gray-600">

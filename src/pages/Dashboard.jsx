@@ -139,28 +139,6 @@ function DashboardContent() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        {/* White Label Header for Tenants */}
-        {isTenant && (landlordBranding || user?.landlord_id) && (
-          <div 
-            className="rounded-xl p-6 mb-8 text-white shadow-xl"
-            style={{ background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})` }}
-          >
-            <div className="flex items-center gap-4">
-              {companyLogo && (
-                <img
-                  src={companyLogo}
-                  alt={companyName}
-                  className="h-16 bg-white p-2 rounded"
-                />
-              )}
-              <div>
-                <h2 className="text-3xl font-bold">{companyName}</h2>
-                <p className="text-sm opacity-90">Property Management Dashboard</p>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Header */}
         <div className="mb-8">
           <div className="flex justify-between items-start mb-2">
