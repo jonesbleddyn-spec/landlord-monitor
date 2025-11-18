@@ -21,7 +21,7 @@ import {
 export default function Home() {
   const navigate = useNavigate();
 
-  const { data: user } = useQuery({
+  const { data: user, isLoading } = useQuery({
     queryKey: ['user'],
     queryFn: async () => {
       try {
@@ -31,6 +31,16 @@ export default function Home() {
       }
     },
   });
+
+  React.useEffect(() => {
+    if (!isLoading && user) {
+      if (!user.onboarding_completed) {
+        navigate(createPageUrl("Onboarding"));
+      } else {
+        navigate(createPageUrl("Dashboard"));
+      }
+    }
+  }, [user, isLoading, navigate]);
 
   const features = [
     {
