@@ -20,15 +20,18 @@ import {
   Megaphone,
   Palette,
   Bell,
-  Smartphone
+  Smartphone,
+  User
 } from "lucide-react";
 import InviteTenantModal from "../components/landlord/InviteTenantModal";
 import AllPropertiesReport from "../components/properties/AllPropertiesReport";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
+import ProfileModal from "../components/profile/ProfileModal";
 
 function DashboardContent() {
   const [showInviteModal, setShowInviteModal] = React.useState(false);
   const [showAllPropertiesReport, setShowAllPropertiesReport] = React.useState(false);
+  const [showProfileModal, setShowProfileModal] = React.useState(false);
 
   const { data: user } = useQuery({
     queryKey: ['user'],
@@ -509,6 +512,12 @@ function DashboardContent() {
             />
           </>
         )}
+
+        <ProfileModal
+          open={showProfileModal}
+          onClose={() => setShowProfileModal(false)}
+          user={user}
+        />
       </div>
     </div>
   );
