@@ -1,6 +1,6 @@
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, BarChart3, Key, Settings, FileText, Megaphone, Mail, Activity, CreditCard } from "lucide-react";
+import { Shield, BarChart3, Key, Settings, FileText, Megaphone, Mail, Activity, CreditCard, Smartphone } from "lucide-react";
 import AdminStats from "../components/admin/AdminStats";
 import ApiKeyManager from "../components/admin/ApiKeyManager";
 import SiteSettings from "../components/admin/SiteSettings";
@@ -10,6 +10,7 @@ import EmailMarketing from "../components/admin/EmailMarketing";
 import ThirdPartyServices from "../components/admin/ThirdPartyServices";
 import SubscriptionPlans from "../components/admin/SubscriptionPlans";
 import StripeSettings from "../components/admin/StripeSettings";
+import TwilioSettings from "../components/admin/TwilioSettings";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
 
 function AdminContent() {
@@ -57,6 +58,10 @@ function AdminContent() {
                 <CreditCard className="w-4 h-4 mr-2" />
                 <span className="hidden sm:inline">Stripe</span>
               </TabsTrigger>
+              <TabsTrigger value="twilio" className="data-[state=active]:bg-teal-600 whitespace-nowrap">
+                <Smartphone className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Twilio SMS</span>
+              </TabsTrigger>
               <TabsTrigger value="api-keys" className="data-[state=active]:bg-purple-600 whitespace-nowrap">
                 <Key className="w-4 h-4 mr-2" />
                 <span className="hidden sm:inline">API Keys</span>
@@ -94,6 +99,10 @@ function AdminContent() {
 
           <TabsContent value="stripe">
             <StripeSettings />
+          </TabsContent>
+
+          <TabsContent value="twilio">
+            <TwilioSettings />
           </TabsContent>
 
           <TabsContent value="api-keys">
