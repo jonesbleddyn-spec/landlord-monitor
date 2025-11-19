@@ -28,12 +28,10 @@ export default function Layout({ children, currentPageName }) {
     queryKey: ['landlord-branding', user?.landlord_id],
     queryFn: async () => {
       if (!user?.landlord_id) return null;
-      const response = await base44.functions.invoke('getLandlordBranding');
-      return response.data;
+      const landlords = await base44.entities.User.filter({ id: user.landlord_id });
+      return landlords.length > 0 ? landlords[0] : null;
     },
     enabled: !!user?.landlord_id && isTenant,
-    staleTime: 0,
-    cacheTime: 0,
   });
 
   const { data: siteSettings } = useQuery({
@@ -133,9 +131,9 @@ export default function Layout({ children, currentPageName }) {
                   <img
                     src={displayLogo}
                     alt={displayName}
-                    className="h-12 object-contain"
+                    className="h-12 object-contain max-w-[200px]"
                   />
-                  <span className="text-2xl font-bold" style={{ 
+                  <span className="text-xl md:text-2xl font-bold whitespace-nowrap" style={{ 
                     background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})`,
                     WebkitBackgroundClip: 'text',
                     WebkitTextFillColor: 'transparent',
@@ -147,7 +145,7 @@ export default function Layout({ children, currentPageName }) {
               ) : (
                 <>
                   <div 
-                    className="w-10 h-10 rounded-xl flex items-center justify-center"
+                    className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                     style={{ background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})` }}
                   >
                     <Building2 className="w-6 h-6 text-white" />
