@@ -16,7 +16,8 @@ import {
   Loader2,
   Database,
   Globe,
-  CheckCircle
+  CheckCircle,
+  Share2
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -39,7 +40,12 @@ export default function SiteSettings() {
     session_timeout: "24",
     require_email_verification: true,
     max_file_size: "10",
-    allowed_file_types: "jpg,jpeg,png,pdf,doc,docx"
+    allowed_file_types: "jpg,jpeg,png,pdf,doc,docx",
+    social_facebook: "",
+    social_twitter: "",
+    social_linkedin: "",
+    social_instagram: "",
+    social_youtube: ""
   });
 
   const { data: loadedSettings, isLoading } = useQuery({
@@ -69,7 +75,12 @@ export default function SiteSettings() {
         session_timeout: String(loadedSettings.session_timeout || "24"),
         require_email_verification: loadedSettings.require_email_verification !== false,
         max_file_size: String(loadedSettings.max_file_size || "10"),
-        allowed_file_types: loadedSettings.allowed_file_types || "jpg,jpeg,png,pdf,doc,docx"
+        allowed_file_types: loadedSettings.allowed_file_types || "jpg,jpeg,png,pdf,doc,docx",
+        social_facebook: loadedSettings.social_facebook || "",
+        social_twitter: loadedSettings.social_twitter || "",
+        social_linkedin: loadedSettings.social_linkedin || "",
+        social_instagram: loadedSettings.social_instagram || "",
+        social_youtube: loadedSettings.social_youtube || ""
       });
     }
   }, [loadedSettings]);
@@ -340,6 +351,68 @@ export default function SiteSettings() {
               className="bg-gray-700/50 border-gray-600 text-white"
             />
             <p className="text-xs text-gray-500 mt-1">Comma-separated list of file extensions</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Social Media Links */}
+      <Card className="border-gray-700 bg-gray-800/50 backdrop-blur">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center gap-2">
+            <Share2 className="w-5 h-5" />
+            Social Media Links
+          </CardTitle>
+          <p className="text-sm text-gray-400">Social media links will appear in the footer when filled</p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label className="text-gray-300">Facebook URL</Label>
+            <Input
+              value={settings.social_facebook}
+              onChange={(e) => updateSetting('social_facebook', e.target.value)}
+              placeholder="https://facebook.com/yourpage"
+              className="bg-gray-700/50 border-gray-600 text-white"
+            />
+          </div>
+
+          <div>
+            <Label className="text-gray-300">Twitter/X URL</Label>
+            <Input
+              value={settings.social_twitter}
+              onChange={(e) => updateSetting('social_twitter', e.target.value)}
+              placeholder="https://twitter.com/yourhandle"
+              className="bg-gray-700/50 border-gray-600 text-white"
+            />
+          </div>
+
+          <div>
+            <Label className="text-gray-300">LinkedIn URL</Label>
+            <Input
+              value={settings.social_linkedin}
+              onChange={(e) => updateSetting('social_linkedin', e.target.value)}
+              placeholder="https://linkedin.com/company/yourcompany"
+              className="bg-gray-700/50 border-gray-600 text-white"
+            />
+          </div>
+
+          <div>
+            <Label className="text-gray-300">Instagram URL</Label>
+            <Input
+              value={settings.social_instagram}
+              onChange={(e) => updateSetting('social_instagram', e.target.value)}
+              placeholder="https://instagram.com/yourhandle"
+              className="bg-gray-700/50 border-gray-600 text-white"
+            />
+          </div>
+
+          <div>
+            <Label className="text-gray-300">YouTube URL</Label>
+            <Input
+              value={settings.social_youtube}
+              onChange={(e) => updateSetting('social_youtube', e.target.value)}
+              placeholder="https://youtube.com/@yourchannel"
+              className="bg-gray-700/50 border-gray-600 text-white"
+            />
           </div>
         </CardContent>
       </Card>

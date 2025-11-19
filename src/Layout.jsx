@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { Building2, MessageSquare, FileText, Menu, X, LayoutDashboard, LogOut, LogIn, CreditCard, HelpCircle } from "lucide-react";
+import { Building2, MessageSquare, FileText, Menu, X, LayoutDashboard, LogOut, LogIn, CreditCard, HelpCircle, Facebook, Twitter, Linkedin, Instagram, Youtube } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CookieConsent from "../components/CookieConsent";
 
@@ -364,13 +364,42 @@ export default function Layout({ children, currentPageName }) {
                 <li><Link to={createPageUrl("PrivacyPolicy")} className="hover:text-white transition-colors">Privacy Policy</Link></li>
                 <li><Link to={createPageUrl("CookiePolicy")} className="hover:text-white transition-colors">Cookie Policy</Link></li>
               </ul>
-            </div>
-          </div>
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2025 {displayName}. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
+              </div>
+              </div>
+              <div className="border-t border-gray-800 mt-8 pt-8">
+              {(siteSettings?.social_facebook || siteSettings?.social_twitter || siteSettings?.social_linkedin || siteSettings?.social_instagram || siteSettings?.social_youtube) && (
+              <div className="flex justify-center gap-4 mb-6">
+                {siteSettings?.social_facebook && (
+                  <a href={siteSettings.social_facebook} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-gray-800 hover:bg-blue-600 flex items-center justify-center transition-colors">
+                    <Facebook className="w-5 h-5" />
+                  </a>
+                )}
+                {siteSettings?.social_twitter && (
+                  <a href={siteSettings.social_twitter} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-gray-800 hover:bg-blue-400 flex items-center justify-center transition-colors">
+                    <Twitter className="w-5 h-5" />
+                  </a>
+                )}
+                {siteSettings?.social_linkedin && (
+                  <a href={siteSettings.social_linkedin} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-gray-800 hover:bg-blue-700 flex items-center justify-center transition-colors">
+                    <Linkedin className="w-5 h-5" />
+                  </a>
+                )}
+                {siteSettings?.social_instagram && (
+                  <a href={siteSettings.social_instagram} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-gray-800 hover:bg-pink-600 flex items-center justify-center transition-colors">
+                    <Instagram className="w-5 h-5" />
+                  </a>
+                )}
+                {siteSettings?.social_youtube && (
+                  <a href={siteSettings.social_youtube} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-gray-800 hover:bg-red-600 flex items-center justify-center transition-colors">
+                    <Youtube className="w-5 h-5" />
+                  </a>
+                )}
+              </div>
+              )}
+              <p className="text-center text-gray-400">&copy; 2025 {displayName}. All rights reserved.</p>
+              </div>
+              </div>
+              </footer>
     </div>
   );
 }
