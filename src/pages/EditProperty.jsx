@@ -163,7 +163,7 @@ function EditPropertyContent() {
                 />
               </div>
 
-              <div className="grid md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <Label htmlFor="type">Property Type</Label>
                   <Select
@@ -218,7 +218,7 @@ function EditPropertyContent() {
                   </AlertDescription>
                 </Alert>
 
-                <div className="grid md:grid-cols-3 gap-4 mb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4">
                   <div>
                     <Label htmlFor="gas_certificate_expiry">Gas Safety Certificate</Label>
                     <Input
@@ -314,7 +314,7 @@ function EditPropertyContent() {
                 </div>
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <Button
                   type="button"
                   variant="outline"

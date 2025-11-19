@@ -147,7 +147,7 @@ export default function PublicReportFault() {
               <div className="space-y-4 bg-gray-50 p-6 rounded-lg">
                 <h3 className="font-semibold text-lg text-gray-900">Your Contact Information</h3>
                 
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="reporter_name">Your Name *</Label>
                     <Input
@@ -207,7 +207,7 @@ export default function PublicReportFault() {
                 />
               </div>
 
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="category">Category *</Label>
                   <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
@@ -238,7 +238,7 @@ export default function PublicReportFault() {
                 </div>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="location">Location in Property</Label>
                   <Input
@@ -280,7 +280,7 @@ export default function PublicReportFault() {
                 </div>
 
                 {formData.images.length > 0 && (
-                  <div className="mt-4 grid grid-cols-3 gap-2">
+                  <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {formData.images.map((url, index) => (
                       <img key={index} src={url} alt={`Upload ${index + 1}`} className="rounded-lg h-24 w-full object-cover" />
                     ))}

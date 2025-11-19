@@ -160,12 +160,12 @@ function DashboardContent() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex justify-between items-start mb-2">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
             <div>
-              <h1 className="text-4xl font-bold text-gray-900">{getGreeting()}</h1>
-              <p className="text-lg text-gray-600 mt-1">{getSubtitle()}</p>
+              <h1 className="text-3xl sm:text-4xl font-bold text-gray-900">{getGreeting()}</h1>
+              <p className="text-base sm:text-lg text-gray-600 mt-1">{getSubtitle()}</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {isAdmin && (
                 <Link to={createPageUrl("Admin")}>
                   <Button className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700">
@@ -347,7 +347,7 @@ function DashboardContent() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {isLandlord && (
             <>
               <Link to={createPageUrl("AddProperty")} className="block">

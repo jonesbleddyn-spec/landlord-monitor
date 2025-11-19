@@ -131,7 +131,7 @@ export default function Onboarding() {
                 {/* Account Type */}
                 <div>
                   <Label className="text-lg font-semibold mb-4 block">I am a...</Label>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <button
                       type="button"
                       onClick={() => setFormData(prev => ({ ...prev, user_type: "landlord" }))}

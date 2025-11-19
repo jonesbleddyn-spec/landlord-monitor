@@ -156,7 +156,7 @@ function AddPropertyContent() {
               </div>
 
               {/* Type and Units */}
-              <div className="grid md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <Label htmlFor="type">Property Type</Label>
                   <Select

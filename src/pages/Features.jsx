@@ -257,7 +257,7 @@ export default function Features() {
                 </div>
               </CardHeader>
               <CardContent className="p-8">
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {category.features.map((feature, idx) => (
                     <div key={idx} className="flex items-start gap-4 p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
                       <div className={`w-10 h-10 rounded-lg bg-gradient-to-r ${category.color} flex items-center justify-center flex-shrink-0`}>
@@ -283,7 +283,7 @@ export default function Features() {
           <p className="text-gray-600 text-center mb-12 max-w-2xl mx-auto">
             Our platform is designed to solve real property management challenges and deliver measurable results
           </p>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {benefits.map((benefit, index) => (
               <Card key={index} className="border-none shadow-lg">
                 <CardContent className="p-6">
@@ -304,14 +304,14 @@ export default function Features() {
           <p className="text-xl mb-8 text-white/90 max-w-2xl mx-auto">
             See how our platform can help you save time, reduce costs, and improve tenant satisfaction.
           </p>
-          <div className="flex gap-4 justify-center flex-wrap">
-            <Link to={createPageUrl("Subscription")}>
-              <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100 text-lg px-8 py-6">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link to={createPageUrl("Subscription")} className="w-full sm:w-auto">
+              <Button size="lg" className="w-full bg-white text-blue-600 hover:bg-gray-100 text-lg px-8 py-6">
                 View Pricing Plans
               </Button>
             </Link>
-            <Link to={createPageUrl("Home")}>
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10 text-lg px-8 py-6">
+            <Link to={createPageUrl("Home")} className="w-full sm:w-auto">
+              <Button size="lg" variant="outline" className="w-full border-white text-white hover:bg-white/10 text-lg px-8 py-6">
                 Back to Home
               </Button>
             </Link>

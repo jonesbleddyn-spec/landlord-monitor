@@ -168,7 +168,7 @@ function SubscriptionContent() {
               </div>
             </div>
             <CardContent className="p-8">
-              <div className="grid md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                 <div className="flex items-center gap-3">
                   <Building2 className="w-8 h-8 text-purple-600" />
                   <div>
