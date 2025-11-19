@@ -176,7 +176,7 @@ function WhiteLabelSettingsContent() {
                     </span>
                   </label>
                   <p className="text-sm text-gray-500">
-                    PNG or JPG. Recommended size: 200x60px
+                    PNG or JPG. Recommended size: 200x60px for best quality. Logo displays at 48px height in header.
                   </p>
                 </div>
               </div>
