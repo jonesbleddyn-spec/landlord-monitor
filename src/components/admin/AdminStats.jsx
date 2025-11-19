@@ -11,9 +11,7 @@ import {
   TrendingUp,
   TrendingDown,
   DollarSign,
-  Activity,
-  Bell,
-  CreditCard
+  Activity
 } from "lucide-react";
 
 export default function AdminStats() {
@@ -45,16 +43,6 @@ export default function AdminStats() {
   const { data: payments = [] } = useQuery({
     queryKey: ['admin-payments'],
     queryFn: () => base44.entities.Payment.list('-created_date'),
-  });
-
-  const { data: reminders = [] } = useQuery({
-    queryKey: ['admin-reminders'],
-    queryFn: () => base44.entities.Reminder.list('-created_date'),
-  });
-
-  const { data: plans = [] } = useQuery({
-    queryKey: ['admin-plans'],
-    queryFn: () => base44.entities.SubscriptionPlan.list(),
   });
 
   const stats = [
@@ -162,7 +150,7 @@ export default function AdminStats() {
       </div>
 
       {/* Detailed Breakdown */}
-      <div className="grid md:grid-cols-3 gap-6">
+      <div className="grid md:grid-cols-2 gap-6">
         {/* User Types */}
         <Card className="border-gray-700 bg-gray-800/50 backdrop-blur">
           <CardHeader>
@@ -193,48 +181,27 @@ export default function AdminStats() {
         <Card className="border-gray-700 bg-gray-800/50 backdrop-blur">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
-              <CreditCard className="w-5 h-5" />
-              Active Subscriptions
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {plans.filter(p => p.is_active).map(plan => {
-              const count = users.filter(u => u.subscription_plan_id === plan.id).length;
-              return (
-                <div key={plan.id} className="flex justify-between items-center p-3 bg-gray-700/50 rounded-lg">
-                  <span className="text-gray-300">{plan.name}</span>
-                  <span className="text-2xl font-bold text-blue-400">{count}</span>
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
-
-        {/* System Stats */}
-        <Card className="border-gray-700 bg-gray-800/50 backdrop-blur">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
               <Activity className="w-5 h-5" />
-              System Activity
+              Subscription Plans
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex justify-between items-center p-3 bg-gray-700/50 rounded-lg">
-              <span className="text-gray-300">Active Reminders</span>
-              <span className="text-2xl font-bold text-orange-400">
-                {reminders.filter(r => !r.completed).length}
+              <span className="text-gray-300">Free/Trial</span>
+              <span className="text-2xl font-bold text-gray-400">
+                {subscriptionStats.free || 0}
               </span>
             </div>
             <div className="flex justify-between items-center p-3 bg-gray-700/50 rounded-lg">
-              <span className="text-gray-300">Open Faults</span>
-              <span className="text-2xl font-bold text-red-400">
-                {faults.filter(f => !['completed', 'closed'].includes(f.status)).length}
+              <span className="text-gray-300">Basic</span>
+              <span className="text-2xl font-bold text-yellow-400">
+                {subscriptionStats.basic || 0}
               </span>
             </div>
             <div className="flex justify-between items-center p-3 bg-gray-700/50 rounded-lg">
-              <span className="text-gray-300">Total Revenue</span>
+              <span className="text-gray-300">Pro</span>
               <span className="text-2xl font-bold text-emerald-400">
-                £{payments.filter(p => p.status === 'completed').reduce((sum, p) => sum + p.amount, 0).toFixed(0)}
+                {subscriptionStats.pro || 0}
               </span>
             </div>
           </CardContent>

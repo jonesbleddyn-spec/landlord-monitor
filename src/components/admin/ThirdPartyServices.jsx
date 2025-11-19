@@ -294,7 +294,7 @@ export default function ThirdPartyServices() {
           </div>
           <div>
             <h4 className="font-semibold mb-1">Landlord-Configured Services</h4>
-            <p>Twilio SMS and custom SMTP email providers can be configured individually by each landlord in their White Label Settings. The status shown is for the service provider's infrastructure, not individual landlord accounts. Landlords can choose which notification types (fault reports, updates, reminders) trigger SMS messages.</p>
+            <p>Twilio and custom SMTP providers are configured individually by landlords. Status shown is for the service provider's infrastructure, not individual landlord accounts.</p>
           </div>
           <div>
             <h4 className="font-semibold mb-1">Monitoring</h4>
@@ -344,19 +344,6 @@ export default function ThirdPartyServices() {
                 <li>Payment updates will fail</li>
                 <li>Existing subscriptions continue to work</li>
                 <li>No access to platform functionality is lost</li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-2 flex items-center gap-2">
-                <MessageSquare className="w-4 h-4" />
-                If Twilio/SMTP is down:
-              </h4>
-              <ul className="list-disc list-inside text-sm text-gray-700 ml-4 space-y-1">
-                <li>SMS notifications won't be delivered</li>
-                <li>Email notifications may fail (depending on provider)</li>
-                <li>All other platform features remain operational</li>
-                <li>Landlords can configure alternative providers</li>
-                <li>In-app notifications still work</li>
               </ul>
             </div>
           </div>
