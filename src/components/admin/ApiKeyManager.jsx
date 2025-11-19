@@ -20,88 +20,17 @@ export default function ApiKeyManager() {
   const [saving, setSaving] = useState(false);
   const [showKeys, setShowKeys] = useState({});
   const [apiKeys, setApiKeys] = useState({
-    openai: "",
-    stripe_publishable: "",
-    stripe_secret: "",
-    stripe_webhook_secret: "",
-    facebook_app_id: "",
-    facebook_app_secret: "",
-    google_maps: "",
-    sendgrid: "",
-    twilio_account_sid: "",
-    twilio_auth_token: ""
+    openai: ""
   });
 
   const apiKeyConfigs = [
     {
       key: "openai",
       label: "OpenAI API Key",
-      description: "For AI-powered fault analysis and image recognition",
+      description: "Required for AI-powered fault analysis, image recognition, and DIY tips generation",
       icon: "🤖",
-      placeholder: "sk-..."
-    },
-    {
-      key: "stripe_publishable",
-      label: "Stripe Publishable Key",
-      description: "Stripe public key for frontend",
-      icon: "💳",
-      placeholder: "pk_..."
-    },
-    {
-      key: "stripe_secret",
-      label: "Stripe Secret Key",
-      description: "Stripe secret key for backend transactions",
-      icon: "🔐",
-      placeholder: "sk_..."
-    },
-    {
-      key: "stripe_webhook_secret",
-      label: "Stripe Webhook Secret",
-      description: "For verifying Stripe webhook signatures",
-      icon: "🔔",
-      placeholder: "whsec_..."
-    },
-    {
-      key: "facebook_app_id",
-      label: "Facebook App ID",
-      description: "For social login and sharing",
-      icon: "📘",
-      placeholder: "..."
-    },
-    {
-      key: "facebook_app_secret",
-      label: "Facebook App Secret",
-      description: "Facebook app authentication",
-      icon: "🔒",
-      placeholder: "..."
-    },
-    {
-      key: "google_maps",
-      label: "Google Maps API Key",
-      description: "For property location services",
-      icon: "🗺️",
-      placeholder: "AIza..."
-    },
-    {
-      key: "sendgrid",
-      label: "SendGrid API Key",
-      description: "For transactional email delivery",
-      icon: "📧",
-      placeholder: "SG...."
-    },
-    {
-      key: "twilio_account_sid",
-      label: "Twilio Account SID",
-      description: "For SMS notifications",
-      icon: "📱",
-      placeholder: "AC..."
-    },
-    {
-      key: "twilio_auth_token",
-      label: "Twilio Auth Token",
-      description: "Twilio authentication token",
-      icon: "🔑",
-      placeholder: "..."
+      placeholder: "sk-...",
+      required: true
     }
   ];
 
@@ -134,28 +63,54 @@ export default function ApiKeyManager() {
 
   return (
     <div className="space-y-6">
-      <Card className="border-yellow-600 bg-yellow-900/20 backdrop-blur">
-        <CardContent className="p-4">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-yellow-200 font-medium">Security Notice</p>
-              <p className="text-sm text-yellow-300 mt-1">
-                API keys are sensitive credentials. Never share them publicly or commit them to version control.
-                All keys are encrypted at rest and in transit.
-              </p>
+      <Card className="border-blue-600 bg-blue-900/20 backdrop-blur">
+        <CardContent className="p-6">
+          <div className="space-y-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-blue-200 font-medium text-lg mb-2">Self-Hosting Configuration</p>
+                <p className="text-sm text-blue-300 mb-4">
+                  These API keys are required if you're hosting this application outside of Base44. 
+                  On Base44, these integrations are managed automatically through the platform.
+                </p>
+                <div className="bg-blue-950/50 rounded-lg p-4 border border-blue-800">
+                  <p className="text-blue-200 font-semibold mb-2">🚀 To Host Elsewhere:</p>
+                  <ol className="text-sm text-blue-300 space-y-1 list-decimal list-inside">
+                    <li>Export your app code from Base44</li>
+                    <li>Set up a Node.js/React hosting environment (Vercel, Netlify, AWS, etc.)</li>
+                    <li>Configure these API keys as environment variables</li>
+                    <li>Set up your database (PostgreSQL recommended)</li>
+                    <li>Configure Stripe keys in the Stripe Settings tab</li>
+                    <li>Configure SMTP settings in Site Settings for email delivery</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex items-start gap-3 bg-yellow-900/20 border border-yellow-600 rounded-lg p-4">
+              <AlertCircle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-yellow-200 font-medium">Security Notice</p>
+                <p className="text-sm text-yellow-300">
+                  Never share API keys publicly or commit them to version control. Use environment variables.
+                </p>
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         {apiKeyConfigs.map((config) => (
           <Card key={config.key} className="border-gray-700 bg-gray-800/50 backdrop-blur">
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2 text-lg">
                 <span className="text-2xl">{config.icon}</span>
                 {config.label}
+                {config.required && (
+                  <Badge className="bg-red-600 text-white ml-2">Required</Badge>
+                )}
               </CardTitle>
               <p className="text-sm text-gray-400">{config.description}</p>
             </CardHeader>
