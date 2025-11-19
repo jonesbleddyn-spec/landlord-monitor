@@ -124,17 +124,17 @@ export default function Home() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="text-white relative z-10">
-              <h1 className="text-5xl md:text-6xl font-bold leading-tight mb-6">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6">
                 Complete Property Management Solution
               </h1>
-              <p className="text-xl md:text-2xl mb-8 text-blue-100">
+              <p className="text-lg md:text-xl lg:text-2xl mb-8 text-blue-100">
                 Connect with tenants, track maintenance, and manage all your properties from one comprehensive platform.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button 
                   size="lg" 
                   onClick={handleGetStarted}
-                  className="bg-white text-purple-600 hover:bg-gray-100 text-lg px-8 py-6"
+                  className="w-full sm:w-auto bg-white text-purple-600 hover:bg-gray-100 text-lg px-8 py-6"
                 >
                   {user ? "Go to Dashboard" : "Get Started Today"}
                   <ArrowRight className="ml-2 w-5 h-5" />
@@ -143,15 +143,15 @@ export default function Home() {
                   <Button 
                     size="lg" 
                     onClick={handleSignIn}
-                    className="bg-white text-purple-600 hover:bg-gray-100 text-lg px-8 py-6"
+                    className="w-full sm:w-auto bg-white text-purple-600 hover:bg-gray-100 text-lg px-8 py-6"
                   >
                     Sign In
                   </Button>
                 )}
-                <Link to={createPageUrl("PublicReportFault")}>
+                <Link to={createPageUrl("PublicReportFault")} className="w-full sm:w-auto">
                   <Button 
                     size="lg" 
-                    className="bg-white text-purple-600 hover:bg-gray-100 text-lg px-8 py-6 w-full sm:w-auto"
+                    className="w-full bg-white text-purple-600 hover:bg-gray-100 text-lg px-8 py-6"
                   >
                     <AlertCircle className="mr-2 w-5 h-5" />
                     Report Fault
@@ -188,15 +188,15 @@ export default function Home() {
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               Powerful Features for Property Management
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">
               Everything you need to manage properties efficiently and maintain excellent tenant relationships.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, index) => (
               <Card key={index} className="group hover:shadow-xl transition-all duration-300 border-none overflow-hidden">
                 <CardContent className="p-6">
@@ -221,10 +221,10 @@ export default function Home() {
         <div className="max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              <h2 className="text-4xl font-bold text-gray-900 mb-6">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
                 Built for Professional Landlords
               </h2>
-              <p className="text-lg text-gray-600 mb-8">
+              <p className="text-base md:text-lg text-gray-600 mb-8">
                 A complete property management solution designed to save you time, reduce costs, and improve tenant satisfaction.
               </p>
               <div className="space-y-4">
@@ -254,26 +254,26 @@ export default function Home() {
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-600 to-purple-600">
         <div className="max-w-4xl mx-auto text-center">
           <Building2 className="w-16 h-16 text-white mx-auto mb-6" />
-          <h2 className="text-4xl font-bold text-white mb-6">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
             Ready to Transform Your Property Management?
           </h2>
-          <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
+          <p className="text-lg md:text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
             Join landlords and letting agencies using Landlord Maint to streamline operations and improve tenant relationships.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
               size="lg" 
               onClick={handleGetStarted}
-              className="bg-white text-purple-600 hover:bg-gray-100 text-lg px-8 py-6"
+              className="w-full sm:w-auto bg-white text-purple-600 hover:bg-gray-100 text-lg px-8 py-6"
             >
               {user ? "Go to Dashboard" : "Get Started Today"}
               <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
-            <Link to={createPageUrl("Subscription")}>
+            <Link to={createPageUrl("Subscription")} className="w-full sm:w-auto">
               <Button 
                 size="lg" 
                 variant="outline" 
-                className="border-white text-white hover:bg-white/10 text-lg px-8 py-6"
+                className="w-full border-white text-white hover:bg-white/10 text-lg px-8 py-6"
               >
                 View Pricing
               </Button>
