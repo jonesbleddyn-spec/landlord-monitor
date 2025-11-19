@@ -462,7 +462,7 @@ function WhiteLabelSettingsContent() {
                         <div className="flex items-center justify-between p-3 bg-white rounded-lg">
                           <div>
                             <Label className="font-medium text-gray-900">Reminder Notifications</Label>
-                            <p className="text-xs text-gray-600">Send SMS reminders for certificates and tasks</p>
+                            <p className="text-xs text-gray-600">Send SMS reminders to you for certificates and tasks</p>
                           </div>
                           <Switch
                             checked={formData.sms_reminder_notifications}
