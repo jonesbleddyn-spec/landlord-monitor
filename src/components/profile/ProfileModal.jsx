@@ -33,27 +33,25 @@ export default function ProfileModal({ open, onClose, user }) {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data) => {
-      // Update the User entity directly
-      return await base44.entities.User.update(user.id, data);
+      // Use updateMe for built-in fields, and also update entity for custom fields
+      await base44.auth.updateMe(data);
+      // Also update the User entity to ensure persistence
+      return await base44.entities.User.update(user.id, { phone_number: data.phone_number });
     },
     onSuccess: async () => {
-      // Invalidate all user-related queries
-      queryClient.invalidateQueries({ queryKey: ['user'] });
-      queryClient.invalidateQueries({ queryKey: ['landlord-branding'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      // Clear all caches and force refetch
+      queryClient.removeQueries({ queryKey: ['user'] });
+      queryClient.removeQueries({ queryKey: ['landlord-branding'] });
       
-      // Force immediate refetch to show changes
-      await Promise.all([
-        queryClient.refetchQueries({ queryKey: ['user'] }),
-        queryClient.refetchQueries({ queryKey: ['landlord-branding'] })
-      ]);
+      // Refetch with fresh data
+      await queryClient.refetchQueries({ queryKey: ['user'] });
       
-      toast.success("Profile updated successfully!");
-      onClose();
+      // Reload the page to ensure all components update
+      window.location.reload();
     },
     onError: (error) => {
       console.error("Profile update error:", error);
-      toast.error(error?.message || "Failed to update profile. Please try again.");
+      toast.error("Failed to update profile. Please try again.");
     }
   });
 
