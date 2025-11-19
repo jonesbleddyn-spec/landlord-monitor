@@ -5,8 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Palette, Upload, Loader2, CheckCircle, Mail, Eye, EyeOff, MessageSquare } from "lucide-react";
+import { Palette, Upload, Loader2, CheckCircle, Mail, Eye, EyeOff, MessageSquare, Bell } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
 
@@ -35,7 +36,10 @@ function WhiteLabelSettingsContent() {
     use_custom_sms: user?.use_custom_sms || false,
     twilio_account_sid: user?.twilio_account_sid || "",
     twilio_auth_token: user?.twilio_auth_token || "",
-    twilio_phone_number: user?.twilio_phone_number || ""
+    twilio_phone_number: user?.twilio_phone_number || "",
+    sms_fault_reported: user?.sms_fault_reported !== false,
+    sms_fault_updated: user?.sms_fault_updated !== false,
+    sms_reminder_notifications: user?.sms_reminder_notifications !== false
   });
 
   React.useEffect(() => {
@@ -55,7 +59,10 @@ function WhiteLabelSettingsContent() {
         use_custom_sms: user.use_custom_sms || false,
         twilio_account_sid: user.twilio_account_sid || "",
         twilio_auth_token: user.twilio_auth_token || "",
-        twilio_phone_number: user.twilio_phone_number || ""
+        twilio_phone_number: user.twilio_phone_number || "",
+        sms_fault_reported: user.sms_fault_reported !== false,
+        sms_fault_updated: user.sms_fault_updated !== false,
+        sms_reminder_notifications: user.sms_reminder_notifications !== false
       });
     }
   }, [user]);
@@ -420,7 +427,52 @@ function WhiteLabelSettingsContent() {
                       </p>
                     </div>
 
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800">
+                    <div className="border-t mt-4 pt-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Bell className="w-4 h-4 text-green-700" />
+                        <Label className="font-semibold text-green-900">SMS Notification Preferences</Label>
+                      </div>
+                      <p className="text-xs text-green-700 mb-3">
+                        Choose which events will trigger SMS notifications to your tenants
+                      </p>
+                      
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between p-3 bg-white rounded-lg">
+                          <div>
+                            <Label className="font-medium text-gray-900">New Fault Reported</Label>
+                            <p className="text-xs text-gray-600">Send SMS to you when tenants report faults</p>
+                          </div>
+                          <Switch
+                            checked={formData.sms_fault_reported}
+                            onCheckedChange={(checked) => setFormData(prev => ({ ...prev, sms_fault_reported: checked }))}
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between p-3 bg-white rounded-lg">
+                          <div>
+                            <Label className="font-medium text-gray-900">Fault Status Updates</Label>
+                            <p className="text-xs text-gray-600">Notify tenants via SMS when fault status changes</p>
+                          </div>
+                          <Switch
+                            checked={formData.sms_fault_updated}
+                            onCheckedChange={(checked) => setFormData(prev => ({ ...prev, sms_fault_updated: checked }))}
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between p-3 bg-white rounded-lg">
+                          <div>
+                            <Label className="font-medium text-gray-900">Reminder Notifications</Label>
+                            <p className="text-xs text-gray-600">Send SMS reminders for certificates and tasks</p>
+                          </div>
+                          <Switch
+                            checked={formData.sms_reminder_notifications}
+                            onCheckedChange={(checked) => setFormData(prev => ({ ...prev, sms_reminder_notifications: checked }))}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800 mt-4">
                       <strong>Note:</strong> You can get your Twilio credentials from{" "}
                       <a 
                         href="https://www.twilio.com/console" 
