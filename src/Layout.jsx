@@ -127,15 +127,15 @@ export default function Layout({ children, currentPageName }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
-            <Link to={user ? createPageUrl("Dashboard") : createPageUrl("Home")} className="flex items-center gap-2">
+            <Link to={user ? createPageUrl("Dashboard") : createPageUrl("Home")} className="flex items-center gap-3">
               {displayLogo ? (
                 <>
                   <img
                     src={displayLogo}
                     alt={displayName}
-                    className="h-10 object-contain"
+                    className="h-12 object-contain"
                   />
-                  <span className="text-xl font-bold" style={{ 
+                  <span className="text-2xl font-bold" style={{ 
                     background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})`,
                     WebkitBackgroundClip: 'text',
                     WebkitTextFillColor: 'transparent',
