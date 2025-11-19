@@ -258,7 +258,7 @@ export default function Home() {
             Ready to Transform Your Property Management?
           </h2>
           <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-            Join landlords and letting agencies using our platform to streamline operations and improve tenant relationships.
+            Join landlords and letting agencies using Landlord Maint to streamline operations and improve tenant relationships.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 

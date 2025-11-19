@@ -242,7 +242,7 @@ export default function Features() {
             Everything You Need to <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">Manage Properties</span>
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            A comprehensive property management platform designed for landlords and letting agencies to streamline operations and improve tenant relationships.
+            Landlord Maint is a comprehensive property management platform designed for landlords and letting agencies to streamline operations and improve tenant relationships.
           </p>
         </div>
 

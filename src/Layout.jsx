@@ -56,7 +56,7 @@ export default function Layout({ children, currentPageName }) {
   
   const displayName = useBranding
     ? landlordBranding.company_name 
-    : (siteSettings?.site_name || 'Landlord Monitor');
+    : (siteSettings?.site_name || 'Landlord Maint');
   
   const displayLogo = useBranding && landlordBranding.company_logo
     ? landlordBranding.company_logo 
@@ -118,7 +118,7 @@ export default function Layout({ children, currentPageName }) {
     base44.auth.redirectToLogin(createPageUrl("Home"));
   };
 
-  const supportEmail = siteSettings?.support_email || 'support@landlordmonitor.com';
+  const supportEmail = siteSettings?.support_email || 'support@landlordmaint.com';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
