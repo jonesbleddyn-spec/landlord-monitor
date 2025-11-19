@@ -35,15 +35,20 @@ export default function ProfileModal({ open, onClose, user }) {
     mutationFn: async (data) => {
       return await base44.auth.updateMe(data);
     },
-    onSuccess: async () => {
-      // Force immediate refetch of all user-related queries
-      await queryClient.refetchQueries({ queryKey: ['user'] });
-      await queryClient.refetchQueries({ queryKey: ['landlord-branding'] });
+    onSuccess: async (response) => {
+      // Invalidate and refetch all user-related queries immediately
+      queryClient.invalidateQueries({ queryKey: ['user'] });
+      queryClient.invalidateQueries({ queryKey: ['landlord-branding'] });
+      
+      // Force immediate refetch
+      await queryClient.refetchQueries({ queryKey: ['user'], exact: true });
+      
       toast.success("Profile updated successfully!");
       onClose();
     },
-    onError: () => {
-      toast.error("Failed to update profile");
+    onError: (error) => {
+      console.error("Profile update error:", error);
+      toast.error("Failed to update profile. Please try again.");
     }
   });
 
