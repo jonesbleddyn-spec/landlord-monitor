@@ -16,16 +16,32 @@ import {
   BookOpen,
   ChevronRight,
   Palette,
-  Bell
+  Bell,
+  ArrowUp
 } from "lucide-react";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
 
 function HelpContent() {
+  const [showBackToTop, setShowBackToTop] = React.useState(false);
+
+  React.useEffect(() => {
+    const handleScroll = () => {
+      setShowBackToTop(window.scrollY > 400);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   const scrollToSection = (id) => {
     const element = document.getElementById(id);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
+  };
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -39,7 +55,7 @@ function HelpContent() {
         </div>
 
         {/* Table of Contents */}
-        <Card className="mb-12 bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-blue-200 sticky top-20 z-10">
+        <Card className="mb-12 bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-blue-200">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-blue-900">
               <BookOpen className="w-5 h-5" />
@@ -1279,6 +1295,17 @@ function HelpContent() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Back to Top Button */}
+        {showBackToTop && (
+          <button
+            onClick={scrollToTop}
+            className="fixed bottom-8 right-8 z-50 bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-full shadow-2xl hover:shadow-3xl hover:scale-110 transition-all duration-300 group"
+            aria-label="Back to top"
+          >
+            <ArrowUp className="w-6 h-6 group-hover:animate-bounce" />
+          </button>
+        )}
       </div>
     </div>
   );
