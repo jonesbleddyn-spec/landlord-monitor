@@ -33,22 +33,27 @@ export default function ProfileModal({ open, onClose, user }) {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data) => {
-      return await base44.auth.updateMe(data);
+      // Update the User entity directly
+      return await base44.entities.User.update(user.id, data);
     },
-    onSuccess: async (response) => {
-      // Invalidate and refetch all user-related queries immediately
+    onSuccess: async () => {
+      // Invalidate all user-related queries
       queryClient.invalidateQueries({ queryKey: ['user'] });
       queryClient.invalidateQueries({ queryKey: ['landlord-branding'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       
-      // Force immediate refetch
-      await queryClient.refetchQueries({ queryKey: ['user'], exact: true });
+      // Force immediate refetch to show changes
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['user'] }),
+        queryClient.refetchQueries({ queryKey: ['landlord-branding'] })
+      ]);
       
       toast.success("Profile updated successfully!");
       onClose();
     },
     onError: (error) => {
       console.error("Profile update error:", error);
-      toast.error("Failed to update profile. Please try again.");
+      toast.error(error?.message || "Failed to update profile. Please try again.");
     }
   });
 
