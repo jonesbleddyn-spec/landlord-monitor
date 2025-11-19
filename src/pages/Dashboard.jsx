@@ -436,6 +436,15 @@ function DashboardContent() {
               </Link>
             </>
           )}
+
+          <button onClick={() => setShowProfileModal(true)} className="block w-full">
+            <Card className="border-2 border-dashed border-gray-300 hover:border-blue-500 hover:bg-blue-50 transition-all cursor-pointer">
+              <CardContent className="p-6 text-center">
+                <User className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                <p className="font-medium text-gray-700">Profile</p>
+              </CardContent>
+            </Card>
+          </button>
         </div>
 
         {/* Recent Faults */}
