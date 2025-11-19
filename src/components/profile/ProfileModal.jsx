@@ -34,14 +34,22 @@ export default function ProfileModal({ open, onClose, user }) {
   const updateProfileMutation = useMutation({
     mutationFn: async (data) => {
       console.log("Updating user profile with data:", data);
-      // Update the User entity directly with all fields
-      const result = await base44.entities.User.update(user.id, {
+      
+      // Update built-in fields (full_name, email) using updateMe
+      await base44.auth.updateMe({
         full_name: data.full_name,
-        email: data.email,
-        phone_number: data.phone_number
+        email: data.email
       });
-      console.log("Update result:", result);
-      return result;
+      
+      // Update custom fields (phone_number) using entity update
+      if (data.phone_number !== user.phone_number) {
+        await base44.entities.User.update(user.id, {
+          phone_number: data.phone_number
+        });
+      }
+      
+      console.log("Profile updated successfully");
+      return true;
     },
     onSuccess: async () => {
       toast.success("Profile updated successfully!");
