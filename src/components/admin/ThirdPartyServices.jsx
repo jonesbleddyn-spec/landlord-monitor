@@ -59,8 +59,8 @@ export default function ThirdPartyServices() {
     },
     {
       id: "twilio",
-      name: "Twilio",
-      description: "SMS notifications (landlord-configured accounts)",
+      name: "Twilio SMS",
+      description: "SMS notifications for landlords (optional, landlord-configured)",
       icon: MessageSquare,
       status: "operational",
       uptime: "99.95%",
@@ -294,7 +294,7 @@ export default function ThirdPartyServices() {
           </div>
           <div>
             <h4 className="font-semibold mb-1">Landlord-Configured Services</h4>
-            <p>Twilio and custom SMTP providers are configured individually by landlords. Status shown is for the service provider's infrastructure, not individual landlord accounts.</p>
+            <p>Twilio SMS and custom SMTP providers are optional features configured individually by landlords in their White Label Settings. Status shown is for the service provider's infrastructure, not individual landlord accounts.</p>
           </div>
           <div>
             <h4 className="font-semibold mb-1">Monitoring</h4>
@@ -344,6 +344,18 @@ export default function ThirdPartyServices() {
                 <li>Payment updates will fail</li>
                 <li>Existing subscriptions continue to work</li>
                 <li>No access to platform functionality is lost</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-2 flex items-center gap-2">
+                <MessageSquare className="w-4 h-4" />
+                If Twilio is down:
+              </h4>
+              <ul className="list-disc list-inside text-sm text-gray-700 ml-4 space-y-1">
+                <li>SMS notifications won't be sent</li>
+                <li>Email notifications continue to work</li>
+                <li>Only affects landlords using Twilio integration</li>
+                <li>All other platform features remain functional</li>
               </ul>
             </div>
           </div>

@@ -45,66 +45,58 @@ export default function AdminStats() {
     queryFn: () => base44.entities.Payment.list('-created_date'),
   });
 
+  const { data: reminders = [] } = useQuery({
+    queryKey: ['admin-reminders'],
+    queryFn: () => base44.entities.Reminder.list('-created_date'),
+  });
+
+  const { data: subscriptionPlans = [] } = useQuery({
+    queryKey: ['admin-subscription-plans'],
+    queryFn: () => base44.entities.SubscriptionPlan.list(),
+  });
+
   const stats = [
     {
       title: "Total Users",
       value: users.length,
       icon: Users,
       color: "from-blue-500 to-blue-600",
-      bgColor: "bg-blue-100",
-      textColor: "text-blue-600",
-      change: "+12%",
-      trending: "up"
+      detail: `${users.filter(u => u.user_type === 'landlord').length} Landlords, ${users.filter(u => u.user_type === 'tenant').length} Tenants`
     },
     {
       title: "Properties",
       value: properties.length,
       icon: Building2,
       color: "from-purple-500 to-purple-600",
-      bgColor: "bg-purple-100",
-      textColor: "text-purple-600",
-      change: "+8%",
-      trending: "up"
+      detail: `${properties.reduce((sum, p) => sum + (p.units || 0), 0)} total units`
     },
     {
       title: "Active Faults",
       value: faults.filter(f => !['completed', 'closed'].includes(f.status)).length,
       icon: AlertCircle,
       color: "from-orange-500 to-orange-600",
-      bgColor: "bg-orange-100",
-      textColor: "text-orange-600",
-      change: "-5%",
-      trending: "down"
+      detail: `${faults.filter(f => f.priority === 'urgent' && !['completed', 'closed'].includes(f.status)).length} urgent`
     },
     {
       title: "Messages",
       value: messages.length,
       icon: MessageSquare,
       color: "from-green-500 to-green-600",
-      bgColor: "bg-green-100",
-      textColor: "text-green-600",
-      change: "+23%",
-      trending: "up"
+      detail: `${messages.filter(m => m.is_admin_broadcast).length} broadcasts sent`
     },
     {
       title: "Documents",
       value: documents.length,
       icon: FileText,
       color: "from-indigo-500 to-indigo-600",
-      bgColor: "bg-indigo-100",
-      textColor: "text-indigo-600",
-      change: "+15%",
-      trending: "up"
+      detail: `${documents.filter(d => d.expiry_date && new Date(d.expiry_date) < new Date()).length} expired`
     },
     {
-      title: "Revenue (Month)",
+      title: "Revenue (Total)",
       value: `£${payments.filter(p => p.status === 'completed').reduce((sum, p) => sum + p.amount, 0).toFixed(2)}`,
       icon: DollarSign,
       color: "from-emerald-500 to-emerald-600",
-      bgColor: "bg-emerald-100",
-      textColor: "text-emerald-600",
-      change: "+31%",
-      trending: "up"
+      detail: `${payments.filter(p => p.status === 'completed').length} completed payments`
     }
   ];
 
@@ -128,22 +120,12 @@ export default function AdminStats() {
                 <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center`}>
                   <stat.icon className="w-6 h-6 text-white" />
                 </div>
-                <div className="flex items-center gap-1 text-sm">
-                  {stat.trending === 'up' ? (
-                    <>
-                      <TrendingUp className="w-4 h-4 text-green-500" />
-                      <span className="text-green-500">{stat.change}</span>
-                    </>
-                  ) : (
-                    <>
-                      <TrendingDown className="w-4 h-4 text-red-500" />
-                      <span className="text-red-500">{stat.change}</span>
-                    </>
-                  )}
-                </div>
               </div>
               <p className="text-sm text-gray-400 mb-1">{stat.title}</p>
-              <p className="text-3xl font-bold text-white">{stat.value}</p>
+              <p className="text-3xl font-bold text-white mb-2">{stat.value}</p>
+              {stat.detail && (
+                <p className="text-xs text-gray-500">{stat.detail}</p>
+              )}
             </CardContent>
           </Card>
         ))}
@@ -187,22 +169,37 @@ export default function AdminStats() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex justify-between items-center p-3 bg-gray-700/50 rounded-lg">
-              <span className="text-gray-300">Free/Trial</span>
+              <div>
+                <span className="text-gray-300">Free/Trial</span>
+                <p className="text-xs text-gray-500">30-day trial period</p>
+              </div>
               <span className="text-2xl font-bold text-gray-400">
-                {subscriptionStats.free || 0}
+                {subscriptionStats.free || subscriptionStats.trial || 0}
               </span>
             </div>
             <div className="flex justify-between items-center p-3 bg-gray-700/50 rounded-lg">
-              <span className="text-gray-300">Basic</span>
+              <div>
+                <span className="text-gray-300">Basic</span>
+                <p className="text-xs text-gray-500">Up to 10 properties</p>
+              </div>
               <span className="text-2xl font-bold text-yellow-400">
                 {subscriptionStats.basic || 0}
               </span>
             </div>
             <div className="flex justify-between items-center p-3 bg-gray-700/50 rounded-lg">
-              <span className="text-gray-300">Pro</span>
+              <div>
+                <span className="text-gray-300">Pro</span>
+                <p className="text-xs text-gray-500">Unlimited properties</p>
+              </div>
               <span className="text-2xl font-bold text-emerald-400">
                 {subscriptionStats.pro || 0}
               </span>
+            </div>
+            <div className="pt-2 border-t border-gray-700">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-400">Active Plans:</span>
+                <span className="text-white font-semibold">{subscriptionPlans.filter(p => p.is_active).length}</span>
+              </div>
             </div>
           </CardContent>
         </Card>
