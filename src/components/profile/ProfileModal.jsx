@@ -33,21 +33,28 @@ export default function ProfileModal({ open, onClose, user }) {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data) => {
-      // Use updateMe for built-in fields, and also update entity for custom fields
-      await base44.auth.updateMe(data);
-      // Also update the User entity to ensure persistence
-      return await base44.entities.User.update(user.id, { phone_number: data.phone_number });
+      console.log("Updating user profile with data:", data);
+      // Update the User entity directly with all fields
+      const result = await base44.entities.User.update(user.id, {
+        full_name: data.full_name,
+        email: data.email,
+        phone_number: data.phone_number
+      });
+      console.log("Update result:", result);
+      return result;
     },
     onSuccess: async () => {
-      // Clear all caches and force refetch
+      toast.success("Profile updated successfully!");
+      
+      // Clear all caches
       queryClient.removeQueries({ queryKey: ['user'] });
       queryClient.removeQueries({ queryKey: ['landlord-branding'] });
+      queryClient.removeQueries({ queryKey: ['admin-users'] });
       
-      // Refetch with fresh data
-      await queryClient.refetchQueries({ queryKey: ['user'] });
-      
-      // Reload the page to ensure all components update
-      window.location.reload();
+      // Reload to ensure everything updates
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
     },
     onError: (error) => {
       console.error("Profile update error:", error);
