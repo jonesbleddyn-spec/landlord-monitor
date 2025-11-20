@@ -33,7 +33,10 @@ export default function Layout({ children, currentPageName }) {
     },
     enabled: !!user?.landlord_id && isTenant,
     staleTime: 0,
-    refetchOnMount: true,
+    cacheTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    refetchInterval: 10000,
   });
 
   const { data: siteSettings } = useQuery({
