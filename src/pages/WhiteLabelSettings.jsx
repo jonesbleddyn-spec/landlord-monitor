@@ -78,7 +78,7 @@ function WhiteLabelSettingsContent() {
       queryClient.invalidateQueries({ queryKey: ['user'] });
       queryClient.invalidateQueries({ queryKey: ['landlord-branding'] });
       queryClient.refetchQueries({ queryKey: ['user'] });
-      toast.success("White label settings updated successfully! Refresh the page if needed.");
+      toast.success("White label settings updated! Changes are now live for your tenants.");
     },
     onError: (error) => {
       console.error('Failed to save white label settings:', error);

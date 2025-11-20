@@ -32,6 +32,8 @@ export default function Layout({ children, currentPageName }) {
       return landlords.length > 0 ? landlords[0] : null;
     },
     enabled: !!user?.landlord_id && isTenant,
+    staleTime: 0,
+    refetchOnMount: true,
   });
 
   const { data: siteSettings } = useQuery({
