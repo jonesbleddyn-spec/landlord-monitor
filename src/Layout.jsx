@@ -25,11 +25,11 @@ export default function Layout({ children, currentPageName }) {
   const isTenant = user?.user_type === 'tenant';
 
   const { data: landlordBranding } = useQuery({
-    queryKey: ['landlord-branding', user?.landlord_id, Date.now()],
+    queryKey: ['landlord-branding', user?.landlord_id],
     queryFn: async () => {
       if (!user?.landlord_id) return null;
-      const landlords = await base44.asServiceRole.entities.User.filter({ id: user.landlord_id });
-      return landlords.length > 0 ? landlords[0] : null;
+      const response = await base44.functions.invoke('getLandlordBranding');
+      return response.data;
     },
     enabled: !!user?.landlord_id && isTenant,
     staleTime: 0,
