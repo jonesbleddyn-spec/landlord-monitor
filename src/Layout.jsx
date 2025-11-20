@@ -25,18 +25,17 @@ export default function Layout({ children, currentPageName }) {
   const isTenant = user?.user_type === 'tenant';
 
   const { data: landlordBranding } = useQuery({
-    queryKey: ['landlord-branding', user?.landlord_id],
+    queryKey: ['landlord-branding', user?.landlord_id, Date.now()],
     queryFn: async () => {
       if (!user?.landlord_id) return null;
-      const landlords = await base44.entities.User.filter({ id: user.landlord_id });
+      const landlords = await base44.asServiceRole.entities.User.filter({ id: user.landlord_id });
       return landlords.length > 0 ? landlords[0] : null;
     },
     enabled: !!user?.landlord_id && isTenant,
     staleTime: 0,
-    cacheTime: 0,
+    gcTime: 0,
     refetchOnMount: 'always',
     refetchOnWindowFocus: true,
-    refetchInterval: 10000,
   });
 
   const { data: siteSettings } = useQuery({
