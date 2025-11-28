@@ -6,13 +6,13 @@ Deno.serve(async (req) => {
         const user = await base44.auth.me();
 
         if (!user || user.user_type !== 'landlord') {
-            return Response.json({ error: 'Only landlords can invite tenants' }, { status: 403 });
+            return Response.json({ error: 'Only landlords can invite contractors' }, { status: 403 });
         }
 
-        const { tenant_email, tenant_name, property_id } = await req.json();
+        const { contractor_email, contractor_name, property_id } = await req.json();
 
-        if (!tenant_email || !property_id) {
-            return Response.json({ error: 'tenant_email and property_id are required' }, { status: 400 });
+        if (!contractor_email || !property_id) {
+            return Response.json({ error: 'contractor_email and property_id are required' }, { status: 400 });
         }
 
         // Verify property belongs to landlord
@@ -31,9 +31,9 @@ Deno.serve(async (req) => {
             code: invitationCode,
             landlord_id: user.id,
             landlord_name: user.company_name || user.full_name,
-            invitee_email: tenant_email,
-            invitee_name: tenant_name || tenant_email,
-            invitee_type: 'tenant',
+            invitee_email: contractor_email,
+            invitee_name: contractor_name || contractor_email,
+            invitee_type: 'contractor',
             property_id,
             expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
             status: 'pending'
@@ -42,21 +42,26 @@ Deno.serve(async (req) => {
         // Send invitation email
         await base44.integrations.Core.SendEmail({
             from_name: `${user.company_name || 'Landlord Monitor'}`,
-            to: tenant_email,
-            subject: `You've been invited to Landlord Monitor`,
+            to: contractor_email,
+            subject: `You've been invited as a Contractor to Landlord Monitor`,
             body: `
-Hello ${tenant_name || tenant_email},
+Hello ${contractor_name || contractor_email},
 
-You've been invited by ${user.company_name || user.full_name} to join their property on Landlord Monitor.
+You've been invited by ${user.company_name || user.full_name} to join as a contractor on Landlord Monitor.
 
 Property: ${property.name}
 Address: ${property.address}
 
 Your invitation code: ${invitationCode}
 
+As a contractor, you will be able to:
+- View faults for assigned properties
+- Update fault statuses
+- Communicate directly with the landlord
+
 To accept this invitation:
 1. Sign up or log in to Landlord Monitor
-2. Complete your onboarding as a Tenant
+2. Complete your onboarding as a Contractor
 3. Enter this invitation code: ${invitationCode}
 
 This invitation will expire in 7 days.
@@ -70,7 +75,7 @@ Landlord Monitor Team
             success: true, 
             invitation_code: invitationCode,
             invitation_id: invitation.id,
-            message: 'Invitation sent successfully'
+            message: 'Contractor invitation sent successfully'
         });
 
     } catch (error) {

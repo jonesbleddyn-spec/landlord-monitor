@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.7.1';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 Deno.serve(async (req) => {
     try {
@@ -32,26 +32,43 @@ Deno.serve(async (req) => {
 
         // Check if invitation is expired
         if (new Date(invitation.expires_at) < new Date()) {
-            // Update status to expired
             await base44.asServiceRole.entities.Invitation.update(invitation.id, {
                 status: 'expired'
             });
             return Response.json({ error: 'This invitation has expired' }, { status: 400 });
         }
 
-        // Check if email matches (optional - for security)
-        if (user.email.toLowerCase() !== invitation.tenant_email.toLowerCase()) {
+        // Check if email matches
+        const inviteeEmail = invitation.invitee_email || invitation.tenant_email;
+        if (user.email.toLowerCase() !== inviteeEmail.toLowerCase()) {
             return Response.json({ 
-                error: `This invitation was sent to ${invitation.tenant_email}. Please use that email address.` 
+                error: `This invitation was sent to ${inviteeEmail}. Please use that email address.` 
             }, { status: 403 });
         }
 
-        // Update user with landlord_id and property_id
-        await base44.auth.updateMe({
-            landlord_id: invitation.landlord_id,
-            property_id: invitation.property_id,
-            user_type: 'tenant'
-        });
+        const inviteeType = invitation.invitee_type || 'tenant';
+
+        // Update user based on invitee type
+        if (inviteeType === 'contractor') {
+            // For contractors, add property to their property_ids array
+            const existingPropertyIds = user.property_ids || [];
+            const newPropertyIds = existingPropertyIds.includes(invitation.property_id)
+                ? existingPropertyIds
+                : [...existingPropertyIds, invitation.property_id];
+
+            await base44.auth.updateMe({
+                landlord_id: invitation.landlord_id,
+                property_ids: newPropertyIds,
+                user_type: 'contractor'
+            });
+        } else {
+            // For tenants, set single property_id
+            await base44.auth.updateMe({
+                landlord_id: invitation.landlord_id,
+                property_id: invitation.property_id,
+                user_type: 'tenant'
+            });
+        }
 
         // Mark invitation as accepted
         await base44.asServiceRole.entities.Invitation.update(invitation.id, {
@@ -70,6 +87,7 @@ Deno.serve(async (req) => {
             success: true,
             message: 'Invitation accepted successfully!',
             landlord_name: invitation.landlord_name,
+            invitee_type: inviteeType,
             property: {
                 id: property?.id,
                 name: property?.name,
