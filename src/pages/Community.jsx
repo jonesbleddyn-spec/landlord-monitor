@@ -45,6 +45,7 @@ function CommunityContent() {
   const isTenant = user?.user_type === 'tenant';
   const isLandlord = user?.user_type === 'landlord';
   const isAdmin = user?.role === 'admin';
+  const isContractor = user?.user_type === 'contractor';
 
   const { data: properties = [] } = useQuery({
     queryKey: ['user-properties'],
@@ -54,6 +55,8 @@ function CommunityContent() {
         return allProperties.filter(p => p.id === user.property_id);
       } else if (isLandlord) {
         return allProperties.filter(p => p.landlord_id === user.id);
+      } else if (isContractor && user?.property_ids?.length > 0) {
+        return allProperties.filter(p => user.property_ids.includes(p.id));
       }
       return allProperties;
     },
@@ -61,11 +64,11 @@ function CommunityContent() {
   });
 
   useEffect(() => {
-    if (isTenant && properties.length === 1) {
+    if ((isTenant || isContractor) && properties.length === 1) {
       setSelectedProperty(properties[0].id);
       setNewMessage(prev => ({ ...prev, property_id: properties[0].id }));
     }
-  }, [isTenant, properties]);
+  }, [isTenant, isContractor, properties]);
 
   const { data: adminBroadcasts = [] } = useQuery({
     queryKey: ['admin-broadcasts'],
@@ -92,6 +95,19 @@ function CommunityContent() {
         );
         
         return filtered;
+      } else if (isContractor) {
+        // Contractors only see messages from/to landlord for their properties
+        const contractorPropertyIds = user?.property_ids || [];
+        const filtered = allMessages.filter(m => 
+          contractorPropertyIds.includes(m.property_id) && 
+          !m.is_admin_broadcast &&
+          (m.landlord_id === user.landlord_id || m.created_by === user.email)
+        );
+        
+        if (selectedProperty) {
+          return filtered.filter(m => m.property_id === selectedProperty);
+        }
+        return filtered;
       } else if (isLandlord) {
         const userMessages = allMessages.filter(m => 
           m.landlord_id === user.id && !m.is_admin_broadcast
@@ -110,7 +126,7 @@ function CommunityContent() {
       }
       return [];
     },
-    enabled: !!user && (isAdmin || isLandlord || (isTenant && properties.length > 0)),
+    enabled: !!user && (isAdmin || isLandlord || isTenant || isContractor) && properties.length > 0,
   });
 
   const createMessageMutation = useMutation({
@@ -246,6 +262,8 @@ function CommunityContent() {
           <p className="text-lg text-gray-600">
             {isTenant 
               ? "Stay connected with your building community"
+              : isContractor
+              ? "Communicate with your landlord about property issues"
               : "Connect with your tenants and share important updates"}
           </p>
         </div>
@@ -321,7 +339,7 @@ function CommunityContent() {
                 )}
                 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  {!isTenant && newMessage.message_type !== "announcement" && (
+                  {!isTenant && !isContractor && newMessage.message_type !== "announcement" && (
                     <div>
                       <Label htmlFor="property-select">Select Property *</Label>
                       <Select
@@ -356,8 +374,8 @@ function CommunityContent() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="community">Message</SelectItem>
-                        {!isTenant && <SelectItem value="notice">Notice (Property Specific)</SelectItem>}
-                        {!isTenant && <SelectItem value="announcement">Announcement (All Properties)</SelectItem>}
+                        {!isTenant && !isContractor && <SelectItem value="notice">Notice (Property Specific)</SelectItem>}
+                        {!isTenant && !isContractor && <SelectItem value="announcement">Announcement (All Properties)</SelectItem>}
                       </SelectContent>
                     </Select>
                     {newMessage.message_type === "announcement" && isLandlord && (
@@ -426,7 +444,7 @@ function CommunityContent() {
 
           <div className="lg:col-span-2 space-y-4">
             <h3 className="text-xl font-bold text-gray-900">
-              {isTenant ? "My Property Messages" : "Property Messages"}
+              {isTenant ? "My Property Messages" : isContractor ? "Landlord Messages" : "Property Messages"}
             </h3>
             
             {loadingMessages ? (

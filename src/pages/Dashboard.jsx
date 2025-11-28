@@ -24,11 +24,13 @@ import {
   Wrench
 } from "lucide-react";
 import InviteTenantModal from "../components/landlord/InviteTenantModal";
+import InviteContractorModal from "../components/landlord/InviteContractorModal";
 import AllPropertiesReport from "../components/properties/AllPropertiesReport";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
 
 function DashboardContent() {
   const [showInviteModal, setShowInviteModal] = React.useState(false);
+  const [showInviteContractorModal, setShowInviteContractorModal] = React.useState(false);
   const [showAllPropertiesReport, setShowAllPropertiesReport] = React.useState(false);
 
   const { data: user } = useQuery({
@@ -194,8 +196,16 @@ function DashboardContent() {
                     <UserPlus className="w-4 h-4 mr-2" />
                     Invite Tenant
                   </Button>
+                  <Button
+                    onClick={() => setShowInviteContractorModal(true)}
+                    variant="outline"
+                    className="border-orange-600 text-orange-600 hover:bg-orange-50"
+                  >
+                    <Wrench className="w-4 h-4 mr-2" />
+                    Invite Contractor
+                  </Button>
                   <Link to={createPageUrl("ReportFault")}>
-                    <Button variant="outline" className="border-orange-600 text-orange-600 hover:bg-orange-50">
+                    <Button variant="outline" className="border-yellow-600 text-yellow-600 hover:bg-yellow-50">
                       <AlertCircle className="w-4 h-4 mr-2" />
                       Report Fault
                     </Button>
@@ -521,6 +531,10 @@ function DashboardContent() {
             <InviteTenantModal 
               open={showInviteModal} 
               onClose={() => setShowInviteModal(false)} 
+            />
+            <InviteContractorModal
+              open={showInviteContractorModal}
+              onClose={() => setShowInviteContractorModal(false)}
             />
             <AllPropertiesReport
               properties={properties}
