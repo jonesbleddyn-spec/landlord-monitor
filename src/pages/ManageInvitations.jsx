@@ -59,7 +59,7 @@ function ManageInvitationsContent() {
   const deleteInvitationMutation = useMutation({
     mutationFn: (invitationId) => base44.entities.Invitation.delete(invitationId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['landlord-invitations'] });
+      queryClient.invalidateQueries({ queryKey: ['landlord-people'] });
       toast.success("Invitation cancelled");
       setDeleteDialogOpen(false);
     },
