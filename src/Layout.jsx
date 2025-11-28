@@ -95,6 +95,14 @@ export default function Layout({ children, currentPageName }) {
       return baseNav;
     }
 
+    // Contractors get Dashboard, Properties, and Community (no Documents)
+    if (isContractor) {
+      return [
+        ...baseNav,
+        { title: "Community", url: createPageUrl("Community"), icon: MessageSquare },
+      ];
+    }
+
     // Landlords and Tenants get Community and Documents
     const fullNav = [
       ...baseNav,

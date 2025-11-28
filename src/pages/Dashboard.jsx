@@ -277,7 +277,7 @@ function DashboardContent() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {!isTenant && (
+          {!isTenant && !isContractor && (
             <Card className="border-none shadow-lg hover:shadow-xl transition-shadow">
               <CardContent className="p-6">
                 <div className="flex justify-between items-start mb-4">
@@ -296,7 +296,7 @@ function DashboardContent() {
             </Card>
           )}
 
-          {isTenant && properties[0] && (
+          {(isTenant || isContractor) && properties[0] && (
             <Card 
               className="border-none shadow-lg hover:shadow-xl transition-shadow"
               style={useBranding ? { borderTop: `4px solid ${primaryColor}` } : {}}
@@ -304,17 +304,27 @@ function DashboardContent() {
               <CardContent className="p-6">
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <p className="text-sm font-medium text-gray-500">My Property</p>
-                    <p className="text-lg font-bold text-gray-900 mt-2">{properties[0].name}</p>
+                    <p className="text-sm font-medium text-gray-500">
+                      {isContractor ? (properties.length > 1 ? "My Properties" : "My Property") : "My Property"}
+                    </p>
+                    <p className="text-lg font-bold text-gray-900 mt-2">
+                      {isContractor && properties.length > 1 
+                        ? `${properties.length} Assigned Properties` 
+                        : properties[0].name}
+                    </p>
                   </div>
                   <div 
                     className="w-12 h-12 rounded-xl flex items-center justify-center"
                     style={{ background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})` }}
                   >
-                    <Home className="w-6 h-6 text-white" />
+                    {isContractor ? <Wrench className="w-6 h-6 text-white" /> : <Home className="w-6 h-6 text-white" />}
                   </div>
                 </div>
-                <p className="text-sm text-gray-600">{properties[0].address}</p>
+                <p className="text-sm text-gray-600">
+                  {isContractor && properties.length > 1 
+                    ? "View all in Properties" 
+                    : properties[0].address}
+                </p>
               </CardContent>
             </Card>
           )}
@@ -324,7 +334,7 @@ function DashboardContent() {
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <p className="text-sm font-medium text-gray-500">
-                    {isTenant ? "My Faults" : "Open Faults"}
+                    {isTenant ? "My Faults" : isContractor ? "Assigned Faults" : "Open Faults"}
                   </p>
                   <p className="text-3xl font-bold text-gray-900 mt-2">{stats.openFaults}</p>
                 </div>
@@ -445,14 +455,16 @@ function DashboardContent() {
 
           {!isAdmin && (
             <>
-              <Link to={createPageUrl("Documents")} className="block">
-                <Card className="border-2 border-dashed border-gray-300 hover:border-green-500 hover:bg-green-50 transition-all cursor-pointer">
-                  <CardContent className="p-6 text-center">
-                    <FileText className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                    <p className="font-medium text-gray-700">Documents</p>
-                  </CardContent>
-                </Card>
-              </Link>
+              {!isContractor && (
+                <Link to={createPageUrl("Documents")} className="block">
+                  <Card className="border-2 border-dashed border-gray-300 hover:border-green-500 hover:bg-green-50 transition-all cursor-pointer">
+                    <CardContent className="p-6 text-center">
+                      <FileText className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                      <p className="font-medium text-gray-700">Documents</p>
+                    </CardContent>
+                  </Card>
+                </Link>
+              )}
 
               <Link to={createPageUrl("Community")} className="block">
                 <Card className="border-2 border-dashed border-gray-300 hover:border-orange-500 hover:bg-orange-50 transition-all cursor-pointer">
@@ -470,7 +482,7 @@ function DashboardContent() {
         <Card className="border-none shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <span>{isTenant ? "My Recent Faults" : "Recent Faults"}</span>
+              <span>{isTenant ? "My Recent Faults" : isContractor ? "Assigned Faults" : "Recent Faults"}</span>
               <div className="flex gap-2">
                 {isLandlord && stats.openFaults > 0 && (
                   <Button 
@@ -495,7 +507,7 @@ function DashboardContent() {
             {recentFaults.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <CheckCircle className="w-12 h-12 mx-auto mb-2 text-green-500" />
-                <p>{isTenant ? "You haven't reported any faults yet." : "No faults reported yet. Great job!"}</p>
+                <p>{isTenant ? "You haven't reported any faults yet." : isContractor ? "No faults assigned to you yet." : "No faults reported yet. Great job!"}</p>
               </div>
             ) : (
               <div className="space-y-4">
