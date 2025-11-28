@@ -49,25 +49,49 @@ function ManageInvitationsContent() {
     enabled: !!user,
   });
 
-  // Get users who accepted invitations from this landlord
+  // Get users linked to this landlord's properties
   const { data: allUsers = [], isLoading: loadingUsers } = useQuery({
-    queryKey: ['landlord-users', user?.id, invitations],
+    queryKey: ['landlord-users', user?.id, properties.length],
     queryFn: async () => {
       const users = await base44.entities.User.list();
+      const propertyIds = properties.map(p => p.id);
       
-      // Get user IDs from accepted invitations by this landlord
-      const acceptedInvitations = invitations.filter(i => i.status === 'accepted' && i.used_by);
-      const invitedUserIds = acceptedInvitations.map(i => i.used_by);
+      console.log('ManageInvitations - Looking for users with:', {
+        landlordId: user?.id,
+        propertyIds,
+        totalUsers: users.length
+      });
       
-      // Filter users who were invited by this landlord
-      return users.filter(u => {
-        if (u.user_type === 'tenant' || u.user_type === 'contractor') {
-          return invitedUserIds.includes(u.id);
+      // Filter users who are linked to this landlord's properties
+      const filteredUsers = users.filter(u => {
+        // Check by landlord_id
+        if (u.landlord_id === user?.id) {
+          console.log('Found user by landlord_id:', u.email, u.user_type);
+          return true;
         }
+        
+        // Check tenants by property_id
+        if (u.user_type === 'tenant' && u.property_id && propertyIds.includes(u.property_id)) {
+          console.log('Found tenant by property_id:', u.email);
+          return true;
+        }
+        
+        // Check contractors by property_ids array
+        if (u.user_type === 'contractor' && u.property_ids) {
+          const hasMatchingProperty = u.property_ids.some(pid => propertyIds.includes(pid));
+          if (hasMatchingProperty) {
+            console.log('Found contractor by property_ids:', u.email);
+            return true;
+          }
+        }
+        
         return false;
       });
+      
+      console.log('ManageInvitations - Filtered users:', filteredUsers.length);
+      return filteredUsers;
     },
-    enabled: !!user && invitations.length >= 0,
+    enabled: !!user && properties.length > 0,
   });
 
   const tenants = allUsers.filter(u => u.user_type === 'tenant');
