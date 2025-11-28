@@ -40,54 +40,21 @@ function ManageInvitationsContent() {
     enabled: !!user,
   });
 
-  const { data: invitations = [], isLoading: loadingInvitations } = useQuery({
-    queryKey: ['landlord-invitations', user?.id],
+  // Use backend function to get people (needs service role to list users)
+  const { data: peopleData = { tenants: [], contractors: [], pendingInvitations: [] }, isLoading: loadingPeople } = useQuery({
+    queryKey: ['landlord-people', user?.id],
     queryFn: async () => {
-      const allInvitations = await base44.entities.Invitation.list('-created_date');
-      return allInvitations.filter(i => i.landlord_id === user?.id);
+      const response = await base44.functions.invoke('getLandlordPeople');
+      return response.data;
     },
     enabled: !!user,
   });
 
-  // Get users from accepted invitations by this landlord
-  const { data: allUsers = [], isLoading: loadingUsers } = useQuery({
-    queryKey: ['landlord-users', user?.id],
-    queryFn: async () => {
-      // Get accepted invitations from this landlord
-      const allInvitations = await base44.entities.Invitation.list();
-      const acceptedInvitations = allInvitations.filter(
-        i => i.landlord_id === user?.id && i.status === 'accepted' && i.used_by
-      );
-      
-      if (acceptedInvitations.length === 0) {
-        return [];
-      }
-      
-      // Get all users
-      const users = await base44.entities.User.list();
-      
-      // Map invitation data to users
-      const linkedUsers = acceptedInvitations.map(inv => {
-        const linkedUser = users.find(u => u.id === inv.used_by);
-        if (linkedUser) {
-          return {
-            ...linkedUser,
-            // Add invitation data for display
-            invitation_property_id: inv.property_id,
-            invitation_type: inv.invitee_type || 'tenant'
-          };
-        }
-        return null;
-      }).filter(Boolean);
-      
-      return linkedUsers;
-    },
-    enabled: !!user,
-  });
-
-  const tenants = allUsers.filter(u => u.user_type === 'tenant' || u.invitation_type === 'tenant');
-  const contractors = allUsers.filter(u => u.user_type === 'contractor' || u.invitation_type === 'contractor');
-  const pendingInvitations = invitations.filter(i => i.status === 'pending');
+  const tenants = peopleData.tenants || [];
+  const contractors = peopleData.contractors || [];
+  const pendingInvitations = peopleData.pendingInvitations || [];
+  const loadingUsers = loadingPeople;
+  const loadingInvitations = loadingPeople;
 
   const deleteInvitationMutation = useMutation({
     mutationFn: (invitationId) => base44.entities.Invitation.delete(invitationId),
