@@ -235,7 +235,10 @@ function CommunityContent() {
 
   const canReplyToMessage = (message) => {
     if (isTenant) {
-      return message.message_type === "notice" || message.message_type === "community";
+      return message.message_type === "community";
+    }
+    if (isContractor) {
+      return true; // Contractors can reply to all messages from landlord
     }
     return true;
   };
@@ -339,6 +342,30 @@ function CommunityContent() {
                 )}
                 
                 <form onSubmit={handleSubmit} className="space-y-4">
+                  {isContractor && properties.length > 1 && (
+                    <div>
+                      <Label htmlFor="contractor-property-select">Select Property *</Label>
+                      <Select
+                        value={selectedProperty}
+                        onValueChange={(value) => {
+                          setSelectedProperty(value);
+                          setNewMessage(prev => ({ ...prev, property_id: value }));
+                        }}
+                      >
+                        <SelectTrigger id="contractor-property-select">
+                          <SelectValue placeholder="Choose property" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {properties.map(property => (
+                            <SelectItem key={property.id} value={property.id}>
+                              {property.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
                   {!isTenant && !isContractor && newMessage.message_type !== "announcement" && (
                     <div>
                       <Label htmlFor="property-select">Select Property *</Label>
@@ -374,8 +401,8 @@ function CommunityContent() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="community">Message</SelectItem>
-                        {!isTenant && !isContractor && <SelectItem value="notice">Notice (Property Specific)</SelectItem>}
-                        {!isTenant && !isContractor && <SelectItem value="announcement">Announcement (All Properties)</SelectItem>}
+                        {(isLandlord || isContractor) && <SelectItem value="notice">Notice (Property Specific)</SelectItem>}
+                        {isLandlord && <SelectItem value="announcement">Announcement (All Properties)</SelectItem>}
                       </SelectContent>
                     </Select>
                     {newMessage.message_type === "announcement" && isLandlord && (
@@ -483,7 +510,7 @@ function CommunityContent() {
                             Important
                           </Badge>
                         )}
-                        {message.message_type === "notice" && (
+                        {message.message_type === "notice" && !isContractor && !isLandlord && (
                           <Badge variant="outline" className="text-xs">Read Only</Badge>
                         )}
                       </div>
@@ -506,7 +533,7 @@ function CommunityContent() {
                       </div>
                       
                       <div className="flex gap-2">
-                        {canReplyToMessage(message) && message.message_type !== "notice" && (
+                        {canReplyToMessage(message) && (message.message_type !== "notice" || isContractor || isLandlord) && (
                           <Button
                             size="sm"
                             variant="outline"
