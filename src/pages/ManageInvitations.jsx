@@ -85,8 +85,8 @@ function ManageInvitationsContent() {
     enabled: !!user,
   });
 
-  const tenants = allUsers.filter(u => u.user_type === 'tenant');
-  const contractors = allUsers.filter(u => u.user_type === 'contractor');
+  const tenants = allUsers.filter(u => u.user_type === 'tenant' || u.invitation_type === 'tenant');
+  const contractors = allUsers.filter(u => u.user_type === 'contractor' || u.invitation_type === 'contractor');
   const pendingInvitations = invitations.filter(i => i.status === 'pending');
 
   const deleteInvitationMutation = useMutation({
