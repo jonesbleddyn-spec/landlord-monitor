@@ -31,7 +31,7 @@ function CommunityContent() {
   const [messageToDelete, setMessageToDelete] = useState(null);
   const [newMessage, setNewMessage] = useState({
     property_id: "",
-    message_type: "community",
+    message_type: "",
     title: "",
     content: "",
     priority: "normal"
@@ -68,7 +68,15 @@ function CommunityContent() {
       setSelectedProperty(properties[0].id);
       setNewMessage(prev => ({ ...prev, property_id: properties[0].id }));
     }
-  }, [isTenant, isContractor, properties]);
+    // Set default message type based on user type
+    if (isContractor) {
+      setNewMessage(prev => ({ ...prev, message_type: "contractor_message" }));
+    } else if (isTenant) {
+      setNewMessage(prev => ({ ...prev, message_type: "community" }));
+    } else if (isLandlord) {
+      setNewMessage(prev => ({ ...prev, message_type: "community" }));
+    }
+  }, [isTenant, isContractor, isLandlord, properties]);
 
   const { data: adminBroadcasts = [] } = useQuery({
     queryKey: ['admin-broadcasts'],
@@ -407,7 +415,8 @@ function CommunityContent() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="community">Message (All)</SelectItem>
+                        {!isContractor && <SelectItem value="community">Message (All)</SelectItem>}
+                        {isContractor && <SelectItem value="contractor_message">Message to Landlord</SelectItem>}
                         {isLandlord && <SelectItem value="contractor_message">Message to Contractors</SelectItem>}
                         {isLandlord && <SelectItem value="tenant_message">Message to Tenants</SelectItem>}
                         {(isLandlord || isContractor) && <SelectItem value="notice">Notice (Property Specific)</SelectItem>}
