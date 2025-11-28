@@ -50,14 +50,9 @@ function PropertiesContent() {
   const isContractor = user?.user_type === 'contractor';
 
   const { data: properties = [], isLoading: loadingProperties } = useQuery({
-    queryKey: ['user-properties', user?.id, user?.user_type, JSON.stringify(user?.property_ids)],
+    queryKey: ['user-properties', user?.id, user?.user_type, user?.property_ids],
     queryFn: async () => {
-      console.log('Properties query - user:', user);
-      console.log('Properties query - isContractor:', isContractor);
-      console.log('Properties query - property_ids:', user?.property_ids);
-      
       const allProperties = await base44.entities.Property.list();
-      console.log('Properties query - all properties:', allProperties.length);
       
       if (isLandlord) {
         return allProperties.filter(p => p.landlord_id === user.id);
@@ -71,11 +66,8 @@ function PropertiesContent() {
         return [];
       } else if (isContractor) {
         const propertyIds = user?.property_ids || [];
-        console.log('Contractor property_ids to filter:', propertyIds);
         if (propertyIds.length > 0) {
-          const filtered = allProperties.filter(p => propertyIds.includes(p.id));
-          console.log('Filtered properties for contractor:', filtered);
-          return filtered;
+          return allProperties.filter(p => propertyIds.includes(p.id));
         }
         return [];
       }
