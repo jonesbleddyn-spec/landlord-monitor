@@ -212,7 +212,7 @@ function PropertiesContent() {
   };
 
   // Contractor view - can view faults and update status
-  if (isContractor && properties.length > 0) {
+  if (isContractor) {
     return (
       <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
@@ -223,23 +223,45 @@ function PropertiesContent() {
             </div>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {properties.map((property) => {
-              const stats = getPropertyStats(property.id);
-              return (
-                <PropertyCard
-                  key={property.id}
-                  property={property}
-                  stats={stats}
-                  onClick={() => setSelectedPropertyForDetails(property)}
-                  onViewFaults={() => setSelectedPropertyForFaults(property)}
-                  onViewReport={() => setSelectedPropertyForReport(property)}
-                  showEdit={false}
-                  showCompliance={false}
-                />
-              );
-            })}
-          </div>
+          {loadingProperties ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map(i => (
+                <Card key={i} className="animate-pulse">
+                  <div className="h-48 bg-gray-200" />
+                  <CardContent className="p-6 space-y-3">
+                    <div className="h-6 bg-gray-200 rounded" />
+                    <div className="h-4 bg-gray-200 rounded w-2/3" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : properties.length === 0 ? (
+            <Card className="text-center py-12">
+              <CardContent>
+                <Building2 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">No Properties Assigned</h3>
+                <p className="text-gray-600">You haven't been assigned to any properties yet. Contact your landlord to get access.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {properties.map((property) => {
+                const stats = getPropertyStats(property.id);
+                return (
+                  <PropertyCard
+                    key={property.id}
+                    property={property}
+                    stats={stats}
+                    onClick={() => setSelectedPropertyForDetails(property)}
+                    onViewFaults={() => setSelectedPropertyForFaults(property)}
+                    onViewReport={() => setSelectedPropertyForReport(property)}
+                    showEdit={false}
+                    showCompliance={false}
+                  />
+                );
+              })}
+            </div>
+          )}
 
           {selectedPropertyForDetails && (
             <PropertyDetails
