@@ -77,7 +77,7 @@ function PropertiesContent() {
   });
 
   const { data: allFaults = [] } = useQuery({
-    queryKey: ['user-faults'],
+    queryKey: ['user-faults', user?.id, user?.user_type, user?.property_ids],
     queryFn: async () => {
       const faults = await base44.entities.Fault.list('-created_date');
       
@@ -89,14 +89,15 @@ function PropertiesContent() {
         }
         return [];
       } else if (isContractor) {
-        if (user?.property_ids?.length > 0) {
-          return faults.filter(f => user.property_ids.includes(f.property_id));
+        const propertyIds = user?.property_ids || [];
+        if (propertyIds.length > 0) {
+          return faults.filter(f => propertyIds.includes(f.property_id));
         }
         return [];
       }
-      return faults;
+      return [];
     },
-    enabled: !!user && properties.length > 0,
+    enabled: !!user && !!user.user_type && properties.length > 0,
   });
 
   const deletePropertyMutation = useMutation({
