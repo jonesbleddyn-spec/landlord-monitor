@@ -13,43 +13,46 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Only landlords can remove users' }, { status: 403 });
         }
 
-        const { userId, userType, propertyId } = await req.json();
+        const { visitorId, userType, propertyId, invitationId } = await req.json();
 
-        if (!userId) {
-            return Response.json({ error: 'User ID is required' }, { status: 400 });
+        if (!propertyId) {
+            return Response.json({ error: 'Property ID is required' }, { status: 400 });
         }
 
-        // Get the user to update
-        const users = await base44.asServiceRole.entities.User.list();
-        const userToUpdate = users.find(u => u.id === userId);
-
-        if (!userToUpdate) {
-            return Response.json({ error: 'User not found' }, { status: 404 });
+        // Delete only the specific invitation for this property
+        if (invitationId) {
+            await base44.entities.Invitation.delete(invitationId);
         }
 
-        // Get landlord's properties
-        const properties = await base44.entities.Property.filter({
-            landlord_id: user.id
-        });
-        const propertyIds = properties.map(p => p.id);
+        // For contractors, we need to update their property_ids to remove just this property
+        if (userType === 'contractor' && visitorId) {
+            const users = await base44.asServiceRole.entities.User.list();
+            const userToUpdate = users.find(u => u.id === visitorId);
 
-        if (userType === 'contractor') {
-            // Remove this landlord's properties from contractor's property_ids
-            const currentPropertyIds = userToUpdate.property_ids || [];
-            const updatedPropertyIds = currentPropertyIds.filter(
-                pid => !propertyIds.includes(pid)
-            );
+            if (userToUpdate && userToUpdate.property_ids) {
+                const updatedPropertyIds = userToUpdate.property_ids.filter(
+                    pid => pid !== propertyId
+                );
 
-            await base44.asServiceRole.entities.User.update(userId, {
-                property_ids: updatedPropertyIds,
-                landlord_id: updatedPropertyIds.length > 0 ? userToUpdate.landlord_id : null
-            });
-        } else {
-            // For tenants, clear their property association
-            await base44.asServiceRole.entities.User.update(userId, {
-                property_id: null,
-                landlord_id: null
-            });
+                await base44.asServiceRole.entities.User.update(visitorId, {
+                    property_ids: updatedPropertyIds,
+                    // Only clear landlord_id if no properties remain
+                    landlord_id: updatedPropertyIds.length > 0 ? userToUpdate.landlord_id : null
+                });
+            }
+        }
+
+        // For tenants, only clear if this is their assigned property
+        if (userType === 'tenant' && visitorId) {
+            const users = await base44.asServiceRole.entities.User.list();
+            const userToUpdate = users.find(u => u.id === visitorId);
+
+            if (userToUpdate && userToUpdate.property_id === propertyId) {
+                await base44.asServiceRole.entities.User.update(visitorId, {
+                    property_id: null,
+                    landlord_id: null
+                });
+            }
         }
 
         return Response.json({ success: true });

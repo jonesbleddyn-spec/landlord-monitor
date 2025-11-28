@@ -67,21 +67,16 @@ function ManageInvitationsContent() {
 
   const removeUserMutation = useMutation({
     mutationFn: async (person) => {
-      // Delete the invitation to revoke access
-      if (person.invitation_id) {
-        await base44.entities.Invitation.delete(person.invitation_id);
-      }
-      
-      // Update user to remove property association using service role via function
       await base44.functions.invoke('removeUserFromProperty', {
-        userId: person.id,
+        visitorId: person.id,
         userType: person.user_type,
-        propertyId: person.property_id
+        propertyId: person.property_id,
+        invitationId: person.invitation_id
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['landlord-people'] });
-      toast.success("User removed from your properties");
+      toast.success("User removed from this property");
       setDeleteDialogOpen(false);
     },
     onError: (error) => {
@@ -166,12 +161,120 @@ function ManageInvitationsContent() {
           </Card>
         </div>
 
-        <Tabs defaultValue="tenants" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+        <Tabs defaultValue="byProperty" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="byProperty">By Property</TabsTrigger>
             <TabsTrigger value="tenants">Tenants ({tenants.length})</TabsTrigger>
             <TabsTrigger value="contractors">Contractors ({contractors.length})</TabsTrigger>
             <TabsTrigger value="pending">Pending ({pendingInvitations.length})</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="byProperty">
+            {loadingPeople ? (
+              <Card className="p-8 text-center text-gray-500">Loading...</Card>
+            ) : properties.length === 0 ? (
+              <Card className="p-8 text-center">
+                <Building2 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">No properties yet.</p>
+              </Card>
+            ) : (
+              <div className="space-y-6">
+                {properties.map(property => {
+                  const propertyTenants = tenants.filter(t => t.property_id === property.id);
+                  const propertyContractors = contractors.filter(c => c.property_id === property.id);
+                  const propertyPending = pendingInvitations.filter(i => i.property_id === property.id);
+                  const totalPeople = propertyTenants.length + propertyContractors.length + propertyPending.length;
+
+                  return (
+                    <Card key={property.id}>
+                      <CardHeader className="bg-gradient-to-r from-blue-50 to-purple-50 border-b">
+                        <CardTitle className="flex items-center gap-3">
+                          <Building2 className="w-5 h-5 text-blue-600" />
+                          {property.name}
+                          <Badge variant="outline" className="ml-2">{totalPeople} people</Badge>
+                        </CardTitle>
+                        <p className="text-sm text-gray-500">{property.address}</p>
+                      </CardHeader>
+                      <CardContent className="p-4">
+                        {totalPeople === 0 ? (
+                          <p className="text-gray-500 text-center py-4">No tenants or contractors assigned</p>
+                        ) : (
+                          <div className="space-y-3">
+                            {propertyTenants.map(tenant => (
+                              <div key={`${tenant.id}-${property.id}`} className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                                    <Users className="w-4 h-4 text-purple-600" />
+                                  </div>
+                                  <div>
+                                    <p className="font-medium text-sm">{tenant.full_name || 'Unknown'}</p>
+                                    <p className="text-xs text-gray-500">{tenant.email}</p>
+                                  </div>
+                                  <Badge className="bg-purple-100 text-purple-800 text-xs">Tenant</Badge>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeleteClick(tenant, 'user')}
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            ))}
+                            {propertyContractors.map(contractor => (
+                              <div key={`${contractor.id}-${property.id}-${contractor.invitation_id}`} className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
+                                    <Wrench className="w-4 h-4 text-orange-600" />
+                                  </div>
+                                  <div>
+                                    <p className="font-medium text-sm">{contractor.full_name || 'Unknown'}</p>
+                                    <p className="text-xs text-gray-500">{contractor.email}</p>
+                                  </div>
+                                  <Badge className="bg-orange-100 text-orange-800 text-xs">Contractor</Badge>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeleteClick(contractor, 'user')}
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            ))}
+                            {propertyPending.map(invitation => (
+                              <div key={invitation.id} className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
+                                    <Mail className="w-4 h-4 text-yellow-600" />
+                                  </div>
+                                  <div>
+                                    <p className="font-medium text-sm">{invitation.invitee_name || invitation.invitee_email}</p>
+                                    <p className="text-xs text-gray-500">{invitation.invitee_email}</p>
+                                  </div>
+                                  <Badge className="bg-yellow-100 text-yellow-800 text-xs">Pending {invitation.invitee_type}</Badge>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeleteClick(invitation, 'invitation')}
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
 
           <TabsContent value="tenants">
             {loadingUsers ? (
@@ -184,7 +287,7 @@ function ManageInvitationsContent() {
             ) : (
               <div className="space-y-4">
                 {tenants.map(tenant => (
-                  <Card key={tenant.id}>
+                  <Card key={`${tenant.id}-${tenant.property_id}`}>
                     <CardContent className="p-4 flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
@@ -226,7 +329,7 @@ function ManageInvitationsContent() {
             ) : (
               <div className="space-y-4">
                 {contractors.map(contractor => (
-                  <Card key={contractor.id}>
+                  <Card key={`${contractor.id}-${contractor.property_id}-${contractor.invitation_id}`}>
                     <CardContent className="p-4 flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
@@ -237,7 +340,7 @@ function ManageInvitationsContent() {
                           <p className="text-sm text-gray-600">{contractor.email}</p>
                           <div className="flex items-center gap-2 mt-1">
                             <Building2 className="w-3 h-3 text-gray-400" />
-                            <span className="text-xs text-gray-500">{contractor.property_name || getPropertyNames(contractor.property_ids)}</span>
+                            <span className="text-xs text-gray-500">{contractor.property_name}</span>
                           </div>
                         </div>
                       </div>
@@ -248,7 +351,7 @@ function ManageInvitationsContent() {
                         className="text-red-600 hover:text-red-700 hover:bg-red-50"
                       >
                         <Trash2 className="w-4 h-4 mr-1" />
-                        Remove
+                        Remove from property
                       </Button>
                     </CardContent>
                   </Card>
