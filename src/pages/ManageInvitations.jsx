@@ -237,7 +237,7 @@ function ManageInvitationsContent() {
                           <p className="text-sm text-gray-600">{contractor.email}</p>
                           <div className="flex items-center gap-2 mt-1">
                             <Building2 className="w-3 h-3 text-gray-400" />
-                            <span className="text-xs text-gray-500">{getPropertyNames(contractor.property_ids)}</span>
+                            <span className="text-xs text-gray-500">{contractor.property_name || getPropertyNames(contractor.property_ids)}</span>
                           </div>
                         </div>
                       </div>
