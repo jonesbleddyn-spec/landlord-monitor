@@ -34,7 +34,7 @@ import {
   Loader2
 } from "lucide-react";
 
-export default function PropertyFaults({ property, faults, onClose }) {
+export default function PropertyFaults({ property, faults, onClose, canEditStatus = false }) {
   const queryClient = useQueryClient();
   const [editingFault, setEditingFault] = useState(null);
   const [editData, setEditData] = useState({});
@@ -47,6 +47,8 @@ export default function PropertyFaults({ property, faults, onClose }) {
   });
 
   const isLandlord = user?.user_type === 'landlord';
+  const isContractor = user?.user_type === 'contractor';
+  const canEdit = isLandlord || (isContractor && canEditStatus);
 
   useEffect(() => {
     if (faults.length > 0) {
@@ -262,7 +264,7 @@ export default function PropertyFaults({ property, faults, onClose }) {
                         </div>
                       </div>
                       
-                      {isLandlord && (
+                      {canEdit && (
                         <div className="flex gap-2">
                           {isEditing ? (
                             <>
@@ -303,13 +305,15 @@ export default function PropertyFaults({ property, faults, onClose }) {
                                   Mark Complete
                                 </Button>
                               )}
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => handleDelete(fault.id)}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
+                              {isLandlord && (
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => handleDelete(fault.id)}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              )}
                             </>
                           )}
                         </div>

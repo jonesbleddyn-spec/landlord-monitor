@@ -9,6 +9,7 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
+        // Works for both tenants and contractors
         if (!user.landlord_id) {
             return Response.json({ error: 'No landlord_id found' }, { status: 400 });
         }
