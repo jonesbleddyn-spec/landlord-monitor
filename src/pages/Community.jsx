@@ -89,18 +89,21 @@ function CommunityContent() {
         const tenantPropertyId = user?.property_id || properties[0]?.id;
         if (!tenantPropertyId) return [];
         
+        // Tenants see community messages, tenant_message, and notices - but not contractor_message
         const filtered = allMessages.filter(m => 
           m.property_id === tenantPropertyId && 
-          m.is_admin_broadcast !== true
+          m.is_admin_broadcast !== true &&
+          m.message_type !== 'contractor_message'
         );
         
         return filtered;
       } else if (isContractor) {
-        // Contractors only see messages from/to landlord for their properties
+        // Contractors see messages from/to landlord for their properties (community, contractor_message, notice)
         const contractorPropertyIds = user?.property_ids || [];
         const filtered = allMessages.filter(m => 
           contractorPropertyIds.includes(m.property_id) && 
           !m.is_admin_broadcast &&
+          m.message_type !== 'tenant_message' &&
           (m.landlord_id === user.landlord_id || m.created_by === user.email)
         );
         
@@ -247,14 +250,18 @@ function CommunityContent() {
     notice: "bg-blue-100 text-blue-800",
     community: "bg-purple-100 text-purple-800",
     announcement: "bg-green-100 text-green-800",
-    admin_broadcast: "bg-red-100 text-red-800"
+    admin_broadcast: "bg-red-100 text-red-800",
+    contractor_message: "bg-orange-100 text-orange-800",
+    tenant_message: "bg-teal-100 text-teal-800"
   };
 
   const messageTypeLabels = {
     notice: "notice",
     community: "message",
     announcement: "announcement",
-    admin_broadcast: "admin broadcast"
+    admin_broadcast: "admin broadcast",
+    contractor_message: "to contractors",
+    tenant_message: "to tenants"
   };
 
   return (
@@ -400,7 +407,9 @@ function CommunityContent() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="community">Message</SelectItem>
+                        <SelectItem value="community">Message (All)</SelectItem>
+                        {isLandlord && <SelectItem value="contractor_message">Message to Contractors</SelectItem>}
+                        {isLandlord && <SelectItem value="tenant_message">Message to Tenants</SelectItem>}
                         {(isLandlord || isContractor) && <SelectItem value="notice">Notice (Property Specific)</SelectItem>}
                         {isLandlord && <SelectItem value="announcement">Announcement (All Properties)</SelectItem>}
                       </SelectContent>
