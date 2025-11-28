@@ -23,6 +23,7 @@ export default function Layout({ children, currentPageName }) {
   });
 
   const isTenant = user?.user_type === 'tenant';
+  const isContractor = user?.user_type === 'contractor';
 
   const { data: landlordBranding } = useQuery({
     queryKey: ['landlord-branding', user?.landlord_id],
@@ -31,7 +32,7 @@ export default function Layout({ children, currentPageName }) {
       const response = await base44.functions.invoke('getLandlordBranding');
       return response.data;
     },
-    enabled: !!user?.landlord_id && isTenant,
+    enabled: !!user?.landlord_id && (isTenant || isContractor),
     staleTime: 0,
     gcTime: 0,
     refetchOnMount: 'always',
@@ -53,8 +54,8 @@ export default function Layout({ children, currentPageName }) {
   const isLandlord = user?.user_type === 'landlord';
   const isAdmin = user?.role === 'admin';
 
-  // Get branding - use landlord branding for tenants, otherwise use site settings
-  const useBranding = isTenant && landlordBranding && landlordBranding.company_name;
+  // Get branding - use landlord branding for tenants and contractors, otherwise use site settings
+  const useBranding = (isTenant || isContractor) && landlordBranding && landlordBranding.company_name;
   
   const displayName = useBranding
     ? landlordBranding.company_name 
@@ -74,6 +75,7 @@ export default function Layout({ children, currentPageName }) {
   
   console.log('Layout: Applied branding:', {
     isTenant,
+    isContractor,
     useBranding,
     displayName,
     displayLogo,

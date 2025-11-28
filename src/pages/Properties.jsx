@@ -211,6 +211,67 @@ function PropertiesContent() {
     };
   };
 
+  // Contractor view - can view faults and update status
+  if (isContractor && properties.length > 0) {
+    return (
+      <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h1 className="text-4xl font-bold text-gray-900">My Assigned Properties</h1>
+              <p className="text-lg text-gray-600">View faults and update status for your assigned properties</p>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {properties.map((property) => {
+              const stats = getPropertyStats(property.id);
+              return (
+                <PropertyCard
+                  key={property.id}
+                  property={property}
+                  stats={stats}
+                  onClick={() => setSelectedPropertyForDetails(property)}
+                  onViewFaults={() => setSelectedPropertyForFaults(property)}
+                  onViewReport={() => setSelectedPropertyForReport(property)}
+                  showEdit={false}
+                  showCompliance={false}
+                />
+              );
+            })}
+          </div>
+
+          {selectedPropertyForDetails && (
+            <PropertyDetails
+              property={selectedPropertyForDetails}
+              faults={allFaults.filter(f => f.property_id === selectedPropertyForDetails.id)}
+              open={!!selectedPropertyForDetails}
+              onClose={() => setSelectedPropertyForDetails(null)}
+            />
+          )}
+
+          {selectedPropertyForFaults && (
+            <PropertyFaults
+              property={selectedPropertyForFaults}
+              faults={allFaults.filter(f => f.property_id === selectedPropertyForFaults.id)}
+              onClose={() => setSelectedPropertyForFaults(null)}
+              canEditStatus={true}
+            />
+          )}
+
+          {selectedPropertyForReport && (
+            <PropertyReport
+              property={selectedPropertyForReport}
+              faults={allFaults.filter(f => f.property_id === selectedPropertyForReport.id)}
+              open={!!selectedPropertyForReport}
+              onClose={() => setSelectedPropertyForReport(null)}
+            />
+          )}
+        </div>
+      </div>
+    );
+  }
+
   // Tenant view - simplified
   if (isTenant && properties.length > 0) {
     const property = properties[0];
