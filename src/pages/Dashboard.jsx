@@ -59,7 +59,7 @@ function DashboardContent() {
   });
 
   const { data: properties = [] } = useQuery({
-    queryKey: ['user-properties'],
+    queryKey: ['user-properties', user?.id, user?.user_type, user?.property_ids],
     queryFn: async () => {
       const allProperties = await base44.entities.Property.list();
       if (isLandlord) {
@@ -69,9 +69,9 @@ function DashboardContent() {
       } else if (isContractor && user?.property_ids?.length > 0) {
         return allProperties.filter(p => user.property_ids.includes(p.id));
       }
-      return allProperties;
+      return [];
     },
-    enabled: !!user,
+    enabled: !!user && !!user.user_type,
   });
 
   const { data: faults = [] } = useQuery({

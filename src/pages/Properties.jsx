@@ -50,7 +50,7 @@ function PropertiesContent() {
   const isContractor = user?.user_type === 'contractor';
 
   const { data: properties = [], isLoading: loadingProperties } = useQuery({
-    queryKey: ['user-properties'],
+    queryKey: ['user-properties', user?.id, user?.user_type, user?.property_ids],
     queryFn: async () => {
       const allProperties = await base44.entities.Property.list();
       
@@ -70,9 +70,9 @@ function PropertiesContent() {
         }
         return [];
       }
-      return allProperties;
+      return [];
     },
-    enabled: !!user,
+    enabled: !!user && !!user.user_type,
   });
 
   const { data: allFaults = [] } = useQuery({
