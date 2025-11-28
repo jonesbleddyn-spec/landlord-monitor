@@ -47,6 +47,7 @@ function PropertiesContent() {
 
   const isLandlord = user?.user_type === 'landlord';
   const isTenant = user?.user_type === 'tenant';
+  const isContractor = user?.user_type === 'contractor';
 
   const { data: properties = [], isLoading: loadingProperties } = useQuery({
     queryKey: ['user-properties'],
@@ -61,6 +62,11 @@ function PropertiesContent() {
         } else if (user?.landlord_id) {
           const landlordProps = allProperties.filter(p => p.landlord_id === user.landlord_id);
           return landlordProps.slice(0, 1);
+        }
+        return [];
+      } else if (isContractor) {
+        if (user?.property_ids?.length > 0) {
+          return allProperties.filter(p => user.property_ids.includes(p.id));
         }
         return [];
       }
@@ -79,6 +85,11 @@ function PropertiesContent() {
       } else if (isTenant) {
         if (properties.length > 0) {
           return faults.filter(f => f.property_id === properties[0].id);
+        }
+        return [];
+      } else if (isContractor) {
+        if (user?.property_ids?.length > 0) {
+          return faults.filter(f => user.property_ids.includes(f.property_id));
         }
         return [];
       }
