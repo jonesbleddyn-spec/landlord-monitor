@@ -99,7 +99,7 @@ function ManageInvitationsContent() {
     if (deleteType === 'invitation') {
       deleteInvitationMutation.mutate(itemToDelete.id);
     } else {
-      removeUserMutation.mutate(itemToDelete.id);
+      removeUserMutation.mutate(itemToDelete);
     }
   };
 
