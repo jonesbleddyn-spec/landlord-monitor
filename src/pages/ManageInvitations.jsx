@@ -50,12 +50,24 @@ function ManageInvitationsContent() {
   });
 
   const { data: allUsers = [], isLoading: loadingUsers } = useQuery({
-    queryKey: ['landlord-users', user?.id],
+    queryKey: ['landlord-users', user?.id, properties],
     queryFn: async () => {
       const users = await base44.entities.User.list();
-      return users.filter(u => u.landlord_id === user?.id && (u.user_type === 'tenant' || u.user_type === 'contractor'));
+      const propertyIds = properties.map(p => p.id);
+      
+      return users.filter(u => {
+        if (u.user_type === 'tenant') {
+          // Tenant is linked if their property_id matches one of landlord's properties
+          return propertyIds.includes(u.property_id);
+        } else if (u.user_type === 'contractor') {
+          // Contractor is linked if any of their property_ids match landlord's properties
+          const contractorPropertyIds = u.property_ids || [];
+          return contractorPropertyIds.some(pid => propertyIds.includes(pid));
+        }
+        return false;
+      });
     },
-    enabled: !!user,
+    enabled: !!user && properties.length > 0,
   });
 
   const tenants = allUsers.filter(u => u.user_type === 'tenant');
