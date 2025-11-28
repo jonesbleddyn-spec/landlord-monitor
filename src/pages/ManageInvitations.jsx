@@ -66,30 +66,27 @@ function ManageInvitationsContent() {
   });
 
   const removeUserMutation = useMutation({
-    mutationFn: async (userId) => {
-      const userToRemove = allUsers.find(u => u.id === userId);
-      if (userToRemove?.user_type === 'contractor') {
-        // Remove this landlord's properties from contractor's property_ids
-        const updatedPropertyIds = (userToRemove.property_ids || []).filter(
-          pid => !properties.some(p => p.id === pid)
-        );
-        await base44.entities.User.update(userId, {
-          property_ids: updatedPropertyIds,
-          landlord_id: updatedPropertyIds.length > 0 ? userToRemove.landlord_id : null
-        });
-      } else {
-        // For tenants, clear their property association
-        await base44.entities.User.update(userId, {
-          property_id: null,
-          landlord_id: null
-        });
+    mutationFn: async (person) => {
+      // Delete the invitation to revoke access
+      if (person.invitation_id) {
+        await base44.entities.Invitation.delete(person.invitation_id);
       }
+      
+      // Update user to remove property association using service role via function
+      await base44.functions.invoke('removeUserFromProperty', {
+        userId: person.id,
+        userType: person.user_type,
+        propertyId: person.property_id
+      });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['landlord-users'] });
+      queryClient.invalidateQueries({ queryKey: ['landlord-people'] });
       toast.success("User removed from your properties");
       setDeleteDialogOpen(false);
     },
+    onError: (error) => {
+      toast.error("Failed to remove user: " + error.message);
+    }
   });
 
   const handleDeleteClick = (item, type) => {
