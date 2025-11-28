@@ -49,25 +49,25 @@ function ManageInvitationsContent() {
     enabled: !!user,
   });
 
+  // Get users who accepted invitations from this landlord
   const { data: allUsers = [], isLoading: loadingUsers } = useQuery({
-    queryKey: ['landlord-users', user?.id, properties],
+    queryKey: ['landlord-users', user?.id, invitations],
     queryFn: async () => {
       const users = await base44.entities.User.list();
-      const propertyIds = properties.map(p => p.id);
       
+      // Get user IDs from accepted invitations by this landlord
+      const acceptedInvitations = invitations.filter(i => i.status === 'accepted' && i.used_by);
+      const invitedUserIds = acceptedInvitations.map(i => i.used_by);
+      
+      // Filter users who were invited by this landlord
       return users.filter(u => {
-        if (u.user_type === 'tenant') {
-          // Tenant is linked if their property_id matches one of landlord's properties
-          return propertyIds.includes(u.property_id);
-        } else if (u.user_type === 'contractor') {
-          // Contractor is linked if any of their property_ids match landlord's properties
-          const contractorPropertyIds = u.property_ids || [];
-          return contractorPropertyIds.some(pid => propertyIds.includes(pid));
+        if (u.user_type === 'tenant' || u.user_type === 'contractor') {
+          return invitedUserIds.includes(u.id);
         }
         return false;
       });
     },
-    enabled: !!user && properties.length > 0,
+    enabled: !!user && invitations.length >= 0,
   });
 
   const tenants = allUsers.filter(u => u.user_type === 'tenant');
