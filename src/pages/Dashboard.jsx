@@ -20,7 +20,8 @@ import {
   Megaphone,
   Palette,
   Bell,
-  Smartphone
+  Smartphone,
+  Wrench
 } from "lucide-react";
 import InviteTenantModal from "../components/landlord/InviteTenantModal";
 import AllPropertiesReport from "../components/properties/AllPropertiesReport";
@@ -38,8 +39,9 @@ function DashboardContent() {
   const isLandlord = user?.user_type === 'landlord';
   const isAdmin = user?.role === 'admin';
   const isTenant = user?.user_type === 'tenant';
+  const isContractor = user?.user_type === 'contractor';
 
-  // Fetch landlord branding for tenants
+  // Fetch landlord branding for tenants and contractors
   const { data: landlordBranding, isLoading: loadingBranding } = useQuery({
     queryKey: ['landlord-branding', user?.landlord_id],
     queryFn: async () => {
@@ -47,7 +49,7 @@ function DashboardContent() {
       const response = await base44.functions.invoke('getLandlordBranding');
       return response.data;
     },
-    enabled: !!user?.landlord_id && isTenant,
+    enabled: !!user?.landlord_id && (isTenant || isContractor),
     staleTime: 0,
     gcTime: 0,
     refetchOnMount: 'always',
@@ -62,6 +64,8 @@ function DashboardContent() {
         return allProperties.filter(p => p.landlord_id === user.id);
       } else if (isTenant && user?.property_id) {
         return allProperties.filter(p => p.id === user.property_id);
+      } else if (isContractor && user?.property_ids?.length > 0) {
+        return allProperties.filter(p => user.property_ids.includes(p.id));
       }
       return allProperties;
     },
@@ -76,6 +80,8 @@ function DashboardContent() {
         return allFaults.filter(f => f.landlord_id === user.id);
       } else if (isTenant && user?.property_id) {
         return allFaults.filter(f => f.property_id === user.property_id);
+      } else if (isContractor && user?.property_ids?.length > 0) {
+        return allFaults.filter(f => user.property_ids.includes(f.property_id));
       }
       return allFaults;
     },
@@ -90,6 +96,12 @@ function DashboardContent() {
         return allMessages.filter(m => m.landlord_id === user.id);
       } else if (isTenant && user?.property_id) {
         return allMessages.filter(m => m.property_id === user.property_id);
+      } else if (isContractor && user?.property_ids?.length > 0) {
+        // Contractors only see messages from their landlord
+        return allMessages.filter(m => 
+          user.property_ids.includes(m.property_id) && 
+          m.landlord_id === user.landlord_id
+        );
       }
       return allMessages;
     },
@@ -122,6 +134,7 @@ function DashboardContent() {
     if (isAdmin) return `Welcome Admin${user?.full_name ? `, ${user.full_name}` : ''}!`;
     if (isLandlord) return `Welcome back${user?.full_name ? `, ${user.full_name}` : ''}!`;
     if (isTenant) return `Welcome${user?.full_name ? `, ${user.full_name}` : ''}!`;
+    if (isContractor) return `Welcome${user?.full_name ? `, ${user.full_name}` : ''}!`;
     return 'Welcome!';
   };
 
@@ -129,11 +142,12 @@ function DashboardContent() {
     if (isAdmin) return 'Admin';
     if (isLandlord) return user?.company_name ? `${user.company_name} - Landlord` : 'Landlord';
     if (isTenant) return 'Tenant';
+    if (isContractor) return 'Contractor';
     return 'Your Dashboard';
   };
 
-  // Get branding colors for tenants
-  const useBranding = isTenant && landlordBranding;
+  // Get branding colors for tenants and contractors
+  const useBranding = (isTenant || isContractor) && landlordBranding;
   const primaryColor = (useBranding && landlordBranding.brand_color_primary) ? landlordBranding.brand_color_primary : "#3B82F6";
   const secondaryColor = (useBranding && landlordBranding.brand_color_secondary) ? landlordBranding.brand_color_secondary : "#8B5CF6";
   const companyName = (useBranding && landlordBranding.company_name) ? landlordBranding.company_name : "Property Management";
@@ -202,6 +216,17 @@ function DashboardContent() {
                   >
                     <AlertCircle className="w-4 h-4 mr-2" />
                     Report Fault
+                  </Button>
+                </Link>
+              )}
+              {isContractor && (
+                <Link to={createPageUrl("Properties")}>
+                  <Button 
+                    className="text-white shadow-lg"
+                    style={{ background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})` }}
+                  >
+                    <Wrench className="w-4 h-4 mr-2" />
+                    View Faults
                   </Button>
                 </Link>
               )}
