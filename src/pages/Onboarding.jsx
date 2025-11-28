@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Building2, CheckCircle, Loader2, KeyRound } from "lucide-react";
+import { Building2, CheckCircle, Loader2, KeyRound, Wrench, Home } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
 
@@ -44,13 +44,14 @@ export default function Onboarding() {
   const redeemInvitationMutation = useMutation({
     mutationFn: (code) => base44.functions.invoke('redeemInvitation', { invitation_code: code }),
     onSuccess: (response) => {
-      setInvitationSuccess(`Connected to ${response.data.landlord_name}'s property!`);
+      const inviteeType = response.data.invitee_type || 'tenant';
+      setInvitationSuccess(`Connected to ${response.data.landlord_name}'s property as ${inviteeType}!`);
       setInvitationError("");
       
-      // Complete onboarding for tenant
+      // Complete onboarding
       setTimeout(async () => {
         await updateUserMutation.mutateAsync({
-          user_type: 'tenant',
+          user_type: inviteeType,
           phone_number: formData.phone_number,
           onboarding_completed: true
         });
@@ -131,7 +132,7 @@ export default function Onboarding() {
                 {/* Account Type */}
                 <div>
                   <Label className="text-lg font-semibold mb-4 block">I am a...</Label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <button
                       type="button"
                       onClick={() => setFormData(prev => ({ ...prev, user_type: "landlord" }))}
@@ -157,11 +158,27 @@ export default function Onboarding() {
                           : "border-gray-200 hover:border-gray-300"
                       }`}
                     >
-                      <CheckCircle className={`w-8 h-8 mx-auto mb-2 ${
+                      <Home className={`w-8 h-8 mx-auto mb-2 ${
                         formData.user_type === "tenant" ? "text-purple-600" : "text-gray-400"
                       }`} />
                       <div className="font-semibold">Tenant</div>
                       <div className="text-sm text-gray-600">Report issues</div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, user_type: "contractor" }))}
+                      className={`p-6 rounded-xl border-2 transition-all ${
+                        formData.user_type === "contractor"
+                          ? "border-orange-600 bg-orange-50"
+                          : "border-gray-200 hover:border-gray-300"
+                      }`}
+                    >
+                      <Wrench className={`w-8 h-8 mx-auto mb-2 ${
+                        formData.user_type === "contractor" ? "text-orange-600" : "text-gray-400"
+                      }`} />
+                      <div className="font-semibold">Contractor</div>
+                      <div className="text-sm text-gray-600">Manage faults</div>
                     </button>
                   </div>
                 </div>
@@ -209,8 +226,8 @@ export default function Onboarding() {
                   </>
                 )}
 
-                {/* Tenant-specific fields */}
-                {formData.user_type === "tenant" && (
+                {/* Tenant/Contractor-specific fields */}
+                {(formData.user_type === "tenant" || formData.user_type === "contractor") && (
                   <>
                     <div>
                       <Label htmlFor="tenant_phone">Phone Number (for SMS notifications) *</Label>
@@ -242,7 +259,7 @@ export default function Onboarding() {
                         required
                       />
                       <p className="text-sm text-gray-600 mt-1">
-                        Enter the code from your landlord's invitation email
+                        Enter the code from your {formData.user_type === "contractor" ? "landlord's contractor" : "landlord's"} invitation email
                       </p>
                     </div>
 
@@ -263,13 +280,16 @@ export default function Onboarding() {
                       </Alert>
                     )}
 
-                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                    <div className={`${formData.user_type === "contractor" ? "bg-orange-50 border-orange-200" : "bg-purple-50 border-purple-200"} border rounded-lg p-4`}>
                       <div className="flex items-start gap-3">
-                        <CheckCircle className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
+                        <CheckCircle className={`w-5 h-5 ${formData.user_type === "contractor" ? "text-orange-600" : "text-purple-600"} flex-shrink-0 mt-0.5`} />
                         <div>
-                          <h4 className="font-semibold text-purple-900 mb-1">Need an Invitation?</h4>
-                          <p className="text-sm text-purple-800">
-                            Ask your landlord or property manager to send you an invitation code via email.
+                          <h4 className={`font-semibold ${formData.user_type === "contractor" ? "text-orange-900" : "text-purple-900"} mb-1`}>Need an Invitation?</h4>
+                          <p className={`text-sm ${formData.user_type === "contractor" ? "text-orange-800" : "text-purple-800"}`}>
+                            {formData.user_type === "contractor" 
+                              ? "Ask the landlord to send you a contractor invitation code via email."
+                              : "Ask your landlord or property manager to send you an invitation code via email."
+                            }
                           </p>
                         </div>
                       </div>
@@ -283,7 +303,7 @@ export default function Onboarding() {
                     updateUserMutation.isPending || 
                     redeemInvitationMutation.isPending ||
                     (formData.user_type === 'landlord' && (!formData.company_name || !formData.phone_number)) ||
-                    (formData.user_type === 'tenant' && (!invitationCode || !formData.phone_number))
+                    ((formData.user_type === 'tenant' || formData.user_type === 'contractor') && (!invitationCode || !formData.phone_number))
                   }
                   className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg py-6"
                 >
