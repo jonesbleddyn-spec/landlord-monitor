@@ -20,7 +20,7 @@ import {
   Megaphone,
   Palette,
   Bell,
-  Smartphone,
+  Users,
   Wrench
 } from "lucide-react";
 import InviteTenantModal from "../components/landlord/InviteTenantModal";
