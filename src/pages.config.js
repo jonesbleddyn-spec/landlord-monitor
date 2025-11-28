@@ -20,6 +20,7 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import CookiePolicy from './pages/CookiePolicy';
 import DebugBranding from './pages/DebugBranding';
 import Features from './pages/Features';
+import ManageInvitations from './pages/ManageInvitations';
 import __Layout from './Layout.jsx';
 
 
@@ -46,6 +47,7 @@ export const PAGES = {
     "CookiePolicy": CookiePolicy,
     "DebugBranding": DebugBranding,
     "Features": Features,
+    "ManageInvitations": ManageInvitations,
 }
 
 export const pagesConfig = {

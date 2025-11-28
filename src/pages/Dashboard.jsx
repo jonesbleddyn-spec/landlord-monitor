@@ -429,8 +429,17 @@ function DashboardContent() {
                   </CardContent>
                 </Card>
               </Link>
-            </>
-          )}
+
+              <Link to={createPageUrl("ManageInvitations")} className="block">
+                <Card className="border-2 border-dashed border-gray-300 hover:border-teal-500 hover:bg-teal-50 transition-all cursor-pointer">
+                  <CardContent className="p-6 text-center">
+                    <Users className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="font-medium text-gray-700">Manage People</p>
+                  </CardContent>
+                </Card>
+              </Link>
+              </>
+              )}
 
           {isTenant && (
             <Link to={createPageUrl("ReportFault")} className="block">
