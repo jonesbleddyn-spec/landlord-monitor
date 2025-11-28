@@ -26,6 +26,7 @@ import {
 import InviteTenantModal from "../components/landlord/InviteTenantModal";
 import InviteContractorModal from "../components/landlord/InviteContractorModal";
 import AllPropertiesReport from "../components/properties/AllPropertiesReport";
+import RedeemInvitationCard from "../components/dashboard/RedeemInvitationCard";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
 
 function DashboardContent() {
