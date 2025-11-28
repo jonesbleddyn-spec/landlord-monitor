@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
 
         const inviteeType = invitation.invitee_type || 'tenant';
 
-        // Update user based on invitee type
+        // Update user based on invitee type using service role to ensure it saves
         if (inviteeType === 'contractor') {
             // For contractors, add property to their property_ids array
             const existingPropertyIds = user.property_ids || [];
@@ -56,17 +56,19 @@ Deno.serve(async (req) => {
                 ? existingPropertyIds
                 : [...existingPropertyIds, invitation.property_id];
 
-            await base44.auth.updateMe({
+            await base44.asServiceRole.entities.User.update(user.id, {
                 landlord_id: invitation.landlord_id,
                 property_ids: newPropertyIds,
-                user_type: 'contractor'
+                user_type: 'contractor',
+                onboarding_completed: true
             });
         } else {
             // For tenants, set single property_id
-            await base44.auth.updateMe({
+            await base44.asServiceRole.entities.User.update(user.id, {
                 landlord_id: invitation.landlord_id,
                 property_id: invitation.property_id,
-                user_type: 'tenant'
+                user_type: 'tenant',
+                onboarding_completed: true
             });
         }
 
