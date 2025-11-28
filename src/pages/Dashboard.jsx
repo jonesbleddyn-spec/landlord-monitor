@@ -76,19 +76,23 @@ function DashboardContent() {
   });
 
   const { data: faults = [] } = useQuery({
-    queryKey: ['user-faults'],
+    queryKey: ['user-faults', user?.id, user?.user_type, user?.property_ids],
     queryFn: async () => {
       const allFaults = await base44.entities.Fault.list('-created_date');
       if (isLandlord) {
         return allFaults.filter(f => f.landlord_id === user.id);
       } else if (isTenant && user?.property_id) {
         return allFaults.filter(f => f.property_id === user.property_id);
-      } else if (isContractor && user?.property_ids?.length > 0) {
-        return allFaults.filter(f => user.property_ids.includes(f.property_id));
+      } else if (isContractor) {
+        const propertyIds = user?.property_ids || [];
+        if (propertyIds.length > 0) {
+          return allFaults.filter(f => propertyIds.includes(f.property_id));
+        }
+        return [];
       }
-      return allFaults;
+      return [];
     },
-    enabled: !!user,
+    enabled: !!user && !!user.user_type,
   });
 
   const { data: messages = [] } = useQuery({
