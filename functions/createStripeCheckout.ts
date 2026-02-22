@@ -1,5 +1,7 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
-import Stripe from 'npm:stripe@14.11.0';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import Stripe from 'npm:stripe@17.5.0';
+
+const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY"));
 
 Deno.serve(async (req) => {
   try {
@@ -10,47 +12,40 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { plan_id, price_id } = await req.json();
-
-    // Get site settings for Stripe keys
-    const settings = await base44.asServiceRole.functions.invoke('getSiteSettings');
-    const stripeSecretKey = settings.data.settings?.stripe_secret_key;
-
-    if (!stripeSecretKey) {
-      return Response.json({ error: 'Stripe not configured' }, { status: 400 });
+    if (user.user_type !== 'landlord') {
+      return Response.json({ error: 'Only landlords can subscribe' }, { status: 403 });
     }
 
-    const stripe = new Stripe(stripeSecretKey, {
-      apiVersion: '2023-10-16',
-    });
+    const { price_id, plan_name } = await req.json();
+
+    if (!price_id || !plan_name) {
+      return Response.json({ error: 'Missing price_id or plan_name' }, { status: 400 });
+    }
 
     // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
-      payment_method_types: ['card'],
       line_items: [
         {
           price: price_id,
           quantity: 1,
         },
       ],
-      success_url: `${Deno.env.get('BASE44_APP_URL') || 'http://localhost:3000'}/subscription?success=true`,
-      cancel_url: `${Deno.env.get('BASE44_APP_URL') || 'http://localhost:3000'}/subscription?canceled=true`,
+      success_url: `${Deno.env.get("BASE44_APP_URL") || "https://app.base44.com"}/subscription?success=true`,
+      cancel_url: `${Deno.env.get("BASE44_APP_URL") || "https://app.base44.com"}/subscription?canceled=true`,
       customer_email: user.email,
-      client_reference_id: user.id,
       metadata: {
+        base44_app_id: Deno.env.get("BASE44_APP_ID"),
         user_id: user.id,
-        plan_id: plan_id,
+        user_email: user.email,
+        plan_name: plan_name,
       },
     });
 
-    return Response.json({ 
-      checkout_url: session.url,
-      session_id: session.id 
-    });
-
+    console.log('Checkout session created:', session.id);
+    return Response.json({ url: session.url });
   } catch (error) {
-    console.error('Stripe checkout error:', error);
+    console.error('Checkout error:', error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
