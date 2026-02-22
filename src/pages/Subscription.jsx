@@ -77,26 +77,43 @@ function SubscriptionContent() {
   const changePlanMutation = useMutation({
     mutationFn: async (planId) => {
       const plan = plans.find(p => p.id === planId);
-      if (stripeSettings?.stripe_enabled && plan?.stripe_price_id) {
-        return await base44.functions.invoke('createStripeCheckout', { 
-          plan_id: planId,
-          price_id: plan.stripe_price_id 
-        });
-      } else {
-        return await base44.functions.invoke('changeSubscriptionPlan', { plan_id: planId });
+      
+      // Check if we're in an iframe (preview mode)
+      if (window.self !== window.top) {
+        throw new Error('IFRAME_CHECKOUT');
       }
+      
+      // Use Stripe checkout
+      return await base44.functions.invoke('createStripeCheckout', { 
+        price_id: plan.stripe_price_id || getStripePriceId(plan.name),
+        plan_name: plan.name
+      });
     },
     onSuccess: (data) => {
-      if (data.data?.checkout_url) {
-        window.location.href = data.data.checkout_url;
+      if (data.data?.url) {
+        window.location.href = data.data.url;
       } else {
         queryClient.invalidateQueries({ queryKey: ['user'] });
         setSelectedPlan(null);
-        toast.success("Subscription updated successfully");
       }
     },
-    onError: () => toast.error("Failed to update subscription")
+    onError: (error) => {
+      if (error.message === 'IFRAME_CHECKOUT') {
+        alert('Checkout is only available in the published app. Please publish your app and open it in a new tab to complete checkout.');
+      } else {
+        alert('Failed to start checkout: ' + error.message);
+      }
+    }
   });
+
+  const getStripePriceId = (planName) => {
+    const priceMap = {
+      'Basic Plan': 'price_1T3cR06TnKUeM8wD36H89LoO',
+      'Pro Plan': 'price_1T3cR06TnKUeM8wD1HXxojay',
+      'Enterprise Plan': 'price_1T3cR06TnKUeM8wDmxPOopQl'
+    };
+    return priceMap[planName] || '';
+  };
 
   const currentPlan = user?.subscription_plan_id;
   const currentPlanDetails = plans.find(p => p.id === currentPlan);
