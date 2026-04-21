@@ -9,6 +9,30 @@ const restHeaders = {
   "Content-Type": "application/json",
 };
 
+// Strip out any keys that don't exist in the table schema, or just let Supabase ignore them
+// Instead we'll sanitize rows to only include known columns per table
+const TABLE_COLUMNS = {
+  properties: ["id","created_date","updated_date","created_by","created_by_id","landlord_id","property_code","name","address","type","units","manager_email","image_url","gas_certificate_expiry","electrical_certificate_expiry","epc_expiry","show_compliance_to_tenants"],
+  faults: ["id","created_date","updated_date","created_by","created_by_id","landlord_id","property_id","title","description","category","priority","status","location","unit_number","images","contractor_name","estimated_completion","completed_date","notes"],
+  documents: ["id","created_date","updated_date","created_by","created_by_id","landlord_id","property_id","title","document_type","file_url","unit_number","expiry_date","notes"],
+  messages: ["id","created_date","updated_date","created_by","created_by_id","landlord_id","property_id","message_type","title","content","priority","author_name","is_admin_broadcast"],
+  invitations: ["id","created_date","updated_date","created_by","created_by_id","code","landlord_id","landlord_name","invitee_email","invitee_name","invitee_type","property_id","expires_at","status","used_at","used_by"],
+  payments: ["id","created_date","updated_date","created_by","created_by_id","landlord_id","amount","currency","status","payment_method","subscription_plan","stripe_payment_id","stripe_invoice_id","billing_period_start","billing_period_end","invoice_url"],
+  reminders: ["id","created_date","updated_date","created_by","created_by_id","landlord_id","title","description","reminder_date","category","property_id","first_reminder_days","second_reminder_days","first_reminder_sent","second_reminder_sent","completed"],
+  subscription_plans: ["id","created_date","updated_date","created_by","created_by_id","name","price","currency","billing_interval","features","max_properties","storage_mb","is_popular","is_active","stripe_price_id","sort_order"],
+  site_settings: ["id","created_date","updated_date","created_by","created_by_id","site_name","site_url","support_email","smtp_host","smtp_port","smtp_username","smtp_password","smtp_from_email","smtp_from_name","smtp_use_tls","maintenance_mode","maintenance_message","max_login_attempts","session_timeout","require_email_verification","max_file_size","allowed_file_types","social_facebook","social_twitter","social_linkedin","social_instagram","social_youtube"],
+};
+
+// First, discover what fields actually exist in the data and detect unknown columns
+function sanitizeRow(row, table) {
+  const allowedCols = TABLE_COLUMNS[table];
+  const sanitized = {};
+  for (const key of allowedCols) {
+    if (key in row) sanitized[key] = row[key];
+  }
+  return sanitized;
+}
+
 async function upsertRows(table, rows) {
   if (!rows || rows.length === 0) return { inserted: 0 };
   
@@ -16,7 +40,7 @@ async function upsertRows(table, rows) {
   let totalInserted = 0;
   
   for (let i = 0; i < rows.length; i += batchSize) {
-    const batch = rows.slice(i, i + batchSize);
+    const batch = rows.slice(i, i + batchSize).map(r => sanitizeRow(r, table));
     const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
       method: "POST",
       headers: { ...restHeaders, "Prefer": "resolution=merge-duplicates,return=minimal" },
@@ -33,18 +57,13 @@ async function upsertRows(table, rows) {
   return { inserted: totalInserted };
 }
 
-async function checkTablesExist() {
-  // Try to query each table to see if it exists
-  const tables = ["properties", "faults", "documents", "messages", "invitations", "payments", "reminders", "subscription_plans", "site_settings"];
-  const results = {};
-  
-  for (const table of tables) {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?limit=1`, {
-      headers: restHeaders
-    });
-    results[table] = res.status === 200 ? "exists" : `missing (${res.status})`;
+// Detect all unique keys across all rows to find any new columns we need to add
+function detectColumns(rows) {
+  const keys = new Set();
+  for (const row of rows) {
+    for (const k of Object.keys(row)) keys.add(k);
   }
-  return results;
+  return [...keys];
 }
 
 Deno.serve(async (req) => {
@@ -58,193 +77,29 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const step = body.step || 'migrate';
 
-    // Step: check if tables exist
-    if (step === 'check') {
-      const tableStatus = await checkTablesExist();
-      return Response.json({ tableStatus });
+    if (step === 'detect') {
+      // Detect actual columns in Base44 data
+      const [properties, faults, documents, messages, invitations, payments, reminders] = await Promise.all([
+        base44.asServiceRole.entities.Property.list(),
+        base44.asServiceRole.entities.Fault.list(),
+        base44.asServiceRole.entities.Document.list(),
+        base44.asServiceRole.entities.Message.list(),
+        base44.asServiceRole.entities.Invitation.list(),
+        base44.asServiceRole.entities.Payment.list(),
+        base44.asServiceRole.entities.Reminder.list(),
+      ]);
+      return Response.json({
+        properties: detectColumns(properties),
+        faults: detectColumns(faults),
+        documents: detectColumns(documents),
+        messages: detectColumns(messages),
+        invitations: detectColumns(invitations),
+        payments: detectColumns(payments),
+        reminders: detectColumns(reminders),
+      });
     }
 
-    // Step: get the SQL to create tables (paste in Supabase SQL editor)
-    if (step === 'get_sql') {
-      const sql = `
--- Run this in your Supabase SQL Editor (https://supabase.com/dashboard/project/ekwumugpctllqtyevyhx/sql)
-
-CREATE TABLE IF NOT EXISTS public.properties (
-  id TEXT PRIMARY KEY,
-  created_date TIMESTAMPTZ,
-  updated_date TIMESTAMPTZ,
-  created_by TEXT,
-  landlord_id TEXT,
-  property_code TEXT,
-  name TEXT,
-  address TEXT,
-  type TEXT,
-  units INTEGER,
-  manager_email TEXT,
-  image_url TEXT,
-  gas_certificate_expiry DATE,
-  electrical_certificate_expiry DATE,
-  epc_expiry DATE,
-  show_compliance_to_tenants BOOLEAN DEFAULT true
-);
-
-CREATE TABLE IF NOT EXISTS public.faults (
-  id TEXT PRIMARY KEY,
-  created_date TIMESTAMPTZ,
-  updated_date TIMESTAMPTZ,
-  created_by TEXT,
-  landlord_id TEXT,
-  property_id TEXT,
-  title TEXT,
-  description TEXT,
-  category TEXT,
-  priority TEXT DEFAULT 'medium',
-  status TEXT DEFAULT 'reported',
-  location TEXT,
-  unit_number TEXT,
-  images JSONB,
-  contractor_name TEXT,
-  estimated_completion DATE,
-  completed_date DATE,
-  notes TEXT
-);
-
-CREATE TABLE IF NOT EXISTS public.documents (
-  id TEXT PRIMARY KEY,
-  created_date TIMESTAMPTZ,
-  updated_date TIMESTAMPTZ,
-  created_by TEXT,
-  landlord_id TEXT,
-  property_id TEXT,
-  title TEXT,
-  document_type TEXT,
-  file_url TEXT,
-  unit_number TEXT,
-  expiry_date DATE,
-  notes TEXT
-);
-
-CREATE TABLE IF NOT EXISTS public.messages (
-  id TEXT PRIMARY KEY,
-  created_date TIMESTAMPTZ,
-  updated_date TIMESTAMPTZ,
-  created_by TEXT,
-  landlord_id TEXT,
-  property_id TEXT,
-  message_type TEXT,
-  title TEXT,
-  content TEXT,
-  priority TEXT DEFAULT 'normal',
-  author_name TEXT,
-  is_admin_broadcast BOOLEAN DEFAULT false
-);
-
-CREATE TABLE IF NOT EXISTS public.invitations (
-  id TEXT PRIMARY KEY,
-  created_date TIMESTAMPTZ,
-  updated_date TIMESTAMPTZ,
-  created_by TEXT,
-  code TEXT,
-  landlord_id TEXT,
-  landlord_name TEXT,
-  invitee_email TEXT,
-  invitee_name TEXT,
-  invitee_type TEXT DEFAULT 'tenant',
-  property_id TEXT,
-  expires_at TIMESTAMPTZ,
-  status TEXT DEFAULT 'pending',
-  used_at TIMESTAMPTZ,
-  used_by TEXT
-);
-
-CREATE TABLE IF NOT EXISTS public.payments (
-  id TEXT PRIMARY KEY,
-  created_date TIMESTAMPTZ,
-  updated_date TIMESTAMPTZ,
-  created_by TEXT,
-  landlord_id TEXT,
-  amount NUMERIC,
-  currency TEXT DEFAULT 'GBP',
-  status TEXT DEFAULT 'pending',
-  payment_method TEXT,
-  subscription_plan TEXT,
-  stripe_payment_id TEXT,
-  stripe_invoice_id TEXT,
-  billing_period_start DATE,
-  billing_period_end DATE,
-  invoice_url TEXT
-);
-
-CREATE TABLE IF NOT EXISTS public.reminders (
-  id TEXT PRIMARY KEY,
-  created_date TIMESTAMPTZ,
-  updated_date TIMESTAMPTZ,
-  created_by TEXT,
-  landlord_id TEXT,
-  title TEXT,
-  description TEXT,
-  reminder_date DATE,
-  category TEXT DEFAULT 'other',
-  property_id TEXT,
-  first_reminder_days INTEGER DEFAULT 7,
-  second_reminder_days INTEGER DEFAULT 1,
-  first_reminder_sent BOOLEAN DEFAULT false,
-  second_reminder_sent BOOLEAN DEFAULT false,
-  completed BOOLEAN DEFAULT false
-);
-
-CREATE TABLE IF NOT EXISTS public.subscription_plans (
-  id TEXT PRIMARY KEY,
-  created_date TIMESTAMPTZ,
-  updated_date TIMESTAMPTZ,
-  created_by TEXT,
-  name TEXT,
-  price NUMERIC,
-  currency TEXT DEFAULT 'GBP',
-  billing_interval TEXT DEFAULT 'month',
-  features JSONB,
-  max_properties INTEGER,
-  storage_mb INTEGER,
-  is_popular BOOLEAN DEFAULT false,
-  is_active BOOLEAN DEFAULT true,
-  stripe_price_id TEXT,
-  sort_order INTEGER DEFAULT 0
-);
-
-CREATE TABLE IF NOT EXISTS public.site_settings (
-  id TEXT PRIMARY KEY,
-  created_date TIMESTAMPTZ,
-  updated_date TIMESTAMPTZ,
-  created_by TEXT,
-  site_name TEXT,
-  site_url TEXT,
-  support_email TEXT,
-  smtp_host TEXT,
-  smtp_port INTEGER,
-  smtp_username TEXT,
-  smtp_password TEXT,
-  smtp_from_email TEXT,
-  smtp_from_name TEXT,
-  smtp_use_tls BOOLEAN,
-  maintenance_mode BOOLEAN,
-  maintenance_message TEXT,
-  max_login_attempts INTEGER,
-  session_timeout INTEGER,
-  require_email_verification BOOLEAN,
-  max_file_size INTEGER,
-  allowed_file_types TEXT,
-  social_facebook TEXT,
-  social_twitter TEXT,
-  social_linkedin TEXT,
-  social_instagram TEXT,
-  social_youtube TEXT
-);
-      `.trim();
-
-      return Response.json({ sql });
-    }
-
-    // Step: migrate data (tables must already exist)
+    // Migrate: fetch all data and insert
     console.log("Fetching data from Base44...");
     const [properties, faults, documents, messages, invitations, payments, reminders, subscriptionPlans, siteSettings] = await Promise.all([
       base44.asServiceRole.entities.Property.list(),
