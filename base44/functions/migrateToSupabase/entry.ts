@@ -28,7 +28,11 @@ function sanitizeRow(row, table) {
   const allowedCols = TABLE_COLUMNS[table];
   const sanitized = {};
   for (const key of allowedCols) {
-    if (key in row) sanitized[key] = row[key];
+    if (key in row) {
+      const val = row[key];
+      // Convert empty strings to null to avoid type errors on DATE/TIMESTAMPTZ fields
+      sanitized[key] = (val === "" || val === undefined) ? null : val;
+    }
   }
   return sanitized;
 }
@@ -40,7 +44,14 @@ async function upsertRows(table, rows) {
   let totalInserted = 0;
   
   for (let i = 0; i < rows.length; i += batchSize) {
-    const batch = rows.slice(i, i + batchSize).map(r => sanitizeRow(r, table));
+    const rawBatch = rows.slice(i, i + batchSize).map(r => sanitizeRow(r, table));
+    // Ensure all rows have identical keys (required by PostgREST)
+    const allKeys = [...new Set(rawBatch.flatMap(r => Object.keys(r)))];
+    const batch = rawBatch.map(r => {
+      const normalized = {};
+      for (const k of allKeys) normalized[k] = k in r ? r[k] : null;
+      return normalized;
+    });
     const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
       method: "POST",
       headers: { ...restHeaders, "Prefer": "resolution=merge-duplicates,return=minimal" },
