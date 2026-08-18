@@ -1,0 +1,70 @@
+{
+  "name": "Invitation",
+  "type": "object",
+  "properties": {
+    "code": {
+      "type": "string",
+      "description": "Unique invitation code"
+    },
+    "landlord_id": {
+      "type": "string",
+      "description": "Landlord who sent the invitation"
+    },
+    "landlord_name": {
+      "type": "string",
+      "description": "Name of the landlord/company"
+    },
+    "invitee_email": {
+      "type": "string",
+      "description": "Email of invited person"
+    },
+    "invitee_name": {
+      "type": "string",
+      "description": "Name of invited person"
+    },
+    "invitee_type": {
+      "type": "string",
+      "enum": [
+        "tenant",
+        "contractor"
+      ],
+      "default": "tenant",
+      "description": "Type of invitee"
+    },
+    "property_id": {
+      "type": "string",
+      "description": "Property the person is invited to"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Expiration date of invitation"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "accepted",
+        "expired"
+      ],
+      "default": "pending",
+      "description": "Status of the invitation"
+    },
+    "used_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the invitation was used"
+    },
+    "used_by": {
+      "type": "string",
+      "description": "User ID who used this invitation"
+    }
+  },
+  "required": [
+    "code",
+    "landlord_id",
+    "invitee_email",
+    "property_id",
+    "expires_at"
+  ]
+}

@@ -1,0 +1,100 @@
+{
+  "name": "Fault",
+  "type": "object",
+  "properties": {
+    "landlord_id": {
+      "type": "string",
+      "description": "Owner/landlord of this fault"
+    },
+    "property_id": {
+      "type": "string",
+      "description": "Reference to the property"
+    },
+    "title": {
+      "type": "string",
+      "description": "Brief description of the fault"
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed description"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "plumbing",
+        "electrical",
+        "heating",
+        "structural",
+        "appliances",
+        "security",
+        "pest_control",
+        "cleaning",
+        "other"
+      ],
+      "description": "Category of the fault"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "urgent"
+      ],
+      "default": "medium",
+      "description": "Priority level"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "reported",
+        "acknowledged",
+        "in_progress",
+        "contractor_assigned",
+        "completed",
+        "closed"
+      ],
+      "default": "reported",
+      "description": "Current status"
+    },
+    "location": {
+      "type": "string",
+      "description": "Specific location within the property"
+    },
+    "unit_number": {
+      "type": "string",
+      "description": "Unit or apartment number"
+    },
+    "images": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Array of image URLs"
+    },
+    "contractor_name": {
+      "type": "string",
+      "description": "Assigned contractor"
+    },
+    "estimated_completion": {
+      "type": "string",
+      "format": "date",
+      "description": "Estimated completion date"
+    },
+    "completed_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Actual completion date"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes or updates"
+    }
+  },
+  "required": [
+    "landlord_id",
+    "property_id",
+    "title",
+    "category"
+  ]
+}

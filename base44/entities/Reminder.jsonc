@@ -1,0 +1,70 @@
+{
+  "name": "Reminder",
+  "type": "object",
+  "properties": {
+    "landlord_id": {
+      "type": "string",
+      "description": "Landlord who created this reminder"
+    },
+    "title": {
+      "type": "string",
+      "description": "Reminder title"
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed description"
+    },
+    "reminder_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of the reminder"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "maintenance",
+        "inspection",
+        "certificate",
+        "insurance",
+        "payment",
+        "other"
+      ],
+      "default": "other",
+      "description": "Type of reminder"
+    },
+    "property_id": {
+      "type": "string",
+      "description": "Related property (optional)"
+    },
+    "first_reminder_days": {
+      "type": "number",
+      "default": 7,
+      "description": "Days before to send first reminder email"
+    },
+    "second_reminder_days": {
+      "type": "number",
+      "default": 1,
+      "description": "Days before to send second reminder email"
+    },
+    "first_reminder_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether first reminder was sent"
+    },
+    "second_reminder_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether second reminder was sent"
+    },
+    "completed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether reminder is completed"
+    }
+  },
+  "required": [
+    "landlord_id",
+    "title",
+    "reminder_date"
+  ]
+}

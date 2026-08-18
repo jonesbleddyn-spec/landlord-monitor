@@ -1,0 +1,71 @@
+{
+  "name": "Payment",
+  "type": "object",
+  "properties": {
+    "landlord_id": {
+      "type": "string",
+      "description": "Landlord who made the payment"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Payment amount"
+    },
+    "currency": {
+      "type": "string",
+      "default": "GBP",
+      "description": "Payment currency"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "completed",
+        "failed",
+        "refunded"
+      ],
+      "default": "pending",
+      "description": "Payment status"
+    },
+    "payment_method": {
+      "type": "string",
+      "description": "Payment method used"
+    },
+    "subscription_plan": {
+      "type": "string",
+      "enum": [
+        "free",
+        "basic",
+        "pro"
+      ],
+      "description": "Plan this payment is for"
+    },
+    "stripe_payment_id": {
+      "type": "string",
+      "description": "Stripe payment intent ID"
+    },
+    "stripe_invoice_id": {
+      "type": "string",
+      "description": "Stripe invoice ID"
+    },
+    "billing_period_start": {
+      "type": "string",
+      "format": "date",
+      "description": "Start of billing period"
+    },
+    "billing_period_end": {
+      "type": "string",
+      "format": "date",
+      "description": "End of billing period"
+    },
+    "invoice_url": {
+      "type": "string",
+      "description": "URL to download invoice"
+    }
+  },
+  "required": [
+    "landlord_id",
+    "amount",
+    "status",
+    "subscription_plan"
+  ]
+}

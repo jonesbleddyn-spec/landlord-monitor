@@ -1,0 +1,95 @@
+{
+  "name": "SiteSettings",
+  "type": "object",
+  "properties": {
+    "site_name": {
+      "type": "string",
+      "description": "Name of the site"
+    },
+    "site_url": {
+      "type": "string",
+      "description": "Site URL"
+    },
+    "support_email": {
+      "type": "string",
+      "description": "Support email address"
+    },
+    "smtp_host": {
+      "type": "string",
+      "description": "SMTP host"
+    },
+    "smtp_port": {
+      "type": "number",
+      "description": "SMTP port"
+    },
+    "smtp_username": {
+      "type": "string",
+      "description": "SMTP username"
+    },
+    "smtp_password": {
+      "type": "string",
+      "description": "SMTP password"
+    },
+    "smtp_from_email": {
+      "type": "string",
+      "description": "From email address"
+    },
+    "smtp_from_name": {
+      "type": "string",
+      "description": "From name"
+    },
+    "smtp_use_tls": {
+      "type": "boolean",
+      "description": "Use TLS/SSL"
+    },
+    "maintenance_mode": {
+      "type": "boolean",
+      "description": "Enable maintenance mode"
+    },
+    "maintenance_message": {
+      "type": "string",
+      "description": "Maintenance mode message"
+    },
+    "max_login_attempts": {
+      "type": "number",
+      "description": "Maximum login attempts"
+    },
+    "session_timeout": {
+      "type": "number",
+      "description": "Session timeout in hours"
+    },
+    "require_email_verification": {
+      "type": "boolean",
+      "description": "Require email verification"
+    },
+    "max_file_size": {
+      "type": "number",
+      "description": "Maximum file size in MB"
+    },
+    "allowed_file_types": {
+      "type": "string",
+      "description": "Allowed file types (comma-separated)"
+    },
+    "social_facebook": {
+      "type": "string",
+      "description": "Facebook profile/page URL"
+    },
+    "social_twitter": {
+      "type": "string",
+      "description": "Twitter/X profile URL"
+    },
+    "social_linkedin": {
+      "type": "string",
+      "description": "LinkedIn profile/company URL"
+    },
+    "social_instagram": {
+      "type": "string",
+      "description": "Instagram profile URL"
+    },
+    "social_youtube": {
+      "type": "string",
+      "description": "YouTube channel URL"
+    }
+  },
+  "required": []
+}

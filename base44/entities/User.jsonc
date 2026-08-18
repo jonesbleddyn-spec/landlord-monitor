@@ -1,0 +1,128 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "user_type": {
+      "type": "string",
+      "enum": [
+        "landlord",
+        "tenant",
+        "contractor"
+      ],
+      "description": "Type of user"
+    },
+    "property_id": {
+      "type": "string",
+      "description": "Property ID for tenants (single property)"
+    },
+    "property_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Property IDs for contractors (multiple properties)"
+    },
+    "landlord_id": {
+      "type": "string",
+      "description": "Landlord ID for tenants and contractors"
+    },
+    "phone_number": {
+      "type": "string",
+      "description": "Phone number for SMS notifications"
+    },
+    "company_name": {
+      "type": "string",
+      "description": "Company name for landlords"
+    },
+    "company_logo": {
+      "type": "string",
+      "description": "Company logo URL for landlords"
+    },
+    "brand_color_primary": {
+      "type": "string",
+      "description": "Primary brand color for white label"
+    },
+    "brand_color_secondary": {
+      "type": "string",
+      "description": "Secondary brand color for white label"
+    },
+    "smtp_host": {
+      "type": "string",
+      "description": "Custom SMTP host for email sending"
+    },
+    "smtp_port": {
+      "type": "number",
+      "description": "Custom SMTP port"
+    },
+    "smtp_username": {
+      "type": "string",
+      "description": "Custom SMTP username"
+    },
+    "smtp_password": {
+      "type": "string",
+      "description": "Custom SMTP password (encrypted)"
+    },
+    "smtp_from_email": {
+      "type": "string",
+      "description": "From email address for custom SMTP"
+    },
+    "smtp_from_name": {
+      "type": "string",
+      "description": "From name for custom SMTP"
+    },
+    "use_custom_smtp": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether to use custom SMTP for emails"
+    },
+    "twilio_account_sid": {
+      "type": "string",
+      "description": "Twilio Account SID for SMS"
+    },
+    "twilio_auth_token": {
+      "type": "string",
+      "description": "Twilio Auth Token (encrypted)"
+    },
+    "twilio_phone_number": {
+      "type": "string",
+      "description": "Twilio phone number for sending SMS"
+    },
+    "use_custom_sms": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether to use custom Twilio for SMS"
+    },
+    "onboarding_completed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether user has completed onboarding"
+    },
+    "subscription_plan": {
+      "type": "string",
+      "enum": [
+        "free",
+        "basic",
+        "pro"
+      ],
+      "default": "free",
+      "description": "Current subscription plan"
+    },
+    "subscription_status": {
+      "type": "string",
+      "enum": [
+        "trial",
+        "active",
+        "cancelled",
+        "expired"
+      ],
+      "default": "trial",
+      "description": "Subscription status"
+    },
+    "trial_end_date": {
+      "type": "string",
+      "format": "date",
+      "description": "End date of trial period"
+    }
+  },
+  "required": []
+}

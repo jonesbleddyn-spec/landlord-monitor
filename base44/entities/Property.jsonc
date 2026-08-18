@@ -1,0 +1,70 @@
+{
+  "name": "Property",
+  "type": "object",
+  "properties": {
+    "landlord_id": {
+      "type": "string",
+      "description": "Owner/landlord of this property"
+    },
+    "property_code": {
+      "type": "string",
+      "description": "Unique 5-character alphanumeric code for public access"
+    },
+    "name": {
+      "type": "string",
+      "description": "Property or building name"
+    },
+    "address": {
+      "type": "string",
+      "description": "Full address"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "apartment",
+        "house",
+        "commercial",
+        "mixed_use"
+      ],
+      "description": "Type of property"
+    },
+    "units": {
+      "type": "number",
+      "description": "Number of units in the property"
+    },
+    "manager_email": {
+      "type": "string",
+      "description": "Property manager email"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "Property image"
+    },
+    "gas_certificate_expiry": {
+      "type": "string",
+      "format": "date",
+      "description": "Gas safety certificate expiry date"
+    },
+    "electrical_certificate_expiry": {
+      "type": "string",
+      "format": "date",
+      "description": "Electrical safety certificate expiry date"
+    },
+    "epc_expiry": {
+      "type": "string",
+      "format": "date",
+      "description": "EPC (Energy Performance Certificate) expiry date"
+    },
+    "show_compliance_to_tenants": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether to show compliance dates to tenants"
+    }
+  },
+  "required": [
+    "landlord_id",
+    "property_code",
+    "name",
+    "address"
+  ]
+}

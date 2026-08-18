@@ -1,0 +1,55 @@
+{
+  "name": "Document",
+  "type": "object",
+  "properties": {
+    "landlord_id": {
+      "type": "string",
+      "description": "Owner/landlord of this document"
+    },
+    "property_id": {
+      "type": "string",
+      "description": "Related property"
+    },
+    "title": {
+      "type": "string",
+      "description": "Document title"
+    },
+    "document_type": {
+      "type": "string",
+      "enum": [
+        "contract",
+        "lease",
+        "insurance",
+        "inspection",
+        "maintenance",
+        "certificate",
+        "other"
+      ],
+      "description": "Type of document"
+    },
+    "file_url": {
+      "type": "string",
+      "description": "URL to the document file"
+    },
+    "unit_number": {
+      "type": "string",
+      "description": "Associated unit number if applicable"
+    },
+    "expiry_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Document expiry date if applicable"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes"
+    }
+  },
+  "required": [
+    "landlord_id",
+    "property_id",
+    "title",
+    "document_type",
+    "file_url"
+  ]
+}

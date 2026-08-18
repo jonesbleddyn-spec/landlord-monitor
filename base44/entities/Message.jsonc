@@ -1,0 +1,55 @@
+{
+  "name": "Message",
+  "type": "object",
+  "properties": {
+    "landlord_id": {
+      "type": "string",
+      "description": "Owner/landlord of this message (null for admin broadcasts)"
+    },
+    "property_id": {
+      "type": "string",
+      "description": "Property/building this message belongs to (null for admin broadcasts)"
+    },
+    "message_type": {
+      "type": "string",
+      "enum": [
+        "notice",
+        "community",
+        "announcement",
+        "admin_broadcast",
+        "contractor_message",
+        "tenant_message"
+      ],
+      "description": "Type of message"
+    },
+    "title": {
+      "type": "string",
+      "description": "Message title"
+    },
+    "content": {
+      "type": "string",
+      "description": "Message content"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "normal",
+        "important"
+      ],
+      "default": "normal"
+    },
+    "author_name": {
+      "type": "string",
+      "description": "Name of the person who posted"
+    },
+    "is_admin_broadcast": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if this is an admin broadcast to all landlords"
+    }
+  },
+  "required": [
+    "message_type",
+    "content"
+  ]
+}
